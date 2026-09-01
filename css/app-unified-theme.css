@@ -1,0 +1,170 @@
+/**
+ * Darzibaba — app overrides (loads after theme.css + dz-design-system.css)
+ * Keeps RTL, Urdu, and page-specific rules only. Tokens live in dz-design-system.css.
+ */
+
+/* Language switcher */
+.app-lang-switcher {
+	display: inline-flex;
+	border: 1px solid var(--dz-outline);
+	border-radius: var(--dz-radius-full);
+	overflow: hidden;
+	background: var(--dz-surface);
+}
+.app-lang-switcher__btn {
+	display: inline-block;
+	padding: 4px 10px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-decoration: none;
+	color: var(--dz-text-secondary);
+	background: transparent;
+}
+.app-lang-switcher__btn:hover {
+	background: var(--dz-primary-container);
+	color: var(--dz-primary-dark);
+	text-decoration: none;
+}
+.app-lang-switcher__btn.is-active {
+	background: var(--dz-primary);
+	color: #fff;
+}
+.menu-sidebar .app-lang-switcher-wrap {
+	padding: 8px 12px 12px;
+	text-align: center;
+}
+.header-mobile-inner .app-lang-switcher-wrap {
+	margin-left: auto;
+	margin-right: 8px;
+}
+.erp-header-right .app-lang-switcher-wrap,
+.dz-topbar__lang {
+	margin: 0 !important;
+}
+
+.dz-topbar-mobile__lang {
+	margin: 0 !important;
+}
+
+/* RTL UI (Urdu + Arabic) */
+html.app-lang-rtl .menu-sidebar,
+html.app-lang-rtl .navbar-sidebar,
+html.app-lang-rtl .erp-card-head,
+html.app-lang-rtl .erp-module-title,
+html.app-lang-rtl .dz-card__header,
+html.app-lang-rtl .form-group label,
+html.app-lang-rtl .control-label,
+html.app-lang-rtl .erp-breadcrumb,
+html.app-lang-rtl .table th,
+html.app-lang-rtl .table td,
+html.app-lang-ur .menu-sidebar,
+html.app-lang-ur .navbar-sidebar,
+html.app-lang-ur .erp-card-head,
+html.app-lang-ur .erp-module-title,
+html.app-lang-ur .dz-card__header,
+html.app-lang-ur .form-group label,
+html.app-lang-ur .control-label,
+html.app-lang-ur .erp-breadcrumb,
+html.app-lang-ur .table th,
+html.app-lang-ur .table td {
+	text-align: right;
+}
+html.app-lang-rtl .dz-topbar__inner,
+html.app-lang-rtl .dz-topbar-mobile__inner,
+html.app-lang-ur .dz-topbar__inner,
+html.app-lang-ur .dz-topbar-mobile__inner {
+	direction: rtl;
+}
+
+html.app-lang-rtl .dz-topbar__crumb,
+html.app-lang-ur .dz-topbar__crumb {
+	flex-direction: row-reverse;
+	justify-content: flex-end;
+}
+html.app-lang-rtl input[type="date"],
+html.app-lang-rtl input[type="number"],
+html.app-lang-rtl input[type="tel"],
+html.app-lang-rtl .form-control[type="text"]:not(.urd):not(.txtbox),
+html.app-lang-ur input[type="date"],
+html.app-lang-ur input[type="number"],
+html.app-lang-ur input[type="tel"],
+html.app-lang-ur .form-control[type="text"]:not(.urd):not(.txtbox) {
+	direction: ltr;
+	text-align: left;
+}
+html.app-lang-rtl .order-remark-group,
+html.app-lang-rtl .order-predefined-tags,
+html.app-lang-rtl input.urd,
+html.app-lang-rtl input.txtbox,
+html.app-lang-ur .order-remark-group,
+html.app-lang-ur .order-predefined-tags,
+html.app-lang-ur input.urd,
+html.app-lang-ur input.txtbox {
+	direction: rtl;
+	text-align: right;
+}
+html.app-lang-rtl .dataTables_wrapper,
+html.app-lang-ur .dataTables_wrapper {
+	direction: rtl;
+}
+html.app-lang-rtl .erp-entry-number,
+html.app-lang-ur .erp-entry-number {
+	margin-left: 0;
+	margin-right: auto;
+}
+html.app-lang-ar body.animsition,
+html.app-lang-ar body.erp-app,
+html.app-lang-ar .dz-card__title,
+html.app-lang-ar .erp-module-title {
+	font-family: var(--dz-font-arabic) !important;
+}
+
+html.app-lang-ur .menu-sidebar,
+html.app-lang-ur .navbar-sidebar {
+	text-align: initial;
+	direction: ltr;
+}
+
+html.app-lang-ar .menu-sidebar,
+html.app-lang-ar .navbar-sidebar {
+	text-align: initial;
+	direction: ltr;
+}
+
+/* Legacy alias — keep urdu-only rules above for older cached HTML */
+
+html {
+	overflow-y: scroll;
+}
+
+body.animsition,
+body.erp-app {
+	overflow-x: hidden;
+	overflow-y: auto !important;
+	height: auto !important;
+	min-height: 100vh;
+}
+
+/* Data entry card spacing */
+.data-entry-card .erp-card-head {
+	flex-wrap: wrap;
+}
+
+.erp-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--dz-space-3);
+	margin-bottom: var(--dz-space-4);
+}
+
+.erp-entry-number {
+	font-size: 0.8125rem;
+	color: var(--dz-text-muted);
+	margin-left: auto;
+}
+
+.order-form-page .order-entry-card .erp-card-body,
+.order-form-page .order-entry-card .dz-card__body {
+	padding-top: var(--dz-space-4) !important;
+}

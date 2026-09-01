@@ -1,0 +1,38 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['master_style'] = 'Style';
+$lang['master_embroidery'] = 'Embroidery';
+$lang['master_suit'] = 'Suit Type';
+$lang['master_button'] = 'Button';
+$lang['master_employee'] = 'Employee';
+$lang['master_employee_rate'] = 'Design Assign to Employee';
+$lang['master_employee_form'] = 'Employee Form';
+$lang['master_employee_created'] = 'Employee Successfully Created';
+$lang['master_style_form'] = 'Style Form';
+$lang['master_style_created'] = 'Style Successfully created';
+$lang['master_embroidery_form'] = 'Embroidery Form';
+$lang['master_embroidery_created'] = 'Embroidery Successfully created';
+$lang['master_suit_form'] = 'Suit Type Form';
+$lang['master_button_form'] = 'Button Form';
+$lang['master_button_created'] = 'Button Successfully created';
+$lang['master_design_assign_form'] = 'Style Assign to Employee Form';
+$lang['master_volume_name'] = 'Volume Name';
+$lang['master_volume_no'] = 'Volume No';
+$lang['master_design_no_label'] = 'Design No';
+$lang['master_rate'] = 'Rate';
+$lang['master_name'] = 'Name';
+$lang['master_employee_name'] = 'Employee Name';
+$lang['master_employee_type'] = 'Employee Type';
+$lang['master_select_employee_type'] = 'Select employee type';
+$lang['master_employee_type_cutting'] = 'Cutting';
+$lang['master_employee_type_stitching'] = 'Stitching';
+$lang['master_employee_type_staff'] = 'Staff';
+$lang['master_employee_status'] = 'Status';
+$lang['master_employee_status_active'] = 'Active';
+$lang['master_employee_status_inactive'] = 'Inactive';
+$lang['master_cnic'] = 'CNIC';
+$lang['master_emergency_contact'] = 'Emergency Contact';
+$lang['master_button_name'] = 'Button Name';
+$lang['master_style_no'] = 'Style No';
+$lang['master_employee_name_phone'] = 'Employee Name / Phone';

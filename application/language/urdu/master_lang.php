@@ -1,0 +1,38 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['master_style'] = 'اسٹائل';
+$lang['master_embroidery'] = 'کڑھائی';
+$lang['master_suit'] = 'سوٹ کی قسم';
+$lang['master_button'] = 'بٹن';
+$lang['master_employee'] = 'ملازم';
+$lang['master_employee_rate'] = 'ملازم کو ڈیزائن';
+$lang['master_employee_form'] = 'ملازم فارم';
+$lang['master_employee_created'] = 'ملازم کامیابی سے بن گیا';
+$lang['master_style_form'] = 'اسٹائل فارم';
+$lang['master_style_created'] = 'اسٹائل کامیابی سے بن گیا';
+$lang['master_embroidery_form'] = 'کڑھائی فارم';
+$lang['master_embroidery_created'] = 'کڑھائی کامیابی سے بن گئی';
+$lang['master_suit_form'] = 'سوٹ کی قسم فارم';
+$lang['master_button_form'] = 'بٹن فارم';
+$lang['master_button_created'] = 'بٹن کامیابی سے بن گیا';
+$lang['master_design_assign_form'] = 'ملازم کو اسٹائل';
+$lang['master_volume_name'] = 'والیم نام';
+$lang['master_volume_no'] = 'والیم نمبر';
+$lang['master_design_no_label'] = 'ڈیزائن نمبر';
+$lang['master_rate'] = 'ریٹ';
+$lang['master_name'] = 'نام';
+$lang['master_employee_name'] = 'ملازم کا نام';
+$lang['master_employee_type'] = 'ملازم کی قسم';
+$lang['master_select_employee_type'] = 'ملازم کی قسم منتخب کریں';
+$lang['master_employee_type_cutting'] = 'کٹنگ';
+$lang['master_employee_type_stitching'] = 'سلائی';
+$lang['master_employee_type_staff'] = 'سٹاف';
+$lang['master_employee_status'] = 'حیثیت';
+$lang['master_employee_status_active'] = 'فعال';
+$lang['master_employee_status_inactive'] = 'غیر فعال';
+$lang['master_cnic'] = 'شناختی کارڈ';
+$lang['master_emergency_contact'] = 'ہنگامی رابطہ';
+$lang['master_button_name'] = 'بٹن کا نام';
+$lang['master_style_no'] = 'اسٹائل نمبر';
+$lang['master_employee_name_phone'] = 'ملازم کا نام / فون';

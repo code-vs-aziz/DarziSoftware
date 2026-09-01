@@ -1,0 +1,32 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['form_validation_required']		= '{field} ضروری ہے۔';
+$lang['form_validation_isset']			= '{field} میں کوئی قدر ہونی چاہیے۔';
+$lang['form_validation_valid_email']		= '{field} میں درست ای میل ہونا چاہیے۔';
+$lang['form_validation_valid_emails']		= '{field} میں تمام ای میلز درست ہونی چاہئیں۔';
+$lang['form_validation_valid_url']		= '{field} میں درست URL ہونا چاہیے۔';
+$lang['form_validation_valid_ip']		= '{field} میں درست IP ہونا چاہیے۔';
+$lang['form_validation_min_length']		= '{field} کم از کم {param} حروف کا ہونا چاہیے۔';
+$lang['form_validation_max_length']		= '{field} {param} حروف سے زیادہ نہیں ہو سکتا۔';
+$lang['form_validation_exact_length']		= '{field} بالکل {param} حروف کا ہونا چاہیے۔';
+$lang['form_validation_alpha']			= '{field} میں صرف حروف ہونے چاہئیں۔';
+$lang['form_validation_alpha_numeric']		= '{field} میں صرف حروف اور نمبر ہونے چاہئیں۔';
+$lang['form_validation_alpha_numeric_spaces']	= '{field} میں حروف، نمبر اور خالی جگہ ہو سکتی ہے۔';
+$lang['form_validation_alpha_dash']		= '{field} میں حروف، نمبر، انڈر سکور اور ڈیش ہو سکتے ہیں۔';
+$lang['form_validation_numeric']		= '{field} میں صرف نمبر ہونے چاہئیں۔';
+$lang['form_validation_is_numeric']		= '{field} میں صرف عددی حروف ہونے چاہئیں۔';
+$lang['form_validation_integer']		= '{field} میں عدد صحیح ہونا چاہیے۔';
+$lang['form_validation_regex_match']		= '{field} درست فارمیٹ میں نہیں ہے۔';
+$lang['form_validation_matches']		= '{field} {param} سے میل نہیں کھاتا۔';
+$lang['form_validation_differs']		= '{field} {param} سے مختلف ہونا چاہیے۔';
+$lang['form_validation_is_unique'] 		= '{field} منفرد ہونا چاہیے۔';
+$lang['form_validation_is_natural']		= '{field} میں صرف ہندسے ہونے چاہئیں۔';
+$lang['form_validation_is_natural_no_zero']	= '{field} میں صفر سے بڑے ہندسے ہونے چاہئیں۔';
+$lang['form_validation_decimal']		= '{field} میں اعشاریہ عدد ہونا چاہیے۔';
+$lang['form_validation_less_than']		= '{field} {param} سے کم ہونا چاہیے۔';
+$lang['form_validation_less_than_equal_to']	= '{field} {param} سے کم یا برابر ہونا چاہیے۔';
+$lang['form_validation_greater_than']		= '{field} {param} سے زیادہ ہونا چاہیے۔';
+$lang['form_validation_greater_than_equal_to']	= '{field} {param} سے زیادہ یا برابر ہونا چاہیے۔';
+$lang['form_validation_error_message_not_set']	= '{field} کے لیے پیغام دستیاب نہیں۔';
+$lang['form_validation_in_list']		= '{field} ان میں سے ایک ہونا چاہیے: {param}۔';

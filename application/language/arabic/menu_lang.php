@@ -1,0 +1,28 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['menu_customer'] = 'العميل';
+$lang['menu_order_status'] = 'حالة الطلب';
+$lang['menu_order_detail'] = 'تفاصيل الطلب';
+$lang['menu_ready_delivered'] = 'جاهز للتسليم';
+$lang['menu_cash'] = 'الدفع / الإيصال النقدي';
+$lang['menu_pending_booking'] = 'حجز معلق';
+$lang['menu_pending_cutting'] = 'قص معلق';
+$lang['menu_pending_ho2'] = 'HO2 معلق';
+$lang['menu_pending_stitching'] = 'خياطة معلقة';
+$lang['menu_reports'] = 'التقارير';
+$lang['menu_employee'] = 'الموظف';
+$lang['menu_suit_type'] = 'نوع البدلة';
+$lang['menu_style'] = 'الطراز';
+$lang['menu_embroidery'] = 'التطريز';
+$lang['menu_button'] = 'الزر';
+$lang['menu_blank_print'] = 'طباعة فارغة';
+$lang['menu_configuration'] = 'الإعدادات';
+$lang['menu_rbac'] = 'إدارة المستخدمين';
+$lang['menu_design_assign'] = 'تعيين التصميم للموظف';
+$lang['menu_bc_customers'] = 'العملاء';
+$lang['menu_bc_orders'] = 'الطلبات';
+$lang['menu_bc_transfers'] = 'التحويلات';
+$lang['menu_bc_cash'] = 'النقد والإيصالات';
+$lang['menu_bc_employees'] = 'الموظفون';
+$lang['menu_bc_measurements'] = 'القياسات';

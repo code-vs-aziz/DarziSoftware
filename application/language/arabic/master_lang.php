@@ -1,0 +1,38 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['master_style'] = 'الطراز';
+$lang['master_embroidery'] = 'التطريز';
+$lang['master_suit'] = 'نوع البدلة';
+$lang['master_button'] = 'الزر';
+$lang['master_employee'] = 'الموظف';
+$lang['master_employee_rate'] = 'تعيين التصميم للموظف';
+$lang['master_employee_form'] = 'نموذج الموظف';
+$lang['master_employee_created'] = 'تم إنشاء الموظف بنجاح';
+$lang['master_style_form'] = 'نموذج الطراز';
+$lang['master_style_created'] = 'تم إنشاء الطراز بنجاح';
+$lang['master_embroidery_form'] = 'نموذج التطريز';
+$lang['master_embroidery_created'] = 'تم إنشاء التطريز بنجاح';
+$lang['master_suit_form'] = 'نموذج نوع البدلة';
+$lang['master_button_form'] = 'نموذج الزر';
+$lang['master_button_created'] = 'تم إنشاء الزر بنجاح';
+$lang['master_design_assign_form'] = 'نموذج تعيين الطراز للموظف';
+$lang['master_volume_name'] = 'اسم المجلد';
+$lang['master_volume_no'] = 'رقم المجلد';
+$lang['master_design_no_label'] = 'رقم التصميم';
+$lang['master_rate'] = 'السعر';
+$lang['master_name'] = 'الاسم';
+$lang['master_employee_name'] = 'اسم الموظف';
+$lang['master_employee_type'] = 'نوع الموظف';
+$lang['master_select_employee_type'] = 'اختر نوع الموظف';
+$lang['master_employee_type_cutting'] = 'قص';
+$lang['master_employee_type_stitching'] = 'خياطة';
+$lang['master_employee_type_staff'] = 'موظف مكتب';
+$lang['master_employee_status'] = 'الحالة';
+$lang['master_employee_status_active'] = 'نشط';
+$lang['master_employee_status_inactive'] = 'غير نشط';
+$lang['master_cnic'] = 'رقم الهوية';
+$lang['master_emergency_contact'] = 'جهة اتصال طوارئ';
+$lang['master_button_name'] = 'اسم الزر';
+$lang['master_style_no'] = 'رقم الطراز';
+$lang['master_employee_name_phone'] = 'اسم الموظف / الهاتف';

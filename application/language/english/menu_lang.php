@@ -1,0 +1,28 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['menu_customer'] = 'Customer';
+$lang['menu_order_status'] = 'Order Status';
+$lang['menu_order_detail'] = 'Order Detail';
+$lang['menu_ready_delivered'] = 'Ready for Delivered';
+$lang['menu_cash'] = 'Cash Payment/Receipt';
+$lang['menu_pending_booking'] = 'Pending Booking';
+$lang['menu_pending_cutting'] = 'Pending Cutting';
+$lang['menu_pending_ho2'] = 'Pending HO2';
+$lang['menu_pending_stitching'] = 'Pending Stitching';
+$lang['menu_reports'] = 'Reports';
+$lang['menu_employee'] = 'Employee';
+$lang['menu_suit_type'] = 'Suit Type';
+$lang['menu_style'] = 'Style';
+$lang['menu_embroidery'] = 'Embroidery';
+$lang['menu_button'] = 'Button';
+$lang['menu_blank_print'] = 'Blank Print';
+$lang['menu_configuration'] = 'Configuration';
+$lang['menu_rbac'] = 'User Management';
+$lang['menu_design_assign'] = 'Design Assign to Employee';
+$lang['menu_bc_customers'] = 'Customers';
+$lang['menu_bc_orders'] = 'Orders';
+$lang['menu_bc_transfers'] = 'Transfers';
+$lang['menu_bc_cash'] = 'Cash & receipts';
+$lang['menu_bc_employees'] = 'Employees';
+$lang['menu_bc_measurements'] = 'Measurements';

@@ -1,0 +1,4 @@
+staging/
+cache/
+output/
+*.exe

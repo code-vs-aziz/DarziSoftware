@@ -1,0 +1,28 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['menu_customer'] = 'کسٹمر';
+$lang['menu_order_status'] = 'آرڈر اسٹیٹس';
+$lang['menu_order_detail'] = 'آرڈر تفصیل';
+$lang['menu_ready_delivered'] = 'ڈیلیوری کے لیے تیار';
+$lang['menu_cash'] = 'نقدی ادائیگی / رسید';
+$lang['menu_pending_booking'] = 'بکنگ زیر التوا';
+$lang['menu_pending_cutting'] = 'کٹنگ زیر التوا';
+$lang['menu_pending_ho2'] = 'HO2 زیر التوا';
+$lang['menu_pending_stitching'] = 'سلائی زیر التوا';
+$lang['menu_reports'] = 'رپورٹس';
+$lang['menu_employee'] = 'ملازم';
+$lang['menu_suit_type'] = 'سوٹ کی قسم';
+$lang['menu_style'] = 'اسٹائل';
+$lang['menu_embroidery'] = 'کڑھائی';
+$lang['menu_button'] = 'بٹن';
+$lang['menu_blank_print'] = 'خالی پرنٹ';
+$lang['menu_configuration'] = 'ترتیبات';
+$lang['menu_rbac'] = 'صارفین کا انتظام';
+$lang['menu_design_assign'] = 'ملازم کو ڈیزائن';
+$lang['menu_bc_customers'] = 'کسٹمرز';
+$lang['menu_bc_orders'] = 'آرڈرز';
+$lang['menu_bc_transfers'] = 'ٹرانسفر';
+$lang['menu_bc_cash'] = 'کیش و رسید';
+$lang['menu_bc_employees'] = 'ملازمین';
+$lang['menu_bc_measurements'] = 'ناپ';
