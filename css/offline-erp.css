@@ -1,0 +1,199 @@
+/* Offline-first ERP status UI */
+
+.dz-offline-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.28rem 0.65rem;
+	border-radius: 999px;
+	border: 1px solid rgba(31, 75, 63, 0.18);
+	background: #f4f8f6;
+	color: #1f4b3f;
+	text-decoration: none;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.2;
+	max-width: 14rem;
+	cursor: pointer;
+}
+
+.dz-offline-chip__dot {
+	width: 0.55rem;
+	height: 0.55rem;
+	border-radius: 50%;
+	background: #8a9a94;
+	flex: 0 0 auto;
+}
+
+.dz-offline-chip__label {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dz-offline-chip__count {
+	display: inline-flex;
+	min-width: 1.1rem;
+	justify-content: center;
+	padding: 0 0.25rem;
+	border-radius: 999px;
+	background: rgba(31, 75, 63, 0.12);
+	font-size: 0.68rem;
+}
+
+.dz-offline-chip.is-online .dz-offline-chip__dot,
+.dz-offline-chip.is-synced .dz-offline-chip__dot {
+	background: #1f8a5b;
+}
+
+.dz-offline-chip.is-offline .dz-offline-chip__dot,
+.dz-offline-chip.is-sync_failed .dz-offline-chip__dot {
+	background: #b42318;
+}
+
+.dz-offline-chip.is-pending .dz-offline-chip__dot,
+.dz-offline-chip.is-checking .dz-offline-chip__dot {
+	background: #b54708;
+}
+
+.dz-offline-chip.is-syncing .dz-offline-chip__dot {
+	background: #175cd3;
+	animation: dz-offline-pulse 1s ease-in-out infinite;
+}
+
+.dz-offline-chip--mobile {
+	max-width: 7.5rem;
+	padding: 0.22rem 0.5rem;
+}
+
+@keyframes dz-offline-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+.dz-offline-banner {
+	position: sticky;
+	top: 0;
+	z-index: 1050;
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	padding: 0.55rem 1rem;
+	background: #fff7ed;
+	border-bottom: 1px solid #fdba74;
+	color: #9a3412;
+	font-size: 0.85rem;
+}
+
+.dz-offline-banner.is-offline {
+	background: #fef2f2;
+	border-bottom-color: #fca5a5;
+	color: #991b1b;
+}
+
+.dz-offline-banner__dot {
+	width: 0.55rem;
+	height: 0.55rem;
+	border-radius: 50%;
+	background: currentColor;
+	flex: 0 0 auto;
+}
+
+.dz-offline-banner__text {
+	flex: 1 1 auto;
+}
+
+.dz-offline-banner__sync {
+	border: 0;
+	background: #1f4b3f;
+	color: #fff;
+	border-radius: 6px;
+	padding: 0.35rem 0.75rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.dz-offline-toast {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 1200;
+	max-width: min(24rem, calc(100vw - 2rem));
+	padding: 0.75rem 1rem;
+	border-radius: 8px;
+	background: #14352d;
+	color: #f5faf8;
+	box-shadow: 0 10px 30px rgba(20, 53, 45, 0.25);
+	font-size: 0.85rem;
+	line-height: 1.35;
+}
+
+.dz-offline-toast.is-sync_failed,
+.dz-offline-toast.is-pending {
+	background: #7c2d12;
+}
+
+.dz-offline-toast.is-synced {
+	background: #14532d;
+}
+
+.dz-offline-panel {
+	position: fixed;
+	inset: 0;
+	z-index: 1300;
+	background: rgba(15, 30, 26, 0.35);
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-end;
+	padding: 4.5rem 1rem 1rem;
+}
+
+.dz-offline-panel__card {
+	width: min(22rem, 100%);
+	background: #fff;
+	border-radius: 10px;
+	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+	overflow: hidden;
+}
+
+.dz-offline-panel__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.85rem 1rem;
+	border-bottom: 1px solid #e5ebe8;
+}
+
+.dz-offline-panel__close {
+	border: 0;
+	background: transparent;
+	font-size: 1.25rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #546660;
+}
+
+.dz-offline-panel__body {
+	padding: 0.85rem 1rem;
+}
+
+.dz-offline-panel__list {
+	margin: 0;
+	padding-left: 1.1rem;
+	font-size: 0.9rem;
+	line-height: 1.55;
+	color: #243832;
+}
+
+.dz-offline-panel__actions {
+	padding: 0.75rem 1rem 1rem;
+	display: flex;
+	justify-content: flex-end;
+}
+
+@media (max-width: 991.98px) {
+	.dz-offline-chip--mobile .dz-offline-chip__label {
+		max-width: 4.5rem;
+	}
+}

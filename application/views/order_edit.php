@@ -7,7 +7,8 @@ $this->load->helper('ui');
  
   
 ?>
-<body class="animsition erp-app">
+	<link href="<?php echo base_url('css/order-form-enhancements.css?v=7'); ?>" rel="stylesheet" media="all">
+<body class="animsition erp-app erp-form-page order-form-page">
 <div class="page-wrapper">
  <style>
 	.urd {
@@ -22,12 +23,18 @@ $this->load->helper('ui');
 		direction: rtl;
 		text-align: right;
 		font-weight: bold;
-		line-height: 1.8;
-		margin: 8px 0 10px;
+		line-height: 2.55;
+		margin: 10px 0 14px;
 		width: 100%;
 		clear: both;
 	}
-	.order-predefined-tags .order-predefined-row { margin-bottom: 4px; }
+	.order-predefined-tags .order-predefined-row {
+		display: block;
+		margin-bottom: 12px;
+		line-height: 2.55;
+		padding: 2px 0;
+	}
+	.order-predefined-tags .order-predefined-row:last-child { margin-bottom: 4px; }
 	.order-predefined-tags .order-predefined-tag {
 		display: inline;
 		background: none;
@@ -38,6 +45,8 @@ $this->load->helper('ui');
 		font-weight: bold;
 		color: inherit;
 		cursor: pointer;
+		line-height: inherit;
+		vertical-align: baseline;
 	}
 	.order-predefined-tags .order-predefined-tag:hover { text-decoration: underline; }
 	.order-remark-group { direction: rtl; text-align: right; width: 100%; }
@@ -100,7 +109,7 @@ $this->load->helper('ui');
            
 			 				
  				
-					<div class="row">
+					<div class="row order-details-fields">
 						<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_naap_no'); ?></label>
@@ -120,7 +129,7 @@ $this->load->helper('ui');
 						 
 					</div>	
 			 
-				<div class="row">
+				<div class="row order-details-fields">
 									<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_current_date'); ?></label>
@@ -353,7 +362,7 @@ $this->load->helper('ui');
 							<?php  
 							$i = $i + 1; 
 							}  ?>
-							<div class="row">
+							<div class="row order-payment-fields">
 									<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_total_amount'); ?></label>

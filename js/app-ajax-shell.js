@@ -317,6 +317,13 @@
 				$(this).addClass('is-active');
 			}
 		});
+
+		$('.dz-bottom-nav__item').removeClass('is-active');
+		$('.dz-bottom-nav a.dz-bottom-nav__item').each(function () {
+			if (normalizeNavHref(this.href) === target) {
+				$(this).addClass('is-active');
+			}
+		});
 	}
 
 	function updateActiveLink(url) {
@@ -324,9 +331,14 @@
 	}
 
 	function closeMobileMenu() {
+		if (window.DzResponsiveShell && typeof window.DzResponsiveShell.close === 'function') {
+			window.DzResponsiveShell.close();
+			return;
+		}
 		var $ = getJq();
-		$('.navbar-mobile').slideUp(150);
+		document.body.classList.remove('dz-nav-open');
 		$('.hamburger').removeClass('is-active');
+		$('[data-dz-nav-toggle="true"]').attr('aria-expanded', 'false');
 	}
 
 	function clearLegacyLoaders() {
@@ -441,6 +453,9 @@
 
 	function initPlugins() {
 		var $ = getJq();
+		if (typeof window.appRefreshCsrfForms === 'function') {
+			window.appRefreshCsrfForms();
+		}
 		scheduleDataTableInit();
 		if ($.fn.select2) {
 			$('select.select2, select.js-select2').each(function () {

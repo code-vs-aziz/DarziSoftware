@@ -30,6 +30,16 @@
 		};
 	}
 
+	function csrfFields() {
+		var name = $('meta[name="csrf-token-name"]').attr('content') || 'dz_csrf_token';
+		var val = $('meta[name="csrf-token-value"]').attr('content') || '';
+		var out = {};
+		if (val) {
+			out[name] = val;
+		}
+		return out;
+	}
+
 	window.initTransferBulkTable = function () {
 		var $table = transferBulkTableEl();
 		if (!$table.length || !$.fn.DataTable) {
@@ -38,18 +48,44 @@
 
 		var config = readBulkFormConfig();
 		var bulkEnabled = config && config.enabled;
+		var sspUrl = String($table.attr('data-ssp-url') || '');
+		var useSsp = String($table.attr('data-ssp')) === '1' && sspUrl !== '';
 
 		if ($.fn.DataTable.isDataTable($table[0])) {
 			$table.DataTable().destroy();
 		}
 
+		var colCount = $table.find('thead th').length;
 		var dtOptions = {
 			pagingType: 'full_numbers',
-			pageLength: 10,
+			pageLength: 25,
+			lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
 			lengthChange: true,
 			searching: true,
-			info: true
+			info: true,
+			order: []
 		};
+
+		if (useSsp) {
+			dtOptions.processing = true;
+			dtOptions.serverSide = true;
+			dtOptions.ajax = {
+				url: sspUrl,
+				type: 'POST',
+				data: function (d) {
+					var csrf = csrfFields();
+					Object.keys(csrf).forEach(function (k) {
+						d[k] = csrf[k];
+					});
+					d.dept = String($table.attr('data-dept') || '');
+				}
+			};
+			dtOptions.columns = [];
+			for (var i = 0; i < colCount; i++) {
+				dtOptions.columns.push({ data: i, orderable: i > (bulkEnabled ? 0 : -1) && i < colCount - 3 });
+			}
+		}
+
 		if (bulkEnabled) {
 			dtOptions.columnDefs = [{ orderable: false, targets: 0 }];
 		}
@@ -83,18 +119,20 @@
 				});
 			});
 
-			if (items.length === 0) {
+			if (!items.length) {
 				window.alert(config.noneMsg);
 				return;
 			}
-			if (!window.confirm(config.confirmMsg.replace('%d', items.length))) {
+			if (config.confirmMsg && !window.confirm(config.confirmMsg)) {
 				return;
 			}
-
 			$('#transfer_items_json').val(JSON.stringify(items));
-			config.$form[0].submit();
+			config.$form.trigger('submit');
 		});
 	}
 
-	bindTransferBulkHandlers();
+	$(function () {
+		bindTransferBulkHandlers();
+	});
+
 }(window, window.jQuery));

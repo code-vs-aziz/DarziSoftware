@@ -11,12 +11,18 @@
 		direction: rtl;
 		text-align: right;
 		font-weight: bold;
-		line-height: 1.8;
-		margin: 8px 0 10px;
+		line-height: 2.55;
+		margin: 10px 0 14px;
 		width: 100%;
 		clear: both;
 	}
 	.order-predefined-tags .order-predefined-row {
+		display: block;
+		margin-bottom: 12px;
+		line-height: 2.55;
+		padding: 2px 0;
+	}
+	.order-predefined-tags .order-predefined-row:last-child {
 		margin-bottom: 4px;
 	}
 	.order-predefined-tags .order-predefined-tag {
@@ -29,6 +35,8 @@
 		font-weight: bold;
 		color: inherit;
 		cursor: pointer;
+		line-height: inherit;
+		vertical-align: baseline;
 	}
 	.order-predefined-tags .order-predefined-tag:hover {
 		text-decoration: underline;
@@ -344,16 +352,119 @@ var suit_id = '#suit0';
 		el.value = cur ? (cur + ' ' + val) : val;
 	}
 	</script>
-					<?php  
-						 $qty = $_POST['qty'];
-						// $qty = 5;
-					 $SR = 1; 
-							for($i=0; $i<$qty; $i++)
-							{
-				 
+					<?php
+						$qty = (int) $_POST['qty'];
+						$SR = 1;
+						if ($qty > 1) {
 					?>
-					<div class="order-suit-line" data-line="<?php echo $i; ?>">
-					<hr>
+					<div class="order-suit-accordion" data-suit-qty="<?php echo $qty; ?>">
+						<div class="order-suit-accordion__hint"><?php echo sprintf(t('order_suit_accordion_hint'), $qty); ?></div>
+						<div class="order-suit-progress" aria-hidden="true">
+							<div class="order-suit-progress__track">
+								<div class="order-suit-progress__fill" style="width:0%"></div>
+							</div>
+							<div class="order-suit-progress__text"><?php echo sprintf(t('order_suit_progress'), 1, $qty); ?></div>
+						</div>
+					<?php } ?>
+					<?php for ($i = 0; $i < $qty; $i++) {
+						$line_classes = 'order-suit-line';
+						if ($qty > 1) {
+							$line_classes .= ($i === 0) ? ' is-expanded' : ' is-collapsed';
+						} else {
+							$line_classes .= ' is-expanded';
+						}
+					?>
+					<div class="<?php echo $line_classes; ?>" data-line="<?php echo $i; ?>" data-suit-index="<?php echo $i; ?>">
+						<div class="order-suit-line__head" role="button" tabindex="0" aria-expanded="<?php echo ($i === 0 || $qty === 1) ? 'true' : 'false'; ?>">
+							<span class="order-suit-line__badge"><?php echo $SR; $SR = $SR + 1; ?></span>
+							<div class="order-suit-line__titles">
+								<strong class="order-suit-line__title"><?php echo t('order_suit_line'); ?> <?php echo $i + 1; ?></strong>
+								<span class="order-suit-line__status"><?php echo ($i === 0 || $qty === 1) ? t('order_suit_status_active') : t('order_suit_status_pending'); ?></span>
+							</div>
+							<span class="order-suit-line__chevron" aria-hidden="true"></span>
+							<div class="order-suit-line__copy">
+<?php
+	$this->load->view('partials/order_copy_line_bar', array(
+		'line_index' => $i,
+		'qty' => $qty,
+	));
+?>
+							</div>
+						</div>
+
+						<div class="order-suit-line__body">
+							<div class="row">
+								<div class="col-md-6">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="Designtype<?php echo $i; ?>"><?php echo t('order_design_type'); ?></label>
+										<select id="Designtype<?php echo $i; ?>" name="desigtype[]" class="form-control" aria-required="true">
+											<option value=""><?php echo t('order_select_design_type'); ?></option>
+											<option value="Kurta"><?php echo t('design_type_kurta'); ?></option>
+											<option value="Pajama"><?php echo t('design_type_pajama'); ?></option>
+											<option value="Pent"><?php echo t('design_type_pent'); ?></option>
+											<option value="Shirt"><?php echo t('design_type_shirt'); ?></option>
+											<option value="Coat"><?php echo t('design_type_coat'); ?></option>
+											<option value="Waistcoat"><?php echo t('design_type_waistcoat'); ?></option>
+										</select>
+										<div class="order-price-row">
+											<input id="add<?php echo $i; ?>" name="add[]" type="text" class="form-control order-price-row__add" onchange="get_id11('add<?php echo $i; ?>','itotal<?php echo $i; ?>')" placeholder="+" value="">
+											<span class="order-price-row__plus" aria-hidden="true">+</span>
+											<input id="itotal<?php echo $i; ?>" name="itotal<?php echo $i; ?>" readonly="readonly" type="text" class="form-control order-price-row__total" value="">
+										</div>
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="suit<?php echo $i; ?>"><?php echo t('order_suit_type'); ?></label>
+										<select id="suit<?php echo $i; ?>" name="suit[]" class="form-control" onchange="get_id2('suit<?php echo $i; ?>','srate<?php echo $i; ?>')" aria-required="true">
+											<option value="0"><?php echo t('order_select_suit'); ?></option>
+											<?php foreach ($suit as $suits) { ?>
+											<option value="<?php echo (int) $suits->SNO; ?>"><?php echo esc_html($suits->name); ?></option>
+											<?php } ?>
+										</select>
+										<input id="srate<?php echo $i; ?>" name="ssrate[]" readonly="readonly" type="text" class="form-control order-suit-rate mt-1" value="">
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-md-4">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="fpocket<?php echo $i; ?>"><?php echo t('order_front_pocket'); ?></label>
+										<select id="fpocket<?php echo $i; ?>" name="fpocket[]" class="form-control">
+											<option value="X">X</option>
+											<option value="1">1</option>
+											<option value=" بغیر فلاپ 2">2بغیر فلاپ</option>
+											<option value="2  فلاپ والی">2فلاپ والی</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-md-4">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="spocket<?php echo $i; ?>"><?php echo t('order_side_pocket'); ?></label>
+										<select id="spocket<?php echo $i; ?>" name="spocket[]" class="form-control">
+											<option value="X">X</option>
+											<option value="1">1</option>
+											<option value="2">2</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-md-4">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="shawpocket<?php echo $i; ?>"><?php echo t('order_shalwar_pocket'); ?></label>
+										<select id="shawpocket<?php echo $i; ?>" name="shawpocket[]" class="form-control">
+											<option value="X">X</option>
+											<option value="1">1</option>
+											<option value="آگے پیچے 2 ">آگے پیچے 2</option>
+											<option value="1 سائیڈ پاکٹ والی">سائیڈ پاکٹ والی 1</option>
+											<option value="1 کاج بٹن والی ">کاج بٹن والی1</option>
+											<option value="1 فکس پاکٹ">فکس پاکٹ1</option>
+											<option value="فرنٹ پر2">فرنٹ پر2</option>
+										</select>
+									</div>
+								</div>
+							</div>
+
 <?php
 	$remark_field = 'Remarks'.$i;
 	$this->load->view('partials/order_predefined_tags', array(
@@ -361,188 +472,31 @@ var suit_id = '#suit0';
 		'order_predefined_by_row' => isset($order_predefined_by_row) ? $order_predefined_by_row : array(),
 	));
 ?>
-		                  
-								<div class="row">
-						<div class="col-12">
-                                             <div class="form-group order-remark-group">
-                                                <label for="Remarks<?php echo $i ?>" class="control-label mb-1 urd"><?php echo t('order_note_line'); ?></label>
-                                                <input id="Remarks<?php echo $i ?>" name="Remarks[]" type="text" class="form-control urd txtbox" dir="rtl" lang="ur" aria-required="true" aria-invalid="false" value="">
-                                            </div>
-						</div>
-						</div>
-						
-														<div class="row">
-					 	
-			<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_front_pocket'); ?></label>
-                                              <select 	id="fpocket<?php echo $i; ?>"   name="fpocket[]"  type="text" class="form-control " aria-required="true" aria-invalid="false">
-  <option value="X">X</option>
- 
- 
-  <option value="1" >1</option>
-  <option value=" بغیر فلاپ 2" > 2بغیر فلاپ </option>
-  <option value="2  فلاپ والی" >2فلاپ والی </option>
- 
-			 
-</select>
+							<div class="form-group order-remark-group mb-2">
+								<label for="Remarks<?php echo $i; ?>" class="control-label mb-1 urd"><?php echo t('order_note_line'); ?></label>
+								<input id="Remarks<?php echo $i; ?>" name="Remarks[]" type="text" class="form-control urd txtbox" dir="rtl" lang="ur" value="">
+							</div>
 
-		</div>  
-						</div>	
-			<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_side_pocket'); ?></label>
-                                              <select 	id="spocket<?php echo $i; ?>"   name="spocket[]"  type="text" class="form-control  " aria-required="true" aria-invalid="false">
-  <option value="X">X</option>
- 
-  <option value="1" >1</option>
-  <option value="2" >2</option>
- 
-   
-</select>
+							<div class="form-group order-kolar-picker-wrap mb-0">
+<?php $this->load->view('partials/order_kolar_picker', array('line_index' => $i)); ?>
+							</div>
 
-		</div>  
-						</div>	
-	<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_shalwar_pocket'); ?></label>
-                                              <select 	id="shawpocket<?php echo $i; ?>"   name="shawpocket[]"  type="text" class="form-control  " aria-required="true" aria-invalid="false">
-  <option value="X">X</option>
- 
-  <option value="1" >1</option>
-  <option value="آگے پیچے 2 " >آگے پیچے 2 </option>
-  <option value="1 سائیڈ پاکٹ والی" >سائیڈ پاکٹ والی 1</option>
-  <option value="1 کاج بٹن والی " >کاج بٹن والی1  </option>
-  <option value="1 فکس پاکٹ" >فکس پاکٹ1  </option>
-  <option value="فرنٹ پر2" >فرنٹ پر2  </option>
-</select>
+							<input type="hidden" name="designo[]" value="0">
+							<input type="hidden" name="Embroidery[]" value="0">
+							<input type="hidden" id="drate<?php echo $i; ?>" name="ddrate[]" value="0">
+							<input type="hidden" id="erate<?php echo $i; ?>" name="eerate[]" value="0">
 
-		</div>  
-						</div>							
-						</div>	
-						
-						
-											<div class="row order-line-header-row">
-			
-<div class="col"  >	
-				                                             <label for="emp-EMPNAME" class="control-label mb-1" style="    float: right;
-    border: 1px solid black;
-    border-radius: 29px;
-    width: 29px;
-    text-align: center;" ><?php
-	echo $SR;
-	$SR = $SR + 1;
-	?></label>
+							<?php if ($qty > 1 && $i < ($qty - 1)) { ?>
+							<div class="order-suit-line__footer">
+								<button type="button" class="btn btn-sm btn-outline-primary order-suit-apply-remaining" title="<?php echo esc_attr(t('order_same_remaining_hint')); ?>">
+									<?php echo t('order_same_remaining'); ?>
+								</button>
+								<button type="button" class="btn btn-sm btn-primary order-suit-next-btn"><?php echo t('order_suit_next'); ?></button>
+							</div>
+							<?php } ?>
 						</div>
-						<div class="col">
-<?php
-	$this->load->view('partials/order_copy_line_bar', array(
-		'line_index' => $i,
-		'qty' => $qty,
-	));
-?>
-						</div>
-						</div>
-										<div class="row">
-							<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_design_type'); ?></label>
-                                              <select 	id="Designtype<?php echo $i; ?>"      name="desigtype[]" type="text" class="form-control" aria-required="true" aria-invalid="false">
-  <option value=""><?php echo t('order_select_design_type'); ?></option>
-  <option value="Kurta"><?php echo t('design_type_kurta'); ?></option>
-  <option value="Pajama"><?php echo t('design_type_pajama'); ?></option>
-  <option value="Pent"><?php echo t('design_type_pent'); ?></option>
-  <option value="Shirt"><?php echo t('design_type_shirt'); ?></option>
-  <option value="Coat"><?php echo t('design_type_coat'); ?></option>
-  <option value="Waistcoat"><?php echo t('design_type_waistcoat'); ?></option>
- 
- 
-</select>
- 
-  <span  style="float:left;"> <input style="float:left; width:75px;" onchange="get_id11('add<?php echo $i; ?>','itotal<?php echo $i; ?>')" id="add<?php echo $i; ?>" name="add[]"    type="text" class="form-control" aria-required="true" aria-invalid="false" value=""  >     &nbsp;  +  &nbsp;</span>
-  <span> <input style=" width:75px;" id="itotal<?php echo $i; ?>" name="itotal<?php echo $i; ?>"  readonly="readonly"  type="text" class="form-control" aria-required="true" aria-invalid="false" value=""  >        
-  
-  
-                                            </div>  
-						</div>					
-							<div class="col">		
-                                             <div class="form-group" >
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_suit_type'); ?></label>
-                                              <select 	id="suit<?php echo $i; ?>"   name="suit[]" onchange="get_id2('suit<?php echo $i; ?>','srate<?php echo $i; ?>')" type="text" class="form-control" aria-required="true" aria-invalid="false">
-  <option value="0"><?php echo t('order_select_suit'); ?></option>
- 
- <?php 
-			 
-			 foreach($suit as $suits){
-									 
-						                    ?>
-  <option value="<?php  echo $suits->SNO; ?>" ><?php echo $suits->name; ?></option>
-			 <?php  } ?>
-</select>
-<input id="srate<?php echo $i; ?>" name="ssrate[]"  readonly="readonly"  type="text" class="form-control" aria-required="true" aria-invalid="false" value=""  >        
-		</div>  
-						</div>
-					<input type="hidden" name="designo[]" value="0">
-					<input type="hidden" name="Embroidery[]" value="0">
-					<input type="hidden" id="drate<?php echo $i; ?>" name="ddrate[]" value="0">
-					<input type="hidden" id="erate<?php echo $i; ?>" name="eerate[]" value="0">
-		
-					</div>	
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-									<div class="row">
-					 	<div class="col">		
-                                             <div class="form-group">
-                                                
-       <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="1"  ><image src="<?php echo base_url(); ?>/images/1.jpg" style="height:100px;" >
-	                          </div>  
-						</div>
-									 	<div class="col">		
-                                             <div class="form-group">
-       <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="2"  ><image src="<?php echo base_url(); ?>/images/2.jpg" style="height:100px;">
-	    </div>  
-						</div>
-									 	<div class="col">		
-                                             <div class="form-group">
-       <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="3"  ><image src="<?php echo base_url(); ?>/images/3.jpg"style="height:100px;">
-	    </div>  
-						</div>
-									 	<div class="col">		
-                                             <div class="form-group">
-       <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="4"  ><image src="<?php echo base_url(); ?>/images/4.jpg" style="height:100px;">
-	    </div>  
-						</div>
-									 	<div class="col">		
-                                             <div class="form-group">
-       <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="5"  ><image src="<?php echo base_url(); ?>/images/5.jpg" style="height:100px;">
-</div>  
-						</div>
-									 	<div class="col">		
-                                             <div class="form-group"   for="kolorstyle"  > 
-	  <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="6"  ><image src="<?php echo base_url(); ?>/images/6.jpg" style="height:100px;">
-                                            </div>  
-						</div>
-							<div class="col">		
-                                             <div class="form-group"   for="kolorstyle"  > 
-	  <input id="kolorstyle" name="kolorstyle<?php echo $i ?>"   type="radio" class="form-control" aria-required="true" aria-invalid="false" value="7"  ><image src="<?php echo base_url(); ?>/images/7.jpg" style="height:100px;">
-                                            </div>  
-						</div>
-						</div>
-			<hr style="border: 2px solid #CCC;">
 					</div>
-							<?php  }  ?>
+					<?php } ?>
+					<?php if ($qty > 1) { ?>
+					</div>
+					<?php } ?>

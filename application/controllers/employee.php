@@ -87,7 +87,7 @@ class Employee extends MY_Controller {
 	  
 	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
 	 $data["employee"]= $this->master_data->get_dat(array('employee'));
-	 $data["style"]= $this->master_data->get_dat(array('style'));
+	 $data["style"]= $this->master_data->get_dat(array('style'), TRUE);
  	$this->load->view('design_asign_emp',$data);
 	if(!$this->session->userdata('user')){
 		redirect('Login'); 

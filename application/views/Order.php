@@ -112,6 +112,9 @@ $(document).ready(function(){
                 success:function(html){
                     $('#maincat').html(html);
                     initOrderRemarkFields('#maincat');
+                    if (typeof window.orderFormOnSuitLinesLoaded === 'function') {
+                        window.orderFormOnSuitLinesLoaded();
+                    }
                 }
             }); 
         }else{
@@ -139,8 +142,38 @@ function bal()
 	 
 }
 
-function valid(e)
+function submitConfirmedOrder()
 {
+	var form = document.forms.Form;
+	var submitButton = document.getElementById('submit-button');
+	if (submitButton && submitButton.disabled)
+	{
+		return false;
+	}
+	if (submitButton)
+	{
+		submitButton.disabled = true;
+		document.getElementById('submit-button-amount').innerHTML = (window.APP_LANG && APP_LANG.loading) ? APP_LANG.loading : 'Saving...';
+	}
+	if (window.Webcam)
+	{
+		Webcam.snap(function(data_uri) {
+			$(".image-tag").val(data_uri);
+			$("#imgtxt").val(data_uri);
+			if (document.getElementById('teimg'))
+			{
+				document.getElementById('teimg').src = data_uri;
+			}
+			form.submit();
+		});
+		return false;
+	}
+	return true;
+}
+
+function valid(e, options)
+{
+	options = options || {};
 		if(document.getElementById('Quantity').value < 1 )
 		{
 			alert((window.APP_LANG && APP_LANG.enter_qty) || 'Please enter the QTY');
@@ -166,36 +199,31 @@ function valid(e)
 	}
 
 	var form = document.forms['Form'];
+	if (options.previewOnly)
+	{
+		return true;
+	}
 	if (form && form.getAttribute('data-order-confirmed') === '1')
 	{
 		form.removeAttribute('data-order-confirmed');
-		var submitButton = document.getElementById('submit-button');
-		if (submitButton && submitButton.disabled)
-		{
-			return false;
-		}
-		if (submitButton)
-		{
-			submitButton.disabled = true;
-			document.getElementById('submit-button-amount').innerHTML = (window.APP_LANG && APP_LANG.loading) ? APP_LANG.loading : 'Saving...';
-		}
-		if (window.Webcam)
-		{
-			Webcam.snap(function(data_uri) {
-				$(".image-tag").val(data_uri);
-				$("#imgtxt").val(data_uri);
-				if (document.getElementById('teimg'))
-				{
-					document.getElementById('teimg').src = data_uri;
-				}
-			});
-		}
-		return true;
+		return submitConfirmedOrder();
 	}
 
 	if (e && e.preventDefault)
 	{
 		e.preventDefault();
+	}
+
+	if (document.getElementById('orderPreviewModal') && typeof window.orderFormShowPreview === 'function')
+	{
+		window.orderFormShowPreview(function () {
+			if (form)
+			{
+				form.setAttribute('data-order-confirmed', '1');
+				submitConfirmedOrder();
+			}
+		});
+		return false;
 	}
 
 	var confirmMsg = (window.APP_LANG && APP_LANG.confirm_submit_order)
@@ -258,7 +286,8 @@ function valid(e)
 		text-decoration:none;
 	}
 	</style>
-<body class="animsition erp-app order-form-page">
+<link href="<?php echo base_url(); ?>css/order-form-enhancements.css?v=7" rel="stylesheet" media="all">
+<body class="animsition erp-app erp-form-page order-form-page">
     <div class="page-wrapper order-form-page">
         <!-- HEADER MOBILE-->
             <!-- MAIN CONTENT-->
@@ -293,14 +322,7 @@ function valid(e)
 									<div class="erp-card-head">
 										<h2 class="erp-module-title mb-0"><?php echo t('order_form'); ?></h2>
 										<div class="erp-card-actions">
-											<button type="button" class="btn btn-outline-primary btn-sm" id="customerOrderHistoryBtn"><?php echo t('order_customer_history'); ?></button>
-											<span class="erp-entry-number"><?php echo t('app_entry'); ?> : <?php $last_id = $last_id + 1 ;echo $last_id;  /*
-                                            $query_last = "select TRNNO from emp order by TRNNO desc limit 1";
-                                            $result_last=mysql_query($query_last);
-                                            $row_last=mysql_fetch_object($result_last);
-                                            echo $row_last->TRNNO;
-                                            */
-                                            ?></span>
+											<span class="erp-entry-number"><?php echo t('app_entry'); ?> : <?php $last_id = $last_id + 1 ;echo $last_id;  ?></span>
 										</div>
 									</div>
                                     <div class="card-body erp-card-body data-entry-body">
@@ -320,15 +342,66 @@ function valid(e)
 					? (string) $order_measurement_row->customer_name
 					: (isset($order_measurement_row->name) ? (string) $order_measurement_row->name : '');
 			}
+			$order_ctx = isset($customer_context) && is_array($customer_context) ? $customer_context : array();
+			$order_default_return = date('Y-m-d', strtotime('+7 days'));
 			?>
+					<div class="order-customer-panel">
+						<div class="order-section__head">
+							<h3 class="order-section__title"><?php echo t('order_section_customer'); ?></h3>
+							<div class="order-section__actions">
+								<button type="button" class="btn btn-outline-primary btn-sm" id="customerOrderHistoryBtn"><?php echo t('order_customer_history'); ?></button>
+								<?php if (!empty($order_ctx['has_last_order'])) { ?>
+								<button type="button" class="btn btn-outline-secondary btn-sm" id="orderCopyLastBtn"><?php echo t('order_copy_last'); ?></button>
+								<?php } ?>
+							</div>
+						</div>
+						<div class="order-customer-panel__grid">
+							<div class="order-customer-panel__item">
+								<span><?php echo t('order_naap_no'); ?></span>
+								<strong><?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : '—'; ?></strong>
+							</div>
+							<div class="order-customer-panel__item">
+								<span><?php echo t('order_customer_name'); ?></span>
+								<strong><?php echo esc_html($order_customer_display_name !== '' ? $order_customer_display_name : '—'); ?></strong>
+							</div>
+							<div class="order-customer-panel__item">
+								<span><?php echo t('order_customer_phone'); ?></span>
+								<strong><?php echo !empty($order_ctx['phone']) ? esc_html($order_ctx['phone']) : '—'; ?></strong>
+							</div>
+							<div class="order-customer-panel__item<?php echo !empty($order_ctx['pending_balance']) ? ' is-warning' : ''; ?>">
+								<span><?php echo t('order_customer_pending'); ?></span>
+								<strong><?php echo !empty($order_ctx['pending_balance']) ? esc_html(number_format((float) $order_ctx['pending_balance'])) : '0'; ?></strong>
+							</div>
+							<div class="order-customer-panel__item">
+								<span><?php echo t('order_customer_orders'); ?></span>
+								<strong><?php echo (int) (isset($order_ctx['order_count']) ? $order_ctx['order_count'] : 0); ?></strong>
+							</div>
+							<div class="order-customer-panel__item">
+								<span><?php echo t('order_customer_last_order'); ?></span>
+								<strong><?php
+									if (!empty($order_ctx['has_last_order'])) {
+										echo '#'.(int) $order_ctx['last_order_no'].' · '.esc_html(date('d-M-Y', strtotime($order_ctx['last_order_date'])));
+									} else {
+										echo '—';
+									}
+								?></strong>
+							</div>
+						</div>
+					</div>
+
+					<div class="order-section order-section--details">
+						<div class="order-section__head">
+							<h3 class="order-section__title"><?php echo t('order_section_details'); ?></h3>
+						</div>
 					<div class="row">
 						<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_naap_no'); ?></label>
- 
            
-            <input id="Naap12no" name="Naap12no" readonly="readonly" type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : ''; ?>"  >                                  
-            <input id="Naapno" name="Naapno" readonly="readonly" type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? (int) $order_measurement_row->MCODE : ''; ?>"  >                                </div>  
+            <input id="Naap12no" name="Naap12no" readonly="readonly" type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : ''; ?>"  >                                  
+            <input id="Naapno" name="Naapno" readonly="readonly" type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? (int) $order_measurement_row->MCODE : ''; ?>"  >
+			<input type="text" class="form-control" readonly="readonly" value="<?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : ''; ?>">
+                                           </div>  
 						</div>
 										<div class="col">		
                                              <div class="form-group">
@@ -367,25 +440,33 @@ function valid(e)
 										<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_return_date'); ?></label>
-  <input id="retrun_Date" name="retrun_Date"   type="date" class="form-control" aria-required="true" aria-invalid="false"  value="<?php echo date('d-m-Y'); ?>" >
+  <input id="retrun_Date" name="retrun_Date"   type="date" class="form-control" aria-required="true" aria-invalid="false"  value="<?php echo esc_attr($order_default_return); ?>" >
                                             </div>  
 						</div>
 														<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('app_quantity'); ?></label>
-  <input id="Quantity" name="Quantity"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="" >
+  <input id="Quantity" name="Quantity"   type="number" min="1" class="form-control" aria-required="true" aria-invalid="false" value="" >
                                             </div>  
 						</div>
 						 
-					</div>	
-					
-				 
-					 
+					</div>
+					</div>
+
+					<div class="order-section">
+						<div class="order-section__head">
+							<h3 class="order-section__title"><?php echo t('order_section_suits'); ?></h3>
+						</div>
 										<div id="maincat">
 										
 										</div>
-										
-							<div class="row">
+					</div>
+
+					<div class="order-section order-section--payment">
+						<div class="order-section__head">
+							<h3 class="order-section__title"><?php echo t('order_section_payment'); ?></h3>
+						</div>
+					<div class="row order-payment-fields">
 									<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_total_amount'); ?></label>
@@ -417,26 +498,35 @@ function valid(e)
                                             </div>  
 						</div>
 						 
-					</div>		  			
-			                	 			<div class="row data-entry-actions">
-												<div class="col">
-											 
-											
-											</div>
-												<div class="col">
-                                               <!-- <button id="submit-button" type="submit" name="savBtn" onclick="return valid()"  class="btn btn-lg btn-info btn-block">-->
-                                                <button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
-	
-                                                    <span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
-                                                    <span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
-                                                </button>
-                                            </div>
-										 <div class="col">
-											 
-											
-											</div>
-										
-</div>
+					</div>
+					<div class="order-payment-sticky">
+						<div class="order-payment-sticky__summary">
+							<div class="order-payment-sticky__metric">
+								<span><?php echo t('order_total_amount'); ?></span>
+								<strong id="orderStickyTotal">0</strong>
+							</div>
+							<div class="order-payment-sticky__metric">
+								<span><?php echo t('app_advance'); ?></span>
+								<strong id="orderStickyAdvance">0</strong>
+							</div>
+							<div class="order-payment-sticky__metric">
+								<span><?php echo t('app_discount'); ?></span>
+								<strong id="orderStickyDiscount">0</strong>
+							</div>
+							<div class="order-payment-sticky__metric">
+								<span><?php echo t('app_balance'); ?></span>
+								<strong id="orderStickyBalance">0</strong>
+							</div>
+						</div>
+						<div class="order-payment-sticky__actions">
+							<button type="button" id="orderPreviewBtn" class="btn btn-lg btn-outline-primary btn-block"><?php echo t('order_preview_title'); ?></button>
+							<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
+								<span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
+								<span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
+							</button>
+						</div>
+					</div>
+					</div>
 </div>
                                 </div>
                                 <div class="col-lg-4 col-xl-3 order-form-camera-col">
@@ -444,6 +534,9 @@ function valid(e)
                                     <div class="order-camera-panel__head"><?php echo t('order_camera'); ?></div>
                                     <div class="order-camera-panel__view">
                                     <div id="my_camera" class="order-camera-panel__stage"></div>
+                                  </div>
+                                  <div class="order-camera-panel__actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary btn-block" id="orderCapturePhotoBtn"><?php echo t('order_capture_photo'); ?></button>
                                   </div>
                                   </div>
                                 </div>
@@ -463,6 +556,24 @@ function valid(e)
         </div>
 
     </div>
+
+<div class="modal fade" id="orderPreviewModal" tabindex="-1" role="dialog" aria-labelledby="orderPreviewModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="orderPreviewModalLabel"><?php echo t('order_preview_title'); ?></h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body" id="orderPreviewBody"></div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo t('order_preview_edit'); ?></button>
+				<button type="button" class="btn btn-primary" id="orderPreviewConfirmBtn"><?php echo t('order_preview_confirm'); ?></button>
+			</div>
+		</div>
+	</div>
+</div>
 
 <div class="modal fade" id="customerOrderHistoryModal" tabindex="-1" role="dialog" aria-labelledby="customerOrderHistoryModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
@@ -636,6 +747,10 @@ if (window.Webcam && document.getElementById('my_camera'))
     }
 </script>
 <?php $this->load->view('partials/order_copy_suit_line_js'); ?>
+<script>window.ORDER_FORM_CFG = <?php echo json_encode(array(
+	'lastOrderUrl' => site_url('Order/customer_last_order_lines'),
+), JSON_UNESCAPED_UNICODE); ?>;</script>
+<script src="<?php echo base_url('js/order-form-enhancements.js?v=3'); ?>"></script>
  
 </body>
 

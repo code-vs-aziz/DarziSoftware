@@ -184,30 +184,18 @@ class employee_rep extends MY_Controller {
 		 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
+		if(!$this->session->userdata('user')){
+			redirect('Login');
+			return;
+		}
 		
 		$date = $this->uri->segment(3);
 		$date1 = $this->uri->segment(4);
-		 
-		//$type = $this->input->post('fromdate');
-//		$emp = $this->uri->segment(5);
-//	  $data["empopening"]= $this->cash_ledger->get_opeing_emp($date,$emp);
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
+		$rtype = (string) $this->uri->segment(5);
 		$data["employee"]= $this->master_data->get_dat(array('employee'));
-	 // $data["opening"]= $this->cash_ledger->get_opeing('2019-03-01','4');
-	  $data["opening"]= $this->cash_ledger->get_opeing($date,$emp);
-	 // $data["payment"]= $this->cash_ledger->get_data_customer('2019-03-01','4');
-	  $data["payment"]= $this->cash_ledger->get_data_report_all_month($date,$date1,$emp);
-		
-	//	 echo $data["opening"];
-		//die;
-	// $data["employee"]= $this->master_data->get_dat(array('employee'));
- 	$this->load->view('all_Sale_employee_wise',$data);
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
-
-		
+		$data["opening"]= 0;
+		$data["payment"]= ($date !== '' && $date1 !== '') ? $this->cash_ledger->get_data_report_all_month($date,$date1,'',$rtype) : array();
+ 		$this->load->view('all_Sale_employee_wise',$data);
 	}
 			 
 	public function employee_report()

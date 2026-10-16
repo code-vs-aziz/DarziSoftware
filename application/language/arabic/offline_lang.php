@@ -1,0 +1,33 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['offline_chip_title'] = 'حالة الاتصال والمزامنة';
+$lang['offline_chip_checking'] = 'جارٍ الفحص…';
+$lang['offline_chip_online'] = 'متصل';
+$lang['offline_chip_offline'] = 'غير متصل';
+$lang['offline_chip_pending'] = 'بانتظار المزامنة';
+$lang['offline_chip_syncing'] = 'جارٍ المزامنة';
+$lang['offline_chip_synced'] = 'تمت المزامنة';
+$lang['offline_chip_failed'] = 'فشلت المزامنة';
+$lang['offline_sync_now'] = 'زامن الآن';
+$lang['offline_banner_offline'] = 'غير متصل — ستُزامن التغييرات عند عودة الاتصال';
+$lang['offline_banner_online'] = 'متصل — جميع التغييرات متزامنة';
+$lang['offline_banner_pending'] = 'تغييرات معلّقة جاهزة للمزامنة';
+$lang['offline_banner_failed'] = 'فشلت المزامنة — اضغط زامن الآن لإعادة المحاولة';
+$lang['offline_saved_pending'] = 'حُفظ بدون اتصال — بانتظار المزامنة';
+$lang['offline_online_only'] = 'واتساب وإعدادات الإدارة تحتاج اتصالاً بالإنترنت.';
+$lang['offline_whatsapp_online_only'] = 'واتساب يحتاج اتصالاً. استخدم الطباعة/PDF دون اتصال.';
+$lang['offline_report_cached_only'] = 'تقرير جديد يحتاج اتصالاً. إن كانت الصفحة محمّلة مسبقاً فاستخدم الطباعة/PDF.';
+$lang['offline_form_unsupported'] = 'هذا النموذج غير متاح دون اتصال.';
+$lang['offline_save_failed'] = 'تعذّر الحفظ دون اتصال: ';
+$lang['offline_sync_complete'] = 'اكتملت المزامنة';
+$lang['offline_sync_failed'] = 'فشلت المزامنة';
+$lang['offline_sync_orders'] = 'طلبات';
+$lang['offline_sync_customers'] = 'عملاء';
+$lang['offline_sync_cash'] = 'نقد';
+$lang['offline_sync_deliveries'] = 'تسليم';
+$lang['offline_sync_transfers'] = 'تحويل';
+$lang['offline_sync_conflicts'] = 'تعارضات';
+$lang['offline_last_synced'] = 'آخر مزامنة';
+$lang['offline_sync_status'] = 'حالة المزامنة';
+$lang['offline_pending_count'] = 'تغييرات معلّقة';

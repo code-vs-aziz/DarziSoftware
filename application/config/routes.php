@@ -52,3 +52,37 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 $route['default_controller'] = 'welcome';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
+
+/*
+|--------------------------------------------------------------------------
+| Darzi Baba public website API
+|--------------------------------------------------------------------------
+*/
+$route['api/health'] = 'api/content/health';
+$route['api/content/home'] = 'api/content/home';
+$route['api/content/page/(:any)'] = 'api/content/page/$1';
+$route['api/auth/lookup'] = 'api/auth/lookup';
+$route['api/auth/verify'] = 'api/auth/verify';
+$route['api/auth/logout'] = 'api/auth/logout';
+$route['api/auth/me'] = 'api/auth/me';
+$route['api/measurements/catalog'] = 'api/measurements/catalog';
+$route['api/measurements/me'] = 'api/measurements/me';
+$route['api/measurements/submit'] = 'api/measurements/submit';
+$route['api/shop/categories'] = 'api/shop/categories';
+$route['api/shop/products'] = 'api/shop/products';
+$route['api/shop/product/(:any)'] = 'api/shop/product/$1';
+$route['api/shop/checkout'] = 'api/shop/checkout';
+$route['api/shop/order/(:any)'] = 'api/shop/order/$1';
+
+/*
+|--------------------------------------------------------------------------
+| Staff offline-first sync API
+|--------------------------------------------------------------------------
+*/
+$route['api/erp_sync/health'] = 'api/erp_sync/health';
+$route['api/erp_sync/capabilities'] = 'api/erp_sync/capabilities';
+$route['api/erp_sync/issue_token'] = 'api/erp_sync/issue_token';
+$route['api/erp_sync/revoke_token'] = 'api/erp_sync/revoke_token';
+$route['api/erp_sync/bootstrap'] = 'api/erp_sync/bootstrap';
+$route['api/erp_sync/pull'] = 'api/erp_sync/pull';
+$route['api/erp_sync/push'] = 'api/erp_sync/push';

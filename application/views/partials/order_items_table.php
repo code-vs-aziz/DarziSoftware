@@ -51,10 +51,8 @@ foreach ($order as $orders) {
 			}
 		}
 	}
-	if ( ! empty($orders->MREMARKS)) {
-		$detail_parts[] = $orders->MREMARKS;
-	}
-	$detail_text = implode(' ', $detail_parts);
+	// Measurement note (MREMARKS) belongs with measurements, not every suit line.
+	$detail_text = implode(' · ', array_filter($detail_parts));
 	$pocket_text = implode(' ', $pocket_parts);
 ?>
 <table width="100%" cellpadding="1" cellspacing="0" class="items" dir="ltr" style="table-layout:fixed;margin-bottom:4px;">

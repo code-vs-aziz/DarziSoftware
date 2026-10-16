@@ -1,0 +1,762 @@
+/**
+ * Darzibaba — Mobile App UI (native feel)
+ * Phone-first presentation. Desktop styles stay in dz-design-system.css.
+ * Loaded last among layout CSS files.
+ */
+
+@media (max-width: 991.98px) {
+	:root {
+		--dz-mobile-header-h: 52px;
+		--dz-bottom-nav-h: 56px;
+		--dz-app-pad: 12px;
+		--dz-app-radius: 12px;
+		--dz-field-h: 44px;
+		--dz-btn-h: 44px;
+	}
+
+	/* Kill desktop chrome leftovers (C-shape bug) */
+	.header-desktop,
+	.header-desktop.dz-topbar {
+		display: none !important;
+		visibility: hidden !important;
+		pointer-events: none !important;
+		height: 0 !important;
+		min-height: 0 !important;
+		max-height: 0 !important;
+		overflow: hidden !important;
+		opacity: 0 !important;
+		left: -9999px !important;
+	}
+
+	.page-container {
+		top: 0 !important;
+		margin-top: 0 !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+		background: var(--dz-bg) !important;
+	}
+
+	body.erp-app .page-wrapper {
+		overflow-x: hidden;
+		overflow-y: visible;
+	}
+
+	/* ─── Compact app header ─── */
+	.header-mobile.dz-topbar-mobile {
+		position: fixed !important;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 1100;
+		padding-top: var(--dz-safe-top);
+		background: #fff !important;
+		border-bottom: 1px solid var(--dz-outline);
+		box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+	}
+
+	.header-mobile .header-mobile__bar,
+	.dz-topbar-mobile__bar {
+		padding: 0 !important;
+		min-height: var(--dz-mobile-header-h);
+	}
+
+	.dz-topbar-mobile__inner {
+		min-height: var(--dz-mobile-header-h);
+		padding: 0 8px !important;
+		gap: 6px;
+	}
+
+	.dz-topbar-mobile__title {
+		font-size: 1rem !important;
+		font-weight: 650;
+		letter-spacing: -0.01em;
+	}
+
+	.dz-topbar-mobile__menu.hamburger,
+	.dz-topbar-mobile__logout {
+		width: 40px !important;
+		height: 40px !important;
+		border-radius: 10px !important;
+		border: 1px solid var(--dz-outline) !important;
+		background: #fff !important;
+	}
+
+	/* Bridge: icon-only dot on phones */
+	.dz-bridge-chip--mobile {
+		max-width: none;
+		min-height: 28px;
+		padding: 0 8px 0 6px;
+		gap: 4px;
+		font-size: 0.625rem;
+	}
+
+	.dz-bridge-chip--mobile .dz-bridge-chip__label {
+		display: none;
+	}
+
+	.dz-bridge-chip--mobile .dz-bridge-chip__dot {
+		width: 8px;
+		height: 8px;
+	}
+
+	/* Compact language switcher */
+	.dz-topbar-mobile__lang .app-lang-switcher {
+		border-radius: 8px;
+	}
+
+	.dz-topbar-mobile__lang .app-lang-switcher__btn {
+		padding: 3px 6px;
+		font-size: 0.625rem;
+		min-width: 0;
+	}
+
+	/* Hide powered-by footer on phone app chrome */
+	.erp-global-footer {
+		display: none !important;
+	}
+
+	/* Content under fixed header + above bottom nav */
+	.main-content {
+		padding-top: calc(var(--dz-mobile-header-h) + var(--dz-safe-top)) !important;
+		padding-bottom: calc(var(--dz-bottom-nav-h) + var(--dz-safe-bottom) + 12px) !important;
+		min-height: 100dvh;
+	}
+
+	.main-content .section__content--p30 {
+		padding: 10px var(--dz-app-pad) 16px !important;
+	}
+
+	.main-content .section__content .container-fluid,
+	.dz-container {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+		max-width: 100% !important;
+	}
+
+	/* Edge-to-edge app surface: reduce nested “web card in gray box” feel */
+	.dz-card,
+	.erp-module-card,
+	.card.erp-module-card,
+	.dz-search-panel,
+	.data-entry-card {
+		border-radius: var(--dz-app-radius) !important;
+		box-shadow: none !important;
+		border-color: var(--dz-outline) !important;
+	}
+
+	.dz-card__header,
+	.erp-card-head,
+	.erp-module-card .erp-card-head {
+		padding: 12px 14px !important;
+	}
+
+	.dz-card__body,
+	.erp-card-body,
+	.card-body.erp-card-body {
+		padding: 12px 14px !important;
+	}
+
+	.dz-card__title,
+	.erp-module-title {
+		font-size: 1.0625rem !important;
+		font-weight: 650 !important;
+	}
+
+	/* ─── Bottom nav: short labels, app-like ─── */
+	.dz-bottom-nav {
+		height: calc(var(--dz-bottom-nav-h) + var(--dz-safe-bottom));
+		padding: 0 2px var(--dz-safe-bottom);
+		box-shadow: 0 -1px 0 rgba(15, 23, 42, 0.06), 0 -8px 24px rgba(15, 23, 42, 0.04);
+	}
+
+	.dz-bottom-nav__item {
+		padding: 4px 2px 6px;
+		font-size: 0.625rem;
+		font-weight: 600;
+		gap: 1px;
+	}
+
+	.dz-bottom-nav__icon {
+		width: 32px;
+		height: 28px;
+		font-size: 1.2rem;
+	}
+
+	.dz-bottom-nav__label {
+		font-size: 0.625rem;
+		line-height: 1.1;
+		max-width: 100%;
+	}
+
+	.dz-bridge-break-banner {
+		bottom: calc(var(--dz-bottom-nav-h) + var(--dz-safe-bottom) + 8px) !important;
+	}
+
+	.dz-drawer__lang {
+		padding: 4px 4px 12px;
+		border-bottom: 1px solid var(--dz-outline);
+		margin-bottom: 8px;
+		display: flex;
+		justify-content: center;
+	}
+
+	.dz-drawer__lang .app-lang-switcher__btn {
+		padding: 8px 14px;
+		font-size: 0.8125rem;
+		min-height: 40px;
+		display: inline-flex;
+		align-items: center;
+	}
+}
+
+@media (max-width: 430px) {
+	/* Free header space on narrow phones — language lives in drawer */
+	.dz-topbar-mobile__lang {
+		display: none !important;
+	}
+}
+
+/* Phones only — denser native layout */
+@media (max-width: 767.98px) {
+	html {
+		font-size: 15px;
+	}
+
+	/* Compact fields — never stretch tall */
+	.form-control,
+	.dz-input,
+	select.form-control,
+	textarea.form-control:not([rows]),
+	.customer-form-page .customer-section .form-control,
+	.erp-form-page .data-entry-body .form-control,
+	.data-entry-card .data-entry-body .form-control {
+		min-height: var(--dz-field-h) !important;
+		height: var(--dz-field-h) !important;
+		max-height: none;
+		padding: 8px 12px !important;
+		font-size: 16px !important;
+		line-height: 1.25 !important;
+		border-radius: 10px !important;
+	}
+
+	textarea.form-control[rows],
+	textarea.dz-input {
+		height: auto !important;
+		min-height: 72px !important;
+	}
+
+	.select2-container--default .select2-selection--single {
+		min-height: var(--dz-field-h) !important;
+		height: var(--dz-field-h) !important;
+	}
+
+	.select2-container--default .select2-selection--single .select2-selection__rendered {
+		line-height: calc(var(--dz-field-h) - 2px) !important;
+		padding-left: 12px !important;
+		font-size: 0.9375rem;
+	}
+
+	.select2-container--default .select2-selection--single .select2-selection__arrow {
+		height: calc(var(--dz-field-h) - 2px) !important;
+	}
+
+	.form-group,
+	.dz-field,
+	.erp-form-page .data-entry-body .form-group,
+	.customer-form-page .customer-section .form-group {
+		margin-bottom: 0.65rem !important;
+	}
+
+	.control-label,
+	.dz-label,
+	.form-group label {
+		font-size: 0.75rem !important;
+		margin-bottom: 4px !important;
+		font-weight: 600;
+	}
+
+	.btn:not(.btn-sm):not(.close),
+	.dz-btn,
+	.btn.dz-btn {
+		min-height: var(--dz-btn-h) !important;
+		height: auto !important;
+		padding: 0.55rem 0.9rem !important;
+		font-size: 0.875rem !important;
+		border-radius: 10px !important;
+		white-space: normal;
+	}
+
+	.btn-sm {
+		min-height: 36px !important;
+		padding: 0.35rem 0.7rem !important;
+		font-size: 0.8125rem !important;
+	}
+
+	/* ─── Dashboard: app home, not web hero ─── */
+	.dz-dashboard__header {
+		margin-bottom: 12px !important;
+		padding: 0 2px;
+	}
+
+	/* Title already in app bar — hide duplicate */
+	.dz-dashboard__title {
+		display: none !important;
+	}
+
+	.dz-dashboard__subtitle {
+		font-size: 0.8125rem !important;
+		line-height: 1.4;
+		color: var(--dz-text-secondary);
+		margin: 0 !important;
+	}
+
+	.dz-dashboard__meta {
+		font-size: 0.75rem !important;
+		margin-top: 6px !important;
+	}
+
+	.dz-search-panel {
+		padding: 10px !important;
+		margin-bottom: 14px !important;
+		border-radius: var(--dz-app-radius) !important;
+	}
+
+	.dz-search-panel__row {
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: stretch !important;
+		gap: 8px !important;
+	}
+
+	/* Critical: stop flex-grow from making the search field huge */
+	.dz-search-panel__row .dz-input,
+	.dz-search-panel__row .form-control,
+	#dash-home-search {
+		flex: 0 0 auto !important;
+		flex-grow: 0 !important;
+		width: 100% !important;
+		height: var(--dz-field-h) !important;
+		min-height: var(--dz-field-h) !important;
+		max-height: var(--dz-field-h) !important;
+	}
+
+	.dz-search-panel__row .dz-btn,
+	.dz-search-panel__row .btn {
+		width: 100%;
+		margin: 0 !important;
+		justify-content: center;
+	}
+
+	/* Search + Create as side-by-side when both are buttons */
+	.dz-search-panel__row--home {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr;
+		grid-template-areas:
+			"input input"
+			"search create";
+		gap: 8px;
+		align-items: stretch !important;
+	}
+
+	.dz-search-panel__row--home .dz-search-panel__input,
+	.dz-search-panel__row--home #dash-home-search {
+		grid-area: input;
+		flex: 0 0 auto !important;
+		flex-grow: 0 !important;
+		width: 100% !important;
+		height: var(--dz-field-h) !important;
+		min-height: var(--dz-field-h) !important;
+		max-height: var(--dz-field-h) !important;
+	}
+
+	.dz-search-panel__row--home > .dz-btn--filled {
+		grid-area: search;
+		width: 100%;
+		margin: 0 !important;
+		justify-content: center;
+	}
+
+	.dz-search-panel__row--home > .dz-btn--tonal {
+		grid-area: create;
+		width: 100%;
+		margin: 0 !important;
+		justify-content: center;
+		font-size: 0.75rem !important;
+		padding-left: 0.5rem !important;
+		padding-right: 0.5rem !important;
+	}
+
+	.dz-section-label {
+		font-size: 0.6875rem !important;
+		margin: 4px 2px 8px !important;
+	}
+
+	.dz-stat-grid {
+		grid-template-columns: 1fr 1fr !important;
+		gap: 8px !important;
+		margin-bottom: 12px !important;
+	}
+
+	.dz-stat {
+		padding: 10px 12px !important;
+		border-radius: 12px !important;
+		min-height: 0 !important;
+		gap: 8px;
+	}
+
+	.dz-stat__icon {
+		width: 32px !important;
+		height: 32px !important;
+		font-size: 0.875rem !important;
+	}
+
+	.dz-stat__label {
+		font-size: 0.625rem !important;
+		line-height: 1.2;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.dz-stat__value {
+		font-size: 1.25rem !important;
+		font-weight: 700;
+		line-height: 1.15;
+	}
+
+	.dz-actions-row {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+
+	.dz-actions-row .dz-btn,
+	.dz-actions-row .btn {
+		width: 100%;
+		margin: 0 !important;
+		font-size: 0.75rem !important;
+		padding: 0.5rem 0.5rem !important;
+		min-height: 40px !important;
+	}
+
+	/* ─── Forms: compact sections ─── */
+	.erp-form-page .erp-form-section,
+	.erp-form-page .customer-section,
+	.erp-form-page .measurement-section,
+	.erp-form-page .order-section,
+	.customer-form-page .customer-section,
+	.data-entry-card .erp-form-section {
+		padding: 10px 12px 4px !important;
+		margin-bottom: 10px !important;
+		border-radius: 12px !important;
+	}
+
+	.erp-form-page .erp-form-section__title,
+	.erp-form-page .customer-section__title,
+	.customer-form-page .customer-section__title,
+	.order-section__title {
+		font-size: 0.875rem !important;
+	}
+
+	.erp-form-page .erp-info-panel,
+	.erp-form-page .customer-info-panel,
+	.erp-form-page .order-customer-panel,
+	.customer-form-page .customer-info-panel,
+	.order-form-page .order-customer-panel {
+		padding: 10px 12px !important;
+		margin-bottom: 10px !important;
+		border-radius: 12px !important;
+	}
+
+	.erp-form-page .erp-info-panel__grid,
+	.erp-form-page .customer-info-panel__grid,
+	.erp-form-page .order-customer-panel__grid,
+	.customer-form-page .customer-info-panel__grid {
+		grid-template-columns: 1fr 1fr !important;
+		gap: 8px 10px !important;
+	}
+
+	.erp-form-page .erp-info-panel__item span,
+	.customer-info-panel__item span,
+	.order-customer-panel__item span {
+		font-size: 0.6875rem !important;
+	}
+
+	.erp-form-page .erp-info-panel__item strong,
+	.customer-info-panel__item strong,
+	.order-customer-panel__item strong {
+		font-size: 0.8125rem !important;
+		line-height: 1.3;
+	}
+
+	/* Order form: stack only details/payment fields — keep suit/kolar grids multi-col */
+	.order-form-page .order-section--details .row > .col,
+	.order-form-page .order-section--details .row > [class*="col-"],
+	.order-form-page .order-details-fields > .col,
+	.order-form-page .order-details-fields > [class*="col-"] {
+		flex: 0 0 100% !important;
+		max-width: 100% !important;
+		width: 100% !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	.order-form-page .order-section--payment .row,
+	.order-form-page .order-payment-fields {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr !important;
+		gap: 0 10px;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+	}
+
+	.order-form-page .order-section--payment .row > .col,
+	.order-form-page .order-payment-fields > .col {
+		flex: none !important;
+		max-width: none !important;
+		width: auto !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	.order-form-page .order-payment-sticky__summary {
+		display: none !important;
+	}
+
+	.order-form-page .order-payment-sticky {
+		position: static !important;
+		bottom: auto !important;
+		box-shadow: none !important;
+	}
+
+	.order-form-page .order-customer-panel .btn,
+	.order-form-page .order-customer-panel .dz-btn {
+		width: 100%;
+		margin-bottom: 6px;
+		font-size: 0.75rem !important;
+		min-height: 36px !important;
+		padding: 0.4rem 0.65rem !important;
+	}
+
+	/* Type chips / toggles */
+	.customer-type-chip__card,
+	.customer-form-page .customer-type-chip {
+		min-height: 40px;
+	}
+
+	/* Submit bars: static on phone so last fields (e.g. Address) stay fully visible */
+	.erp-form-page .erp-submit-sticky,
+	.erp-form-page .customer-submit-sticky,
+	.erp-form-page .measurement-submit-sticky,
+	.customer-form-page .customer-submit-sticky,
+	.measurement-form-page .measurement-submit-sticky,
+	.data-entry-card .erp-submit-sticky,
+	.data-entry-card .data-entry-actions {
+		position: static !important;
+		bottom: auto !important;
+		left: auto !important;
+		right: auto !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		margin: 12px 0 8px !important;
+		padding: 10px !important;
+		border-radius: 12px !important;
+		z-index: auto;
+		box-shadow: none !important;
+		background: var(--dz-surface) !important;
+		border: 1px solid var(--dz-outline) !important;
+	}
+
+	/* Keep order payment bar sticky, but leave room so fields aren't covered */
+	.erp-form-page .order-payment-sticky,
+	.order-form-page .order-payment-sticky {
+		position: sticky !important;
+		bottom: calc(var(--dz-bottom-nav-h) + var(--dz-safe-bottom) + 4px) !important;
+		z-index: 40;
+		box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.1) !important;
+		background: rgba(255, 255, 255, 0.98) !important;
+	}
+
+	.order-form-page .order-entry-card .dz-card__body,
+	.order-form-page .order-entry-card .erp-card-body,
+	.order-form-page .data-entry-body {
+		padding-bottom: 96px !important;
+	}
+
+	.customer-form-page .customer-section .form-group:last-child {
+		margin-bottom: 0.85rem !important;
+	}
+
+	.customer-form-page #Address,
+	.customer-form-page .customer-urdu-field#Address {
+		position: relative;
+		z-index: 1;
+	}
+
+	.customer-form-page .customer-submit-sticky__actions,
+	.erp-form-page .erp-submit-sticky__actions,
+	.data-entry-card .data-entry-actions {
+		grid-template-columns: 1fr !important;
+	}
+
+	.customer-form-page .customer-submit-sticky .btn,
+	.erp-form-page .erp-submit-sticky .btn,
+	.data-entry-card .data-entry-actions .btn {
+		min-height: 46px !important;
+		width: 100%;
+	}
+
+	/* DataTables toolbar: compact */
+	.dataTables_wrapper .dataTables_length,
+	.dataTables_wrapper .dataTables_filter {
+		padding: 8px 10px 0 !important;
+	}
+
+	.dataTables_wrapper .dataTables_filter input {
+		min-height: 40px !important;
+		height: 40px !important;
+		font-size: 16px !important;
+	}
+
+	/* Lists: full-bleed primary CTA */
+	.erp-card-actions .btn-primary,
+	.dz-card__actions .btn-primary,
+	.erp-toolbar .btn-primary {
+		min-height: 44px !important;
+	}
+
+	/* Hide redundant in-page H1 when app bar already shows title */
+	.main-content .erp-module-title.sr-only-mobile,
+	body.erp-app .page-title-duplicate {
+		display: none !important;
+	}
+}
+
+@media (max-width: 575.98px) {
+	.dz-stat-grid {
+		grid-template-columns: 1fr 1fr !important;
+	}
+
+	.dz-topbar-mobile__lang .app-lang-switcher__btn:nth-child(n+3) {
+		/* keep all three but tighter */
+		padding: 3px 5px;
+	}
+
+	.dz-actions-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Tablet: use space without phone density */
+@media (min-width: 768px) and (max-width: 991.98px) {
+	:root {
+		--dz-app-pad: 16px;
+	}
+
+	.main-content .section__content--p30 {
+		padding: 16px 20px !important;
+	}
+
+	.dz-dashboard__title {
+		display: block !important;
+		font-size: 1.35rem !important;
+	}
+
+	.dz-search-panel__row {
+		display: flex !important;
+		flex-direction: row !important;
+		flex-wrap: wrap;
+		align-items: center !important;
+		gap: 10px !important;
+	}
+
+	.dz-search-panel__row .dz-input,
+	#dash-home-search {
+		flex: 1 1 220px !important;
+		height: 44px !important;
+		min-height: 44px !important;
+		max-height: 44px !important;
+	}
+
+	.dz-search-panel__row .dz-btn,
+	.dz-search-panel__row .btn {
+		width: auto;
+		flex: 0 0 auto;
+	}
+
+	.dz-stat-grid {
+		grid-template-columns: repeat(2, 1fr) !important;
+		gap: 12px;
+	}
+
+	.order-form-page .row > .col-md-6 {
+		flex: 0 0 50%;
+		max-width: 50%;
+	}
+}
+
+/* Bottom sheet modals — phones */
+@media (max-width: 767.98px) {
+	.modal-dialog,
+	.dz-actions-modal .modal-dialog,
+	.dz-confirm-modal .modal-dialog {
+		margin: 0 !important;
+		max-width: 100% !important;
+		width: 100% !important;
+		position: fixed !important;
+		left: 0 !important;
+		right: 0 !important;
+		bottom: 0 !important;
+		top: auto !important;
+		transform: none !important;
+		height: auto !important;
+	}
+
+	.modal.fade .modal-dialog {
+		transform: translateY(100%) !important;
+		transition: transform 0.25s ease-out !important;
+	}
+
+	.modal.show .modal-dialog,
+	.modal.fade.show .modal-dialog {
+		transform: translateY(0) !important;
+	}
+
+	.modal-content {
+		border-radius: 16px 16px 0 0 !important;
+		border: 0 !important;
+		max-height: min(88vh, 100dvh);
+		box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18) !important;
+	}
+
+	.modal-header {
+		padding: 14px 16px 10px !important;
+		border-bottom: 1px solid var(--dz-outline);
+		position: relative;
+	}
+
+	.modal-header::before {
+		content: "";
+		position: absolute;
+		top: 8px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 36px;
+		height: 4px;
+		border-radius: 999px;
+		background: #cbd5e1;
+	}
+
+	.modal-body {
+		padding: 12px 16px 8px !important;
+	}
+
+	.modal-footer,
+	.dz-confirm-modal__footer {
+		padding: 10px 16px calc(12px + var(--dz-safe-bottom)) !important;
+	}
+
+	.dz-actions-modal__buttons .btn {
+		min-height: 48px !important;
+		font-size: 0.9375rem !important;
+	}
+}

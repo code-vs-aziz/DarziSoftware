@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#1f4b3f">
+	<meta name="description" content="Darzi Baba ERP Offline Desk — server ke baghair kaam">
+	<link rel="manifest" href="./manifest.webmanifest">
+	<link rel="icon" href="./images/favicon-32.png">
+	<title>Offline Desk — Darzi Baba ERP</title>
+	<link rel="stylesheet" href="./css/offline-erp.css">
+	<link rel="stylesheet" href="./css/offline-desk.css">
+	<script>
+	window.DARZI_OFFLINE_CFG = {
+		enabled: true,
+		apiBase: './index.php/api/erp_sync',
+		healthUrl: './index.php/api/erp_sync/health',
+		swUrl: './sw.js',
+		swScope: './',
+		homeUrl: './index.php/Welcome',
+		loginUrl: './index.php/Login',
+		offlineApp: true
+	};
+	window.APP_LANG = window.APP_LANG || {};
+	</script>
+</head>
+<body>
+	<div class="desk-shell">
+		<header class="desk-top">
+			<div class="desk-brand">
+				<img src="./images/darzi-baba-logo.png?v=2" alt="Darzi Baba">
+				<div>
+					<h1>Offline Desk</h1>
+					<p>Server / Wi‑Fi band ho to bhi yahan kaam chale</p>
+				</div>
+			</div>
+			<div class="desk-actions">
+				<button type="button" class="desk-btn desk-btn--ghost" id="btn-open-login">Login</button>
+				<button type="button" class="desk-btn desk-btn--ghost" id="btn-open-erp">Full ERP</button>
+				<button type="button" class="desk-btn desk-btn--warn" id="btn-sync">Sync Now</button>
+			</div>
+		</header>
+
+		<div id="desk-status" class="desk-status is-checking">Checking…</div>
+
+		<nav class="desk-nav" aria-label="Offline desk">
+			<button type="button" data-desk-nav="home" class="is-active">Home</button>
+			<button type="button" data-desk-nav="customers">Customer</button>
+			<button type="button" data-desk-nav="orders">Order</button>
+			<button type="button" data-desk-nav="cash">Cash</button>
+			<button type="button" data-desk-nav="delivery">Delivery</button>
+			<button type="button" data-desk-nav="transfer">Transfer</button>
+			<button type="button" data-desk-nav="queue">Queue <span class="desk-pill" id="nav-pending-pill" hidden></span></button>
+		</nav>
+
+		<section class="desk-card" data-desk-view="home">
+			<h2>Shop Offline Desk</h2>
+			<p class="desk-lead">Yeh page Service Worker + IndexedDB pe chalta hai. PHP server band ho to bhi customer, order, cash, delivery, transfer yahan save ho kar queue mein rehte hain. Server wapas aaye to <strong>Sync Now</strong>.</p>
+			<div class="desk-home-stats">
+				<div class="desk-stat"><strong id="pending-count">0</strong><span>Pending sync</span></div>
+				<div class="desk-stat"><strong>Local</strong><span>Is computer pe data</span></div>
+				<div class="desk-stat"><strong>PWA</strong><span>Desktop icon se kholo</span></div>
+			</div>
+			<p class="desk-note">
+				<strong>Pehli dafa setup:</strong> jab server ON ho, ek dafa Full ERP login karo taake customers/masters cache ho jayein aur Sync token mil jaye. Uske baad subah sirf yeh Offline Desk khol kar kaam chal sakta hai — server ke baghair.
+				WhatsApp sirf online pe chalega.
+			</p>
+		</section>
+
+		<section class="desk-card" data-desk-view="customers" hidden>
+			<h2>Naya Customer</h2>
+			<p class="desk-lead">Offline save → baad mein sync.</p>
+			<form id="form-customer">
+				<div class="desk-grid">
+					<div class="desk-field"><label>Name</label><input name="name" required autocomplete="name"></div>
+					<div class="desk-field"><label>Phone</label><input name="phone" inputmode="tel" autocomplete="tel"></div>
+					<div class="desk-field"><label>City</label><input name="city"></div>
+					<div class="desk-field"><label>Man Napno (optional)</label><input name="man_napno"></div>
+					<div class="desk-field desk-field--full"><label>Address</label><input name="address"></div>
+					<div class="desk-field"><label>CNIC</label><input name="cnic"></div>
+					<div class="desk-field desk-field--full"><label>Remarks</label><textarea name="remarks" rows="2"></textarea></div>
+				</div>
+				<div class="desk-form-actions">
+					<button type="submit" class="desk-btn">Save Offline</button>
+				</div>
+			</form>
+			<div id="customer-list" class="desk-list"></div>
+		</section>
+
+		<section class="desk-card" data-desk-view="orders" hidden>
+			<h2>Naya Order</h2>
+			<p class="desk-lead">Measurement pehle se cache honi chahiye (online bootstrap). Warna pehle online naap banao.</p>
+			<form id="form-order">
+				<div class="desk-grid">
+					<div class="desk-field desk-field--full">
+						<label>Customer</label>
+						<select name="customer_id" id="order-customer" data-customer-select required></select>
+					</div>
+					<div class="desk-field desk-field--full">
+						<label>Measurement / Naap no</label>
+						<select name="naap_no" id="order-naap" required></select>
+					</div>
+					<div class="desk-field"><label>Suit type</label><input name="suit_type" value="Kurta"></div>
+					<div class="desk-field"><label>Suit code</label><input name="suit" value="1"></div>
+					<div class="desk-field"><label>Qty</label><input name="qty" type="number" min="1" value="1"></div>
+					<div class="desk-field"><label>Rate</label><input name="rate" type="number" min="0" step="0.01" value="0"></div>
+					<div class="desk-field"><label>Advance</label><input name="advance" type="number" min="0" step="0.01" value="0"></div>
+					<div class="desk-field"><label>Discount</label><input name="discount" type="number" min="0" step="0.01" value="0"></div>
+					<div class="desk-field"><label>Return date</label><input name="return_date" type="date"></div>
+					<div class="desk-field desk-field--full"><label>Remarks</label><input name="remarks"></div>
+				</div>
+				<div class="desk-form-actions">
+					<button type="submit" class="desk-btn">Save Order Offline</button>
+				</div>
+			</form>
+			<div id="order-list" class="desk-list"></div>
+		</section>
+
+		<section class="desk-card" data-desk-view="cash" hidden>
+			<h2>Cash / Payment</h2>
+			<p class="desk-lead">Receipt/payment offline queue. Sync pe ledger update.</p>
+			<form id="form-cash">
+				<div class="desk-grid">
+					<div class="desk-field">
+						<label>Type</label>
+						<select name="type">
+							<option value="2">Customer receipt (2)</option>
+							<option value="1">Payment / expense (1)</option>
+							<option value="7">Salary (7)</option>
+						</select>
+					</div>
+					<div class="desk-field"><label>Amount</label><input name="amount" type="number" min="0" step="0.01" required></div>
+					<div class="desk-field desk-field--full">
+						<label>Customer</label>
+						<select name="customer_id" data-customer-select></select>
+					</div>
+					<div class="desk-field"><label>Employee id (optional)</label><input name="employee"></div>
+					<div class="desk-field"><label>Order no (optional)</label><input name="order_no"></div>
+					<div class="desk-field desk-field--full"><label>Remarks</label><input name="remarks"></div>
+				</div>
+				<div class="desk-form-actions">
+					<button type="submit" class="desk-btn">Save Cash Offline</button>
+				</div>
+			</form>
+		</section>
+
+		<section class="desk-card" data-desk-view="delivery" hidden>
+			<h2>Delivery</h2>
+			<p class="desk-lead">Order deliver mark + payment amount queue.</p>
+			<form id="form-delivery">
+				<div class="desk-grid">
+					<div class="desk-field"><label>Order ID (trnno)</label><input name="order_id" required></div>
+					<div class="desk-field"><label>Order SR / line</label><input name="order_sr" value="1" required></div>
+					<div class="desk-field desk-field--full">
+						<label>Customer</label>
+						<select name="customer_id" data-customer-select required></select>
+					</div>
+					<div class="desk-field"><label>Paid now</label><input name="amount" type="number" min="0" step="0.01" value="0"></div>
+					<div class="desk-field"><label>Total (optional)</label><input name="total" type="number" min="0" step="0.01"></div>
+					<div class="desk-field"><label>Advance already</label><input name="advance" type="number" min="0" step="0.01" value="0"></div>
+					<div class="desk-field"><label>Discount</label><input name="discount" type="number" min="0" step="0.01" value="0"></div>
+					<div class="desk-field"><label>Paid date</label><input name="paid_date" type="date"></div>
+				</div>
+				<div class="desk-form-actions">
+					<button type="submit" class="desk-btn">Queue Delivery</button>
+				</div>
+			</form>
+		</section>
+
+		<section class="desk-card" data-desk-view="transfer" hidden>
+			<h2>Transfer (HO / CUT / STIT)</h2>
+			<p class="desk-lead">Active transfer row IDs online list se milte hain. Offline pe trnno / order / sr likho.</p>
+			<form id="form-transfer">
+				<div class="desk-grid">
+					<div class="desk-field"><label>Transfer trnno</label><input name="trnno" required></div>
+					<div class="desk-field">
+						<label>From dept</label>
+						<select name="dept">
+							<option value="HO">HO → CUT</option>
+							<option value="CUT">CUT → HO2</option>
+							<option value="HO2">HO2 → STIT</option>
+							<option value="STIT">STIT complete</option>
+						</select>
+					</div>
+					<div class="desk-field"><label>Order ID</label><input name="order_id" required></div>
+					<div class="desk-field"><label>SR</label><input name="sr" required></div>
+					<div class="desk-field"><label>Employee account</label><input name="employee"></div>
+					<div class="desk-field"><label>Rate</label><input name="rate" type="number" min="0" step="0.01"></div>
+					<div class="desk-field"><label>Date</label><input name="rdate" type="date"></div>
+				</div>
+				<div class="desk-form-actions">
+					<button type="submit" class="desk-btn">Queue Transfer</button>
+				</div>
+			</form>
+		</section>
+
+		<section class="desk-card" data-desk-view="queue" hidden>
+			<h2>Pending Sync Queue</h2>
+			<p class="desk-lead">Yeh entries is computer pe safe hain jab tak Sync successful na ho.</p>
+			<div id="queue-list" class="desk-list"></div>
+		</section>
+	</div>
+
+	<script src="./js/offline/db.js"></script>
+	<script src="./js/offline/connectivity.js"></script>
+	<script src="./js/offline/sync-engine.js"></script>
+	<script src="./js/offline/desk-ops.js"></script>
+	<script src="./js/offline/ui.js"></script>
+	<script src="./js/offline/desk.js"></script>
+</body>
+</html>

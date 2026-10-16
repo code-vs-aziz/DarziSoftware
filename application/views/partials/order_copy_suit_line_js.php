@@ -54,6 +54,17 @@
 		var target = document.querySelector('input[name="kolorstyle' + toIdx + '"][value="' + fromChecked.value + '"]');
 		if (target) {
 			target.checked = true;
+			var wrap = target.closest('.order-kolar-picker');
+			if (wrap) {
+				var siblings = wrap.querySelectorAll('.order-kolar-option');
+				for (var s = 0; s < siblings.length; s++) {
+					siblings[s].classList.remove('is-selected');
+				}
+			}
+			var label = target.closest('.order-kolar-option');
+			if (label) {
+				label.classList.add('is-selected');
+			}
 		}
 	}
 
@@ -78,6 +89,8 @@
 			bal();
 		}
 	}
+
+	window.recalculateOrderGrandTotal = recalculateOrderGrandTotal;
 
 	window.copyOrderSuitLine = function (fromIdx, toIdx) {
 		fromIdx = parseInt(fromIdx, 10);
@@ -116,15 +129,94 @@
 
 		copyKolorStyle(fromIdx, toIdx);
 		recalculateOrderGrandTotal();
+		if (typeof window.orderFormUpdateSuitAccordion === 'function') {
+			window.orderFormUpdateSuitAccordion();
+		}
 	};
 
+	function suitLineHasDesignAndType(idx) {
+		var typeEl = document.getElementById('Designtype' + idx) || lineSelect(idx, 'desigtype[]');
+		var suitEl = document.getElementById('suit' + idx);
+		var typeVal = typeEl ? String(typeEl.value || '').trim() : '';
+		var suitVal = suitEl ? String(suitEl.value || '').trim() : '';
+		return typeVal !== '' && typeVal !== '0' && suitVal !== '' && suitVal !== '0';
+	}
+
+	/**
+	 * Fill all later suit lines from this one (same style/options/price/kolar/remarks).
+	 * Returns how many lines were updated.
+	 */
+	window.copyOrderSuitLineToRemaining = function (fromIdx) {
+		fromIdx = parseInt(fromIdx, 10);
+		if (isNaN(fromIdx) || fromIdx < 0) {
+			return 0;
+		}
+		if (!suitLineHasDesignAndType(fromIdx)) {
+			var msg = (window.APP_LANG && APP_LANG.order_suit_complete_first)
+				? String(APP_LANG.order_suit_complete_first).replace('%d', String(fromIdx + 1))
+				: ('Please complete design and suit type for Suit ' + (fromIdx + 1) + ' first.');
+			alert(msg);
+			return 0;
+		}
+		var qtyEl = document.getElementById('Quantity');
+		var qty = qtyEl ? (parseInt(qtyEl.value, 10) || 0) : 0;
+		if (qty < 2 || fromIdx >= qty - 1) {
+			return 0;
+		}
+		var copied = 0;
+		for (var t = fromIdx + 1; t < qty; t++) {
+			window.copyOrderSuitLine(fromIdx, t);
+			copied++;
+		}
+		return copied;
+	};
+
+	function applySameAsFromSelect($line) {
+		if (!$line || !window.jQuery) {
+			return;
+		}
+		var toIdx = parseInt($line.data('line'), 10);
+		if (isNaN(toIdx)) {
+			toIdx = parseInt($line.attr('data-suit-index'), 10);
+		}
+		var fromVal = $line.find('.order-copy-from').val();
+		if (!fromVal) {
+			return;
+		}
+		var fromIdx = parseInt(fromVal, 10) - 1;
+		if (isNaN(fromIdx) || isNaN(toIdx) || fromIdx === toIdx) {
+			return;
+		}
+		if (!document.getElementById('Remarks' + fromIdx)) {
+			return;
+		}
+		copyOrderSuitLine(fromIdx, toIdx);
+	}
+
 	if (window.jQuery) {
+		jQuery(document).on('change', '.order-copy-from', function () {
+			applySameAsFromSelect(jQuery(this).closest('.order-suit-line'));
+		});
+
 		jQuery(document).on('click', '.order-copy-apply', function (e) {
 			e.preventDefault();
+			applySameAsFromSelect(jQuery(this).closest('.order-suit-line'));
+		});
+
+		jQuery(document).on('click', '.order-suit-apply-remaining', function (e) {
+			e.preventDefault();
 			var $line = jQuery(this).closest('.order-suit-line');
-			var toIdx = parseInt($line.data('line'), 10);
-			var fromIdx = parseInt($line.find('.order-copy-from').val(), 10) - 1;
-			copyOrderSuitLine(fromIdx, toIdx);
+			var fromIdx = parseInt($line.data('line'), 10);
+			if (isNaN(fromIdx)) {
+				fromIdx = parseInt($line.attr('data-suit-index'), 10);
+			}
+			var n = window.copyOrderSuitLineToRemaining(fromIdx);
+			if (n > 0) {
+				var tpl = (window.APP_LANG && APP_LANG.order_same_remaining_done)
+					? APP_LANG.order_same_remaining_done
+					: 'Same details applied to %d remaining suit(s).';
+				alert(String(tpl).replace('%d', String(n)));
+			}
 		});
 	}
 })();

@@ -1,0 +1,33 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['offline_chip_title'] = 'کنکشن اور سنک کی حالت';
+$lang['offline_chip_checking'] = 'چیک…';
+$lang['offline_chip_online'] = 'آن لائن';
+$lang['offline_chip_offline'] = 'آف لائن';
+$lang['offline_chip_pending'] = 'سنک زیر التوا';
+$lang['offline_chip_syncing'] = 'سنک ہو رہا ہے';
+$lang['offline_chip_synced'] = 'سنک ہو گیا';
+$lang['offline_chip_failed'] = 'سنک ناکام';
+$lang['offline_sync_now'] = 'اب سنک کریں';
+$lang['offline_banner_offline'] = 'آف لائن — کنکشن بحال ہونے پر تبدیلیاں سنک ہوں گی';
+$lang['offline_banner_online'] = 'آن لائن — تمام تبدیلیاں سنک ہیں';
+$lang['offline_banner_pending'] = 'زیر التوا تبدیلیاں سنک کے لیے تیار';
+$lang['offline_banner_failed'] = 'سنک ناکام — دوبارہ کوشش کے لیے Sync Now دبائیں';
+$lang['offline_saved_pending'] = 'آف لائن محفوظ — سنک زیر التوا';
+$lang['offline_online_only'] = 'WhatsApp اور ایڈمن سیٹنگز کے لیے آن لائن کنکشن چاہیے۔';
+$lang['offline_whatsapp_online_only'] = 'WhatsApp آن لائن چاہیے۔ آف لائن Print/PDF استعمال کریں۔';
+$lang['offline_report_cached_only'] = 'نیا رپورٹ آن لائن چاہیے۔ اگر صفحہ پہلے لوڈ ہے تو Print/PDF چلائیں۔';
+$lang['offline_form_unsupported'] = 'یہ فارم آف لائن دستیاب نہیں۔';
+$lang['offline_save_failed'] = 'آف لائن محفوظ نہیں ہو سکا: ';
+$lang['offline_sync_complete'] = 'سنک مکمل';
+$lang['offline_sync_failed'] = 'سنک ناکام';
+$lang['offline_sync_orders'] = 'آرڈرز';
+$lang['offline_sync_customers'] = 'کسٹمرز';
+$lang['offline_sync_cash'] = 'کیش';
+$lang['offline_sync_deliveries'] = 'ڈیلیوری';
+$lang['offline_sync_transfers'] = 'ٹرانسفر';
+$lang['offline_sync_conflicts'] = 'تضادات';
+$lang['offline_last_synced'] = 'آخری سنک';
+$lang['offline_sync_status'] = 'سنک کی حالت';
+$lang['offline_pending_count'] = 'زیر التوا تبدیلیاں';

@@ -19,7 +19,7 @@ foreach ($payment as $payments) {
 		$sr,
 		isset($payments->ENDATE) && $payments->ENDATE !== '' ? date('d-m-Y', strtotime($payments->ENDATE)) : '',
 		isset($payments->CUSTOMERNAME) ? $payments->CUSTOMERNAME : '',
-		'Order #'.(string) $payments->ORDERNO.' Naap# '.(string) $payments->order_remarks.' '.(string) $payments->man_napno.' '.(string) $payments->narration,
+		'Order #'.(string) $payments->ORDERNO.' Naap# '.(string) $payments->man_napno.(isset($payments->narration) && $payments->narration !== '' ? ' '.(string) $payments->narration : ''),
 		number_format($suit_count),
 		number_format($amount, 2),
 		$status,

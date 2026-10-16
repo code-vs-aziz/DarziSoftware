@@ -71,7 +71,7 @@ $this->load->helper('ui');
 	}
 </script>
 
-<body class="animsition erp-app">
+<body class="animsition erp-app erp-form-page">
         <form name="Form" action="<?php echo site_url('Order/process_del/'.$this->uri->segment(3).''); ?>" method="post" onsubmit="return valid()">
             <!-- MAIN CONTENT-->
             <div class="main-content">

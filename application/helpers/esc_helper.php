@@ -26,3 +26,14 @@ if ( ! function_exists('esc_html'))
 		return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', $double_encode);
 	}
 }
+
+if ( ! function_exists('esc_attr'))
+{
+	/**
+	 * Escape string for HTML attribute values (placeholder, title, etc.).
+	 */
+	function esc_attr($value, $double_encode = TRUE)
+	{
+		return esc_html($value, $double_encode);
+	}
+}

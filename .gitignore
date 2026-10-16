@@ -18,10 +18,39 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 application/sessions/*
 !application/sessions/index.html
 
+# Database backup dumps (created by Configuration → Database Backup)
+application/backups/database/*
+!application/backups/database/.htaccess
+!application/backups/database/index.html
+
 # Environment & uploads
 .env
+.env.local
+**/.env.local
+website/.env.local
 uploads/orders/*.pdf
 uploads/captures/*
+uploads/reports/*
+!uploads/reports/.gitkeep
+
+# Dependencies & build output (install on server)
+node_modules/
+**/node_modules/
+vendor-php/
+website/.next/
+website/out/
+erp-spa/dist/
+desktop/dist/
+desktop/release/
+
+# WhatsApp bridge session / cache (never commit live WA auth)
+bridge/whatsapp-bridge/.wwebjs_auth/
+bridge/whatsapp-bridge/.wwebjs_auth.*/
+bridge/whatsapp-bridge/.wwebjs_cache/
+bridge/**/.wwebjs_auth/
+
+# Local tooling / OS
+*.log
 
 # IDE Files
 #-------------------------

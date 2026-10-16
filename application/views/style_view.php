@@ -37,6 +37,7 @@ $this->load->helper('ui');
 						<th>Volume No</th>
 						<th>Design</th>
 						<th>Rate</th>
+						<th><?php echo t('master_employee_status'); ?></th>
 						<th>Edit</th>
 					 
 					</tr>
@@ -44,7 +45,7 @@ $this->load->helper('ui');
 				<tbody>
 				<?php 
 			 foreach($style as $style){
-									 
+				$active = ! isset($style->is_active) || (int) $style->is_active === 1;
 						                    ?>
 					<tr>
  
@@ -52,8 +53,19 @@ $this->load->helper('ui');
 						<td><?php echo $style->vol_no; ?></td>
 						<td><?php echo $style->design; ?></td>
 						<td><?php echo $style->rate; ?></td>
-						<td>  <a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Style/style_edit/'.$style->DNO.''); ?>" style="    float: right;
-    margin-bottom: 3px; color: white;"> Edit</a></td>
+						<td>
+							<span class="badge badge-<?php echo $active ? 'success' : 'secondary'; ?>">
+								<?php echo $active ? t('master_employee_status_active') : t('master_employee_status_inactive'); ?>
+							</span>
+						</td>
+						<td class="text-right">
+							<a class="btn btn-sm btn-outline-<?php echo $active ? 'warning' : 'success'; ?>"
+							   href="<?php echo site_url('Style/toggle_active/'.(int) $style->DNO); ?>"
+							   onclick="return confirm('<?php echo $active ? t('master_confirm_inactive') : t('master_confirm_active'); ?>');">
+								<?php echo $active ? t('master_employee_status_inactive') : t('master_employee_status_active'); ?>
+							</a>
+							<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Style/style_edit/'.$style->DNO.''); ?>"> Edit</a>
+						</td>
 					 
 					</tr>
 			 <?php  } ?>		

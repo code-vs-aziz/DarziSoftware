@@ -56,4 +56,6 @@ $config['app_lang_files'] = array(
 	'rbac',
 	'print',
 	'js',
+	'notification',
+	'offline',
 );

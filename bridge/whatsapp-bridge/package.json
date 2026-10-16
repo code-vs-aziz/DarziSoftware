@@ -1,0 +1,18 @@
+{
+  "name": "darzi-whatsapp-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Free local WhatsApp sender for DarziSoftware (shop WhatsApp Web session)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "node scripts/patch-wwebjs-media-id.js",
+    "patch:wwebjs": "node scripts/patch-wwebjs-media-id.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

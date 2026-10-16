@@ -32,7 +32,7 @@ $this->load->helper('ui');
 		text-decoration:none;
 	}
 	</style>
-<body class="animsition erp-app">
+<body class="animsition erp-app erp-form-page">
     <div class="page-wrapper">
             <div class="main-content">
                 <div class="section__content section__content--p30">
@@ -46,12 +46,12 @@ $this->load->helper('ui');
 						<?php  } ?>				
 						<div id="cash-entry-alert" class="alert" role="alert" style="display:none;"></div>
                      	<div class="col-md-12">
-                                <div class="dz-card erp-module-card cash-entry-card">
+                                <div class="dz-card erp-module-card data-entry-card cash-entry-card">
                                    <!-- <div class="card-header">Employee Form</div> -->
 									<div class="erp-card-head">
 										<h2 class="erp-module-title mb-0"><?php echo t('cash_title'); ?></h2>
 									</div>
-                                    <div class="card-body erp-card-body">
+                                    <div class="card-body erp-card-body data-entry-body">
 						<form id="cash-entry-form" name="Form" action="<?php echo site_url('Cash/process'); ?>" method="post" data-no-ajax="true" data-total-wages-url="<?php echo site_url('Cash/Total_wages'); ?>">
                               <div   id="page1" style="display:block;">
            

@@ -75,6 +75,9 @@ if ($export_mode === 'excel') {
 	.report-meta { color: #52616d; font-size: 14px; line-height: 1.7; }
 	.report-form { padding: 20px 24px; border-bottom: 1px solid #e6edf5; }
 	.report-form-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 14px; align-items: end; }
+	.report-presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+	.report-preset-btn { border: 1px solid #d7e0ea; background: #f7fbfc; color: #334155; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+	.report-preset-btn:hover { border-color: #16a1ad; color: #0f766e; }
 	.report-field label { display: block; font-weight: 700; margin-bottom: 5px; }
 	.report-field input, .report-field select { width: 100%; border: 1px solid #d7e0ea; border-radius: 8px; padding: 9px 10px; box-sizing: border-box; }
 	.report-table-wrap { padding: 18px 24px 24px; }
@@ -119,7 +122,15 @@ if ($export_mode === 'excel') {
 			<div class="report-meta"><?php echo t('report_generated'); ?>: <?php echo date('d-m-Y h:i A'); ?></div>
 		</div>
 		<?php if (!$report_has_report) { ?>
-		<form class="report-form print-hide" action="<?php echo $report_form_action; ?>" method="post" data-no-ajax="true">
+		<form class="report-form print-hide" action="<?php echo $report_form_action; ?>" method="post" data-no-ajax="true" id="report-filter-form">
+			<?php $this->load->view('partials/csrf_field'); ?>
+			<div class="report-presets" role="group" aria-label="Date presets">
+				<button type="button" class="report-preset-btn" data-days="0">Today</button>
+				<button type="button" class="report-preset-btn" data-days="6">Last 7 days</button>
+				<button type="button" class="report-preset-btn" data-days="29">Last 30 days</button>
+				<button type="button" class="report-preset-btn" data-mode="this_month">This month</button>
+				<button type="button" class="report-preset-btn" data-mode="last_month">Last month</button>
+			</div>
 			<div class="report-form-grid">
 				<?php foreach ($report_fields as $field) { ?>
 				<div class="report-field">
@@ -131,13 +142,37 @@ if ($export_mode === 'excel') {
 						<?php } ?>
 					</select>
 					<?php } else { ?>
-					<input type="<?php echo isset($field['type']) ? esc_html($field['type']) : 'text'; ?>" name="<?php echo esc_html($field['name']); ?>" required>
+					<input type="<?php echo isset($field['type']) ? esc_html($field['type']) : 'text'; ?>" name="<?php echo esc_html($field['name']); ?>" id="rf-<?php echo esc_html($field['name']); ?>" <?php echo (!isset($field['type']) || $field['type'] === 'date') ? 'required' : ''; ?>>
 					<?php } ?>
 				</div>
 				<?php } ?>
 				<div class="report-field"><button type="submit" class="report-btn" style="width:100%;"><?php echo t('app_submit'); ?></button></div>
 			</div>
 		</form>
+		<script>
+		(function(){
+			function ymd(d){var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day;}
+			function fill(from,to){
+				var a=document.getElementById('rf-fromdate')||document.querySelector('input[name="fromdate"]');
+				var b=document.getElementById('rf-todate')||document.querySelector('input[name="todate"]');
+				if(a)a.value=from; if(b)b.value=to;
+			}
+			document.querySelectorAll('.report-preset-btn').forEach(function(btn){
+				btn.addEventListener('click',function(){
+					var today=new Date(); today.setHours(0,0,0,0);
+					var from=new Date(today), to=new Date(today);
+					var mode=btn.getAttribute('data-mode');
+					var days=parseInt(btn.getAttribute('data-days')||'0',10);
+					if(mode==='this_month'){ from=new Date(today.getFullYear(),today.getMonth(),1); }
+					else if(mode==='last_month'){ from=new Date(today.getFullYear(),today.getMonth()-1,1); to=new Date(today.getFullYear(),today.getMonth(),0); }
+					else { from.setDate(from.getDate()-days); }
+					fill(ymd(from), ymd(to));
+				});
+			});
+			// default last 7 days
+			(function(){ var t=new Date(); t.setHours(0,0,0,0); var f=new Date(t); f.setDate(f.getDate()-6); fill(ymd(f),ymd(t)); })();
+		})();
+		</script>
 		<?php } else { ?>
 		<div class="report-table-wrap">
 			<?php if (!empty($report_totals)) { ?>

@@ -211,7 +211,7 @@ class Cash_ledger_model extends CI_Model
 				FROM cash
 				WHERE cash.customer_id = ?
 				  AND cash.EDATE < ?
-				  AND cash.type = 7
+				  AND cash.type = 2
 			), 0) AS opening_balance
 	';
 	$row = $this->db->query($sql, array($emplyee, $date, $emplyee, $date))->row();
@@ -242,7 +242,7 @@ class Cash_ledger_model extends CI_Model
 			FROM order_mst
 			INNER JOIN measurement ON order_mst.naap_no = measurement.code
 			WHERE measurement.customer_code = ?
-			  AND order_mst.EDATE > ?
+			  AND order_mst.EDATE >= ?
 			UNION ALL
 			SELECT
 				cash.EDATE AS LEDGERDATE,
@@ -255,7 +255,7 @@ class Cash_ledger_model extends CI_Model
 				cash.TRNNO AS SORTNO
 			FROM cash
 			WHERE cash.customer_id = ?
-			  AND cash.EDATE > ?
+			  AND cash.EDATE >= ?
 		) customer_ledger_rows
 		ORDER BY LEDGERDATE ASC, SORTNO ASC
 	';
@@ -408,6 +408,17 @@ class Cash_ledger_model extends CI_Model
 	{
 		return array();
 	}
+	$from_ts = strtotime($date);
+	$to_ts = strtotime($date1);
+	if ($from_ts !== FALSE && $to_ts !== FALSE && $to_ts >= $from_ts)
+	{
+		$max_days = 92;
+		$span = (int) floor(($to_ts - $from_ts) / 86400);
+		if ($span > $max_days)
+		{
+			$date = date('Y-m-d', $to_ts - ($max_days * 86400));
+		}
+	}
 	$this->db->select(
 		'dmst.PAID,
 		"Delivered" AS status,
@@ -433,14 +444,12 @@ class Cash_ledger_model extends CI_Model
    // $this->db->where('measurement.customer_code = '.$emplyee.'' );
     $this->db->where('dmst.EDATE >=', $date);
     $this->db->where('dmst.EDATE <=', $date1);
-    $this->db->where('PAID !=', '0.00');
-	//( dept = "STIT" and ( status = "Deactive"  or status = "DELIVER" ) )  AND employee.type = "Stitching"'  );
-//	$this->db->order_by("order_mst.EDATE");
-		$this->db->order_by("dmst.EDATE");
+	// Include all deliveries in range (including zero-paid) for accurate sheets.
+	$this->db->order_by("dmst.EDATE");
 	$this->db->order_by("order_mst.naap_no");
- //	$this->db->order_by("order_mst.trnno");
+	$this->db->limit(1500);
 	$q = $this->db->get();
-	return $q->result();
+	return ($q === FALSE) ? array() : $q->result();
   }
   
   

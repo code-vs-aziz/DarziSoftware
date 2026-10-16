@@ -10,6 +10,19 @@ $this->load->helper('ui');
 		<div class="main-content">
 			<div class="container-fluid">
 				<?php
+				$notify_delivery_status = $this->session->flashdata('notify_delivery_status');
+				if ($notify_delivery_status === 'sent') { ?>
+				<div class="alert alert-success" role="alert"><?php echo t('notify_delivery_sent_ok'); ?></div>
+				<?php } elseif ($notify_delivery_status === 'failed' || $notify_delivery_status === 'skipped') {
+					$detail = (string) $this->session->flashdata('notify_delivery_detail');
+				?>
+				<div class="alert alert-warning" role="alert">
+					<?php echo t('notify_delivery_sent_fail'); ?>
+					<?php if ($detail === 'missing_phone') { echo ' — '.t('notify_delivery_no_phone'); } ?>
+					<?php if ($detail === 'bridge_disabled' || $detail === 'bridge_unreachable' || $detail === 'not_ready') { echo ' — '.t('notify_bridge_not_ready'); } ?>
+				</div>
+				<?php } ?>
+				<?php
 				$ready_return_msg = $this->session->flashdata('ready_return_msg');
 				if ($ready_return_msg) { ?>
 				<div class="alert alert-success" role="alert">

@@ -132,7 +132,8 @@ $receivable = $opening + $debit_total - $credit_total;
 		</div>
 
 		<?php if (!$has_report) { ?>
-		<form class="report-form print-hide" action="<?php echo site_url('Cash/customer_ledger_pro/rep'); ?>" method="post">
+		<form class="report-form print-hide" action="<?php echo site_url('Cash/customer_ledger_pro/rep'); ?>" method="post" data-no-ajax="true">
+			<?php $this->load->view('partials/csrf_field'); ?>
 			<div class="report-form-grid">
 				<div class="report-field">
 					<label><?php echo t('report_as_on_date'); ?></label>

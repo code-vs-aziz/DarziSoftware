@@ -38,6 +38,7 @@ $this->load->helper('ui');
 						<th>Embroidery  Vol. #</th>
 						<th>Embroidery  Design</th>
 						<th>Rate</th>
+						<th><?php echo t('master_employee_status'); ?></th>
 						<th>Edit</th>
 					 
 					 
@@ -46,7 +47,7 @@ $this->load->helper('ui');
 				<tbody>
 				<?php 
 			 foreach($Embroidery as $Embroidery){
-									 
+				$active = ! isset($Embroidery->is_active) || (int) $Embroidery->is_active === 1;
 						                    ?>
 					<tr>
 						
@@ -54,8 +55,19 @@ $this->load->helper('ui');
 						<td><?php echo $Embroidery->vol_no; ?></td>
 						<td><?php echo $Embroidery->design; ?></td>
 						<td><?php echo $Embroidery->rate; ?></td>
-						<td>  <a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Embroidery/Embroidery_edit/'.$Embroidery->ENO.''); ?>" style="    float: right;
-    margin-bottom: 3px; color: white;"> Edit</a></td>
+						<td>
+							<span class="badge badge-<?php echo $active ? 'success' : 'secondary'; ?>">
+								<?php echo $active ? t('master_employee_status_active') : t('master_employee_status_inactive'); ?>
+							</span>
+						</td>
+						<td class="text-right">
+							<a class="btn btn-sm btn-outline-<?php echo $active ? 'warning' : 'success'; ?>"
+							   href="<?php echo site_url('Embroidery/toggle_active/'.(int) $Embroidery->ENO); ?>"
+							   onclick="return confirm('<?php echo $active ? t('master_confirm_inactive') : t('master_confirm_active'); ?>');">
+								<?php echo $active ? t('master_employee_status_inactive') : t('master_employee_status_active'); ?>
+							</a>
+							<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Embroidery/Embroidery_edit/'.$Embroidery->ENO.''); ?>"> Edit</a>
+						</td>
 						 
 					 
 					</tr>

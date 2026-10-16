@@ -96,6 +96,11 @@ class Transfer extends MY_Controller {
 			'order_to' => trim((string) $this->input->get('order_to', TRUE)),
 			'stage' => trim((string) $this->input->get('stage', TRUE)),
 		);
+		// First open / Clear: show Ready for Deliver immediately (no search needed).
+		if ($this->input->get('stage') === NULL)
+		{
+			$status_filters['stage'] = 'READY';
+		}
 		if ($status_filters['return_from'] === '' && $this->input->get('fromdate', TRUE) !== NULL)
 		{
 			$status_filters['return_from'] = trim((string) $this->input->get('fromdate', TRUE));
@@ -104,7 +109,7 @@ class Transfer extends MY_Controller {
 		{
 			$status_filters['return_to'] = trim((string) $this->input->get('todate', TRUE));
 		}
-		$status_filters = $this->order_query->apply_default_order_date_filters($status_filters);
+		// No forced dates — Stage alone loads the list. Dates only if user fills them.
 		$data['status_filters'] = $status_filters;
 		$data['cust_search'] = trim((string) $this->input->get('cust_search', TRUE));
 		$data['fromdate'] = $status_filters['return_from'];
@@ -121,44 +126,19 @@ class Transfer extends MY_Controller {
 	
 	 public function order_StatusD()
 	{
-	 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
-		$this->load->helper('url'); 
-		$this->load->library('session');
-		if ( ! $this->session->userdata('user'))
+		// Legacy URL — unified Order Status list (filter Delivered if needed).
+		$query = $this->input->server('QUERY_STRING');
+		$target = 'transfer/order_Status';
+		$params = array();
+		if (is_string($query) && $query !== '')
 		{
-			redirect('Login');
+			parse_str($query, $params);
 		}
-		$status_filters = array(
-			'customer_name' => trim((string) ($this->input->post('customer_name', TRUE) !== NULL ? $this->input->post('customer_name', TRUE) : $this->input->get('customer_name', TRUE))),
-			'order_no' => trim((string) ($this->input->post('order_no', TRUE) !== NULL ? $this->input->post('order_no', TRUE) : $this->input->get('order_no', TRUE))),
-			'naap_no' => trim((string) ($this->input->post('naap_no', TRUE) !== NULL ? $this->input->post('naap_no', TRUE) : $this->input->get('naap_no', TRUE))),
-			'mobile_no' => trim((string) ($this->input->post('mobile_no', TRUE) !== NULL ? $this->input->post('mobile_no', TRUE) : $this->input->get('mobile_no', TRUE))),
-			'return_from' => trim((string) ($this->input->post('return_from', TRUE) !== NULL ? $this->input->post('return_from', TRUE) : $this->input->get('return_from', TRUE))),
-			'return_to' => trim((string) ($this->input->post('return_to', TRUE) !== NULL ? $this->input->post('return_to', TRUE) : $this->input->get('return_to', TRUE))),
-			'order_from' => trim((string) ($this->input->post('order_from', TRUE) !== NULL ? $this->input->post('order_from', TRUE) : $this->input->get('order_from', TRUE))),
-			'order_to' => trim((string) ($this->input->post('order_to', TRUE) !== NULL ? $this->input->post('order_to', TRUE) : $this->input->get('order_to', TRUE))),
-			'stage' => '',
-		);
-		if ($status_filters['order_from'] === '' && $this->input->post('fromdate', TRUE) !== NULL)
+		if (empty($params['stage']))
 		{
-			$status_filters['order_from'] = trim((string) $this->input->post('fromdate', TRUE));
+			$params['stage'] = 'DELIVERED';
 		}
-		if ($status_filters['order_to'] === '' && $this->input->post('todate', TRUE) !== NULL)
-		{
-			$status_filters['order_to'] = trim((string) $this->input->post('todate', TRUE));
-		}
-		$status_filters = $this->order_query->apply_default_order_date_filters($status_filters);
-		$data['status_filters'] = $status_filters;
-		$data['cust_search'] = trim((string) ($this->input->post('cust_search', TRUE) !== NULL ? $this->input->post('cust_search', TRUE) : $this->input->get('cust_search', TRUE)));
-		$data['fromdate'] = $status_filters['order_from'];
-		$data['todate'] = $status_filters['order_to'];
-		$data['orderdata'] = $this->order_query->order_Status_D($status_filters);
-		if (empty($data['orderdata']))
-		{
-			$data['orderdata'] = array();
-		}
-				 	 $data['employee']= $this->master_data->get_dat(array('employee'));
- 	$this->load->view('order_statusD',$data);
+		redirect($target.'?'.http_build_query($params));
 	}
  
 	public function transfer_table()
@@ -166,8 +146,11 @@ class Transfer extends MY_Controller {
 		 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-	// $data["measurement"]= $this->order_query->measurement();
+		if(!$this->session->userdata('user')){
+			redirect('Login');
+			return;
+		}
+
 		 $get_id = $this->input->post('fromdept');
 			 $data['DEPT'] = $this->input->post('fromdept');
 		if($get_id == '')
@@ -176,19 +159,136 @@ class Transfer extends MY_Controller {
 			$get_id = $this->uri->segment(4);
 			 $data['DEPT'] = $this->uri->segment(4);
 		}
- 
-		 $data["employee"]= $this->master_data->get_dat(array('employee'));	 
-	    $data["orderdata"] = $this->order_query->get_order_order_Detai2('', $get_id);
-		
-	// $data["transfer"]= $this->order_query->transfer();
-	//  print_r($data);
-	//		 die;
- 	$this->load->view('transfer_table',$data);
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
+		$get_id = strtoupper(trim((string) $get_id));
+		$data['DEPT'] = $get_id;
+		if (!in_array($get_id, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+		{
+			$get_id = 'HO';
+			$data['DEPT'] = 'HO';
+		}
 
-		
+		 // Lightweight page shell — rows load via server-side DataTables JSON.
+		 $data["employee"]= $this->master_data->get_dat(array('employee'));
+		 $data['orderdata'] = array();
+		 $data['transfer_ssp_url'] = site_url('Transfer/transfer_table_data/'.$this->uri->segment(3).'/'.$get_id);
+		 $data['transfer_list_from'] = (string) $this->uri->segment(3);
+ 	$this->load->view('transfer_table',$data);
+	}
+
+	/**
+	 * DataTables server-side JSON for pending transfer lists.
+	 */
+	public function transfer_table_data()
+	{
+		$this->load->library('session');
+		$this->load->helper(array('url', 'esc'));
+		header('Content-Type: application/json; charset=UTF-8');
+		if ( ! $this->session->userdata('user'))
+		{
+			echo json_encode(array('draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array(), 'error' => 'session'));
+			return;
+		}
+
+		$dept = strtoupper(trim((string) $this->uri->segment(4)));
+		if ($dept === '')
+		{
+			$dept = strtoupper(trim((string) $this->input->get_post('dept', TRUE)));
+		}
+		if (!in_array($dept, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+		{
+			echo json_encode(array('draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array()));
+			return;
+		}
+
+		$draw = (int) $this->input->post('draw');
+		$start = (int) $this->input->post('start');
+		$length = (int) $this->input->post('length');
+		$search_arr = $this->input->post('search');
+		$search = is_array($search_arr) && isset($search_arr['value']) ? trim((string) $search_arr['value']) : '';
+
+		$total = $this->order_query->count_pending_transfer_rows($dept, '');
+		$filtered = ($search === '')
+			? $total
+			: $this->order_query->count_pending_transfer_rows($dept, $search);
+		$rows = $this->order_query->get_pending_transfer_rows($dept, $start, $length, $search);
+
+		$employees = $this->master_data->get_dat(array('employee'));
+		$emp_map = array();
+		if (is_array($employees))
+		{
+			foreach ($employees as $emp)
+			{
+				$emp_map[(string) $emp->empno] = (string) $emp->name;
+			}
+		}
+
+		$list_from = (string) $this->uri->segment(3);
+		$show_bulk = ($dept === 'CUT' || $dept === 'STIT');
+		$data_out = array();
+		$sr_by_order = array();
+		foreach ($rows as $row)
+		{
+			$order_no = (int) $row->ORDERNO;
+			if (!isset($sr_by_order[$order_no]))
+			{
+				$sr_by_order[$order_no] = 1;
+			}
+			else
+			{
+				$sr_by_order[$order_no]++;
+			}
+			$line_sr = isset($row->ORDERSR) ? (int) $row->ORDERSR : (int) $row->SUITNO;
+			$display_sr = $sr_by_order[$order_no];
+			$transfer_id = (int) $row->TRANSFERID;
+			$emp_name = isset($emp_map[(string) $row->empno]) ? $emp_map[(string) $row->empno] : '';
+
+			$entry = $row->ORDERDATE;
+			if ($entry === '' || $entry === NULL)
+			{
+				$entry = $row->TRANSFEREDATE;
+			}
+			$ret = $row->RORDERDATE;
+			if ($ret === '' || $ret === NULL)
+			{
+				$ret = $row->RETURNDATE;
+			}
+
+			$cells = array();
+			if ($show_bulk)
+			{
+				$cells[] = '<input type="checkbox" class="bulk-transfer-cb" data-trnno="'.$transfer_id.'" data-order="'.$order_no.'" data-sr="'.$line_sr.'">';
+			}
+			$cells[] = esc_html($order_no.'-'.$display_sr);
+			$cells[] = esc_html($emp_name);
+			$cells[] = ($entry !== '' && $entry !== NULL) ? date('d-m-Y', strtotime($entry)) : '';
+			$cells[] = ($ret !== '' && $ret !== NULL) ? date('d-m-Y', strtotime($ret)) : '';
+			$cells[] = esc_html((string) $row->Phone);
+			$cells[] = esc_html((string) $row->name);
+			$cells[] = esc_html((string) $row->man_napno);
+			$cells[] = esc_html((string) $row->order_remarks);
+
+			$view = '';
+			if ($dept === 'CUT' || $dept === 'STIT')
+			{
+				$view = '<a class="btn btn-primary dz-btn--filled btn-sm" href="'.site_url('Transfer/transfer_Print/'.$transfer_id.'/'.$dept.'/'.$line_sr).'" target="_blank">View</a>';
+			}
+			$cells[] = $view;
+			$cells[] = '<a class="btn btn-primary dz-btn--filled btn-sm" href="'.site_url('Transfer/transfer_order/'.$transfer_id.'/'.$dept.'/'.$line_sr).'">Transfer</a>';
+			$ret_btn = '';
+			if ($dept !== 'HO')
+			{
+				$ret_btn = '<a class="btn btn-primary dz-btn--filled btn-sm" href="'.site_url('Transfer/transfer_return/'.$transfer_id.'/'.$dept.'/'.$order_no.'/'.$line_sr.'/'.$list_from).'">Return</a>';
+			}
+			$cells[] = $ret_btn;
+			$data_out[] = $cells;
+		}
+
+		echo json_encode(array(
+			'draw' => $draw,
+			'recordsTotal' => $total,
+			'recordsFiltered' => $filtered,
+			'data' => $data_out,
+		));
 	}
  
  
@@ -565,6 +665,7 @@ class Transfer extends MY_Controller {
 
 		if (!empty($result['stit_only']))
 		{
+			$this->_notify_order_ready((int) $this->input->post('order_id'), 'transfer_process');
 			redirect('Transfer/transfer_table/'.$this->uri->segment(3).'/'.$dept);
 			return;
 		}
@@ -620,6 +721,10 @@ class Transfer extends MY_Controller {
 				if (!empty($result['ok']))
 				{
 					$done++;
+					if ($dept === 'STIT' && !empty($result['stit_only']))
+					{
+						$this->_notify_order_ready($order, 'transfer_bulk');
+					}
 				}
 				elseif (isset($result['error']) && $result['error'] === 'employee_required')
 				{
@@ -665,6 +770,22 @@ class Transfer extends MY_Controller {
  
  
  
+	private function _notify_order_ready($order_id, $trigger_source)
+	{
+		$order_id = (int) $order_id;
+		if ($order_id <= 0)
+		{
+			return;
+		}
+
+		$this->load->library('notification_service');
+		$res = $this->notification_service->trigger('order_ready', $order_id, array(
+			'trigger_source' => (string) $trigger_source,
+			'defer_dispatch' => TRUE,
+		));
+		$this->notification_service->stash_whatsapp_flash($res);
+	}
+
 	private function _transfer_return_previous_dept($dept)
 	{
 		if ($dept === 'CUT')

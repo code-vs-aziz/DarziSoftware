@@ -67,9 +67,27 @@ class Rbac_auth
 
   public function enforce_current_route()
   {
+    if (is_cli())
+    {
+      return TRUE;
+    }
     $class = strtolower((string) $this->CI->router->class);
     $method = strtolower((string) $this->CI->router->method);
     $route = $class.'/'.$method;
+    if ($class === 'cron')
+    {
+      return TRUE;
+    }
+    // Public website JSON API uses customer Bearer tokens (see Api_Controller).
+    // erp_sync uses session or staff sync Bearer token (see api/Erp_sync.php).
+    if ($class === 'auth' || $class === 'measurements' || $class === 'content' || $class === 'shop' || $class === 'erp_sync')
+    {
+      $directory = strtolower((string) $this->CI->router->directory);
+      if ($directory === 'api/' || $directory === 'api')
+      {
+        return TRUE;
+      }
+    }
     if (in_array($route, $this->public_routes, TRUE))
     {
       return TRUE;
@@ -102,6 +120,39 @@ class Rbac_auth
     {
       return 'configuration.manage';
     }
+    if ($class === 'notifications')
+    {
+      return 'configuration.manage';
+    }
+    if ($class === 'broadcast')
+    {
+      // Same operators as Customer Messages; optional finer key broadcast.manage also exists.
+      return 'configuration.manage';
+    }
+    if ($class === 'website')
+    {
+      if (strpos($method, 'product') !== FALSE || strpos($method, 'categor') !== FALSE)
+      {
+        return 'website.products';
+      }
+      if (strpos($method, 'order') !== FALSE)
+      {
+        return 'website.orders';
+      }
+      if (strpos($method, 'submission') !== FALSE || strpos($method, 'measurement') !== FALSE)
+      {
+        return 'website.measurements';
+      }
+      if (strpos($method, 'content') !== FALSE || strpos($method, 'guide') !== FALSE || strpos($method, 'faq') !== FALSE || strpos($method, 'settings') !== FALSE)
+      {
+        return 'website.content';
+      }
+      return 'website.manage';
+    }
+    if ($class === 'report_voice')
+    {
+      return 'reports.menu';
+    }
     if ($class === 'customer')
     {
       return 'customer.manage';
@@ -132,9 +183,13 @@ class Rbac_auth
     }
     if ($class === 'transfer')
     {
-      if ($method === 'transfer_table')
+      if ($method === 'transfer_table' || $method === 'transfer_table_data')
       {
-        $stage = strtoupper((string) $this->CI->uri->segment(3));
+        $stage = strtoupper((string) $this->CI->uri->segment($method === 'transfer_table_data' ? 4 : 3));
+        if ($stage === '' || !in_array($stage, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+        {
+          $stage = strtoupper((string) $this->CI->uri->segment(4));
+        }
         $map = array(
           'HO' => 'transfer.booking',
           'CUT' => 'transfer.cutting',

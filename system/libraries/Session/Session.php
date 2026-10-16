@@ -364,6 +364,13 @@ class CI_Session {
 			$bits_per_character = (int) ini_get('session.hash_bits_per_character');
 			$sid_length         = (int) ceil($bits / $bits_per_character);
 		}
+		elseif (PHP_VERSION_ID >= 80400)
+		{
+			// PHP 8.4+: session.sid_length / sid_bits_per_character are deprecated.
+			// Use the PHP 8.4 defaults (32 hex chars) and do not call ini_set().
+			$bits_per_character = 4;
+			$sid_length         = 32;
+		}
 		else
 		{
 			$bits_per_character = (int) ini_get('session.sid_bits_per_character');

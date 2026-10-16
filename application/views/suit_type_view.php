@@ -35,6 +35,7 @@ $this->load->helper('ui');
 						<th>Name</th>
 						 
 						<th>Rate</th>
+						<th><?php echo t('master_employee_status'); ?></th>
 						<th>Edit</th>
 					 
 					</tr>
@@ -42,15 +43,26 @@ $this->load->helper('ui');
 				<tbody>
 				<?php 
 			 foreach($suit as $suit){
-									 
+				$active = ! isset($suit->is_active) || (int) $suit->is_active === 1;
 						                    ?>
 					<tr>
  
 						<td><?php echo $suit->name; ?></td>
 						 
 						<td><?php echo $suit->rate; ?></td>
-						<td>  <a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Suit/suit_edit/'.$suit->SNO.''); ?>" style="    float: right;
-    margin-bottom: 3px; color: white;"> Edit</a></td>
+						<td>
+							<span class="badge badge-<?php echo $active ? 'success' : 'secondary'; ?>">
+								<?php echo $active ? t('master_employee_status_active') : t('master_employee_status_inactive'); ?>
+							</span>
+						</td>
+						<td class="text-right">
+							<a class="btn btn-sm btn-outline-<?php echo $active ? 'warning' : 'success'; ?>"
+							   href="<?php echo site_url('Suit/toggle_active/'.(int) $suit->SNO); ?>"
+							   onclick="return confirm('<?php echo $active ? t('master_confirm_inactive') : t('master_confirm_active'); ?>');">
+								<?php echo $active ? t('master_employee_status_inactive') : t('master_employee_status_active'); ?>
+							</a>
+							<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Suit/suit_edit/'.$suit->SNO.''); ?>"> Edit</a>
+						</td>
 					 
 					</tr>
 			 <?php  } ?>		

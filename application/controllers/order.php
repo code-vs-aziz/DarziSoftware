@@ -3,11 +3,37 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Order extends MY_Controller {
 
+	/**
+	 * One-time submit tokens (pool). Same customer can place many orders;
+	 * this only blocks accidental double-submit / stale Back-button posts.
+	 * A pool keeps older form tabs + SW prefetches valid until one is used.
+	 */
 	private function order_submit_token()
 	{
 		$this->load->library('session');
-		$token = md5(uniqid('', TRUE));
-		$this->session->set_userdata('order_submit_token', $token);
+		$tokens = $this->session->userdata('order_submit_tokens');
+		if ( ! is_array($tokens))
+		{
+			$tokens = array();
+		}
+		// Migrate legacy single-token session key.
+		$legacy = (string) $this->session->userdata('order_submit_token');
+		if ($legacy !== '')
+		{
+			$tokens[] = $legacy;
+			$this->session->unset_userdata('order_submit_token');
+		}
+
+		$token = function_exists('random_bytes')
+			? bin2hex(random_bytes(16))
+			: md5(uniqid('', TRUE));
+		$tokens[] = $token;
+		$tokens = array_values(array_unique($tokens));
+		if (count($tokens) > 8)
+		{
+			$tokens = array_slice($tokens, -8);
+		}
+		$this->session->set_userdata('order_submit_tokens', $tokens);
 		return $token;
 	}
 
@@ -15,13 +41,42 @@ class Order extends MY_Controller {
 	{
 		$this->load->library('session');
 		$post_token = (string) $this->input->post('order_submit_token', TRUE);
-		$session_token = (string) $this->session->userdata('order_submit_token');
-		if ($post_token === '' || $session_token === '' || $post_token !== $session_token)
+		if ($post_token === '')
 		{
 			return FALSE;
 		}
-		$this->session->unset_userdata('order_submit_token');
-		return TRUE;
+
+		$tokens = $this->session->userdata('order_submit_tokens');
+		if ( ! is_array($tokens))
+		{
+			$tokens = array();
+		}
+		$legacy = (string) $this->session->userdata('order_submit_token');
+		if ($legacy !== '')
+		{
+			$tokens[] = $legacy;
+			$this->session->unset_userdata('order_submit_token');
+		}
+
+		$matched = FALSE;
+		$remaining = array();
+		foreach ($tokens as $t)
+		{
+			$t = (string) $t;
+			if ($t === '')
+			{
+				continue;
+			}
+			if ( ! $matched && hash_equals($t, $post_token))
+			{
+				$matched = TRUE;
+				continue; // consume this token only
+			}
+			$remaining[] = $t;
+		}
+
+		$this->session->set_userdata('order_submit_tokens', $remaining);
+		return $matched;
 	}
 
 	private function business_config()
@@ -40,11 +95,26 @@ class Order extends MY_Controller {
 		$style = $this->master_data->get_dat(array('style'));
 		$suit = $this->master_data->get_dat(array('suit'));
 		$print_img_base = rtrim(str_replace('\\', '/', FCPATH), '/').'/';
-		$slips = array();
-		$sr = 0;
-		$types = $this->order_query->get_order_distinct_types($trnno);
-		$ordered_types = array();
 
+		// One slip per order: measurements once + every suit line on the same page.
+		$where = 'order_mst.trnno = '.$trnno;
+		$order = $this->order_query->get_order($where);
+		if (empty($order))
+		{
+			return array();
+		}
+
+		$types = array();
+		foreach ($order as $line)
+		{
+			$type = isset($line->type) ? trim((string) $line->type) : '';
+			if ($type !== '' && ! in_array($type, $types, TRUE))
+			{
+				$types[] = $type;
+			}
+		}
+
+		$ordered_types = array();
 		foreach (self::$order_garment_types as $type)
 		{
 			if (in_array($type, $types, TRUE))
@@ -60,29 +130,22 @@ class Order extends MY_Controller {
 			}
 		}
 
-		foreach ($ordered_types as $type)
-		{
-			$where = 'order_mst.trnno = '.$trnno.' and order_dtl.type = '.$this->db->escape($type);
-			$order = $this->order_query->get_order($where);
-			if (empty($order))
-			{
-				continue;
-			}
-			$sr++;
-			$slips[] = array(
+		$primary_type = ! empty($ordered_types) ? $ordered_types[0] : 'Kurta';
+
+		return array(
+			array(
 				'embroidery' => $embroidery,
 				'style' => $style,
 				'suit' => $suit,
 				'order' => $order,
-				'type' => $type,
+				'type' => $primary_type,
+				'types' => $ordered_types,
 				'business_config' => $business_config,
-				'SR' => $sr,
+				'SR' => 1,
 				'pdf_mode' => FALSE,
 				'print_img_base' => $print_img_base,
-			);
-		}
-
-		return $slips;
+			),
+		);
 	}
 
 	private function _render_order_print_slips($trnno)
@@ -208,18 +271,20 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			'useKashida' => 75,
 		);
 
+		// Portrait Letter: on WhatsApp phones landscape PDFs shrink to unreadability.
+		// Full-width measurement grid + large Urdu default size.
 		$mpdf = new \Mpdf\Mpdf(array(
 			'mode' => 'utf-8',
 			'format' => 'Letter',
-			'margin_left' => 10,
-			'margin_right' => 10,
+			'margin_left' => 8,
+			'margin_right' => 8,
 			'margin_top' => 8,
 			'margin_bottom' => 8,
 			'tempDir' => $tempDir,
 			'fontDir' => $fontDirs,
 			'fontdata' => $fontData,
-			'default_font' => 'lateef',
-			'default_font_size' => 12,
+			'default_font' => 'xbriyaz',
+			'default_font_size' => 20,
 			'autoScriptToLang' => FALSE,
 			'autoLangToFont' => FALSE,
 		));
@@ -240,15 +305,12 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			.$this->_pdf_print_styles()
 			.'</style></head><body class="pdf-body">';
 
-		$first = TRUE;
+		// Use the same print-slip layout staff see (pdf_mode tables), not a separate summary.
 		foreach ($slips as $data)
 		{
-			if ( ! $first)
-			{
-				$html .= '<pagebreak />';
-			}
-			$first = FALSE;
-			$html .= $this->load->view('order_pdf', $data, TRUE);
+			$data['pdf_mode'] = TRUE;
+			$html .= $this->load->view('order_print', $data, TRUE);
+			break;
 		}
 
 		$html .= '</body></html>';
@@ -259,7 +321,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	private function _get_order_customer_phone($trnno)
 	{
 		$trnno = (int) $trnno;
-		$q = $this->db->select('customer.Phone')
+		$q = $this->db->select('customer.Phone, customer.name')
 			->from('order_mst')
 			->join('measurement', 'measurement.code = order_mst.naap_no')
 			->join('customer', 'customer.code = measurement.customer_code')
@@ -274,10 +336,55 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		return (string) $q->row()->Phone;
 	}
 
+	private function _get_order_customer_name($trnno)
+	{
+		$trnno = (int) $trnno;
+		$q = $this->db->select('customer.name')
+			->from('order_mst')
+			->join('measurement', 'measurement.code = order_mst.naap_no')
+			->join('customer', 'customer.code = measurement.customer_code')
+			->where('order_mst.trnno', $trnno)
+			->limit(1)
+			->get();
+		if ($q->num_rows() === 0)
+		{
+			return '';
+		}
+
+		return trim((string) $q->row()->name);
+	}
+
+	private function _order_whatsapp_pdf_filename($trnno, $customer_name = '')
+	{
+		$trnno = (int) $trnno;
+		$safe = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string) $customer_name);
+		$safe = trim((string) $safe, '_');
+		if ($safe !== '')
+		{
+			$safe = substr($safe, 0, 40);
+			return 'DarziBaba_Order_'.$trnno.'_'.$safe.'.pdf';
+		}
+
+		return 'DarziBaba_Order_'.$trnno.'.pdf';
+	}
+
+	private function _order_whatsapp_caption($trnno, $customer_name = '')
+	{
+		$trnno = (int) $trnno;
+		$name = trim((string) $customer_name);
+		$greeting = $name !== '' ? ('السلام علیکم '.$name.'،') : 'السلام علیکم،';
+
+		return $greeting."\n"
+			.'آپ کا آرڈر #'.$trnno." کامیابی سے رجسٹر ہو گیا ہے۔\n"
+			."مکمل آرڈر، ناپ اور سوٹ کی تفصیلات منسلک PDF میں موجود ہیں۔\n"
+			.'شکریہ — درزی بابا';
+	}
+
 	public function order_whatsapp_pdf()
 	{
 		$this->load->helper('url');
 		$this->load->library('session');
+		$this->load->library('notification_service');
 		@ini_set('display_errors', '0');
 		while (ob_get_level() > 0)
 		{
@@ -298,12 +405,17 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			return;
 		}
 
-		$phone = $this->_normalize_whatsapp_phone($this->_get_order_customer_phone($trnno));
+		$posted_phone = trim((string) $this->input->post('phone', TRUE));
+		$saved_phone = $this->_get_order_customer_phone($trnno);
+		$phone = $this->_normalize_whatsapp_phone($posted_phone !== '' ? $posted_phone : $saved_phone);
 		if ($phone === '' || strlen($phone) < 11)
 		{
-			echo json_encode(array('success' => FALSE, 'message' => 'Customer phone number is missing or invalid.'));
+			echo json_encode(array('success' => FALSE, 'message' => 'WhatsApp number is missing or invalid.'));
 			return;
 		}
+
+		$customer_name = $this->_get_order_customer_name($trnno);
+		$caption = $this->_order_whatsapp_caption($trnno, $customer_name);
 
 		try
 		{
@@ -327,8 +439,10 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 				mkdir($dir, 0755, TRUE);
 			}
 
-			$filename = 'order_'.$trnno.'.pdf';
+			$filename = $this->_order_whatsapp_pdf_filename($trnno, $customer_name);
 			$filepath = $dir.$filename;
+			// Keep a stable alias for download by order number.
+			$alias = $dir.'order_'.$trnno.'.pdf';
 			$tempDir = APPPATH.'cache/mpdf';
 			if ( ! is_dir($tempDir))
 			{
@@ -338,13 +452,83 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			$mpdf = $this->_create_order_mpdf($tempDir);
 			$mpdf->WriteHTML($html);
 			$mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
+			@copy($filepath, $alias);
+
+			// Queue then send immediately (cron was never draining because CRON_HTTP_SECRET was unset).
+			$queued = $this->notification_service->queue_document($phone, $caption, $filepath, array(
+				'event_type' => 'order_pdf_document',
+				'order_id' => $trnno,
+				'trigger_source' => 'order_whatsapp_pdf',
+			));
+			if (empty($queued['queued']))
+			{
+				$skip = isset($queued['skipped']) ? (string) $queued['skipped'] : 'queue_failed';
+				echo json_encode(array(
+					'success' => FALSE,
+					'message' => ($skip === 'tables_missing')
+						? 'Notification queue is not installed. Run notification_automation.sql.'
+						: 'Could not queue WhatsApp PDF.',
+					'detail' => $skip,
+					'download_url' => site_url('Order/order_pdf_download/'.$trnno),
+					'filename' => $filename,
+				));
+				return;
+			}
+
+			$queue_id = isset($queued['queue_id']) ? (int) $queued['queue_id'] : 0;
+			$sent = FALSE;
+			$send_error = '';
+
+			// Only attempt a short flush when bridge is clearly ready.
+			// Never wait on heal/restart — that freezes single-threaded PHP.
+			$this->load->library('whatsapp_bridge');
+			$bridge_ok = FALSE;
+			if ($queue_id > 0 && ! $this->whatsapp_bridge->is_circuit_open())
+			{
+				$st = $this->whatsapp_bridge->status();
+				$bridge_ok = ! empty($st['ok']) && ! empty($st['ready']);
+			}
+			if ($queue_id > 0 && $bridge_ok)
+			{
+				$flush = $this->notification_service->dispatch_queued_id($queue_id);
+				$sent = ! empty($flush['ok']);
+				$send_error = isset($flush['error']) ? (string) $flush['error'] : '';
+			}
+
+			// Background drain (CLI) — does not block this request.
+			$this->_kick_notification_cron();
+
+			if ($sent)
+			{
+				echo json_encode(array(
+					'success' => TRUE,
+					'sent' => TRUE,
+					'queued' => FALSE,
+					'queue_id' => $queue_id,
+					'phone' => $phone,
+					'download_url' => site_url('Order/order_pdf_download/'.$trnno),
+					'filename' => $filename,
+					'message' => 'Order PDF WhatsApp par bhej diya.',
+					'caption' => $caption,
+				));
+				return;
+			}
 
 			echo json_encode(array(
 				'success' => TRUE,
+				'sent' => FALSE,
+				'queued' => TRUE,
+				'queue_id' => $queue_id,
 				'phone' => $phone,
 				'download_url' => site_url('Order/order_pdf_download/'.$trnno),
 				'filename' => $filename,
-				'message' => 'آپ کا آرڈر #'.$trnno.'۔',
+				'message' => ($send_error !== '')
+					? ('PDF queue ho gaya, abhi send fail: '.$send_error)
+					: ($bridge_ok
+						? 'Order PDF queued for WhatsApp.'
+						: 'PDF queue ho gaya — bridge ready hone par auto-send hoga.'),
+				'detail' => $send_error,
+				'caption' => $caption,
 			));
 		}
 		catch (Throwable $e)
@@ -355,6 +539,89 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			}
 			log_message('error', 'order_whatsapp_pdf: '.$e->getMessage().' @ '.$e->getFile().':'.$e->getLine());
 			echo json_encode(array('success' => FALSE, 'message' => 'Could not generate PDF. Please try again.'));
+		}
+	}
+
+	/**
+	 * Best-effort background drain so queued WhatsApp items leave quickly.
+	 */
+	private function _kick_notification_cron()
+	{
+		$secret = function_exists('dz_env') ? trim((string) dz_env('CRON_HTTP_SECRET', '')) : '';
+		if ($secret !== '')
+		{
+			$url = site_url('cron/process_notifications/15').'?secret='.rawurlencode($secret);
+			$ch = curl_init($url);
+			if ($ch !== FALSE)
+			{
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+				curl_setopt($ch, CURLOPT_TIMEOUT, 1);
+				curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
+				@curl_exec($ch);
+				@curl_close($ch);
+			}
+		}
+
+		// Local CLI drain when HTTP cron secret is not configured.
+		$php = defined('PHP_BINARY') && PHP_BINARY !== '' ? PHP_BINARY : 'php';
+		$cmd = 'cd '.escapeshellarg(FCPATH)
+			.' && '.escapeshellarg($php).' index.php cron process_notifications 15'
+			.' > /dev/null 2>&1 &';
+		@shell_exec($cmd);
+	}
+
+	/**
+	 * CLI: regenerate WhatsApp PDF for an order (visual QA / ops).
+	 *   php index.php order regen_pdf_cli 33128
+	 */
+	public function regen_pdf_cli($trnno = 0)
+	{
+		if ( ! is_cli())
+		{
+			show_404();
+			return;
+		}
+		$trnno = (int) $trnno;
+		if ($trnno < 1)
+		{
+			echo "Usage: php index.php order regen_pdf_cli <trnno>\n";
+			return;
+		}
+		try
+		{
+			$this->_load_composer_autoload();
+			ob_start();
+			$html = $this->_generate_order_pdf_html($trnno);
+			ob_end_clean();
+			if ($html === '')
+			{
+				echo "Order not found: {$trnno}\n";
+				return;
+			}
+			$dir = FCPATH.'uploads/orders/';
+			if ( ! is_dir($dir))
+			{
+				mkdir($dir, 0755, TRUE);
+			}
+			$customer_name = $this->_get_order_customer_name($trnno);
+			$filename = $this->_order_whatsapp_pdf_filename($trnno, $customer_name);
+			$filepath = $dir.$filename;
+			$alias = $dir.'order_'.$trnno.'.pdf';
+			$tempDir = APPPATH.'cache/mpdf';
+			if ( ! is_dir($tempDir))
+			{
+				mkdir($tempDir, 0755, TRUE);
+			}
+			$mpdf = $this->_create_order_mpdf($tempDir);
+			$mpdf->WriteHTML($html);
+			$mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
+			@copy($filepath, $alias);
+			echo "Wrote {$filepath}\n";
+			echo "Alias {$alias}\n";
+		}
+		catch (Exception $e)
+		{
+			echo 'ERROR: '.$e->getMessage()."\n";
 		}
 	}
 
@@ -377,6 +644,16 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		}
 
 		$filepath = FCPATH.'uploads/orders/order_'.$trnno.'.pdf';
+		$nice = '';
+		$matches = glob(FCPATH.'uploads/orders/DarziBaba_Order_'.$trnno.'*.pdf');
+		if (is_array($matches) && ! empty($matches))
+		{
+			$nice = $matches[0];
+		}
+		if ( ! is_file($filepath) && $nice !== '' && is_file($nice))
+		{
+			$filepath = $nice;
+		}
 		if ( ! is_file($filepath))
 		{
 			show_error('PDF not found. Click WhatsApp on the order print page first.', 404);
@@ -387,7 +664,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			ob_end_clean();
 		}
 
-		$filename = 'order_'.$trnno.'.pdf';
+		$filename = ($nice !== '' && is_file($nice)) ? basename($nice) : ('DarziBaba_Order_'.$trnno.'.pdf');
 		$inline = ($this->input->get('inline') === '1');
 		header('Content-Type: application/pdf');
 		header('Content-Disposition: '.($inline ? 'inline' : 'attachment').'; filename="'.$filename.'"');
@@ -485,22 +762,21 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	
 	
 	
-		public function print_blank()
+	public function print_blank()
 	{
 		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
-		$this->load->helper('url'); 
+		$this->load->helper('url');
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-	   $data['business_config'] = $this->business_config();
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
-		
-		 $this->load->view('print_blank', $data);
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-		//$this->load->view('order_print',$data03);
-	}	
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
 
-		
+		$mode = strtolower(trim((string) $this->input->get('mode', TRUE)));
+		$data['business_config'] = $this->business_config();
+		$data['print_mode'] = ($mode === 'letterhead') ? 'letterhead' : 'blank';
+		$this->load->view('print_blank', $data);
 	}
 	
 			
@@ -571,7 +847,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		$this->load->library('session');
 	//	$this->load->library('form_validation');
 		$this->load->model('Order_predefined_model');
-		 $data["suit"]= $this->master_data->get_dat(array('suit'));
+		 $data["suit"]= $this->master_data->get_dat(array('suit'), TRUE);
 		$data['order_predefined_by_row'] = $this->Order_predefined_model->get_grouped_active();
 	// $data["measurement"]= $this->order_query->measurement();
 	// $data["customer_name"]= $this->order_query->get_customer($this->uri->segment(4));
@@ -734,7 +1010,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		{
 			$ready_filters['return_to'] = trim((string) $this->input->get('todate', TRUE));
 		}
-		return $ready_filters;
+		return $this->order_query->apply_default_order_date_filters($ready_filters, 30);
 	}
 
 	protected function _ready_deliver_filter_query_params($filters)
@@ -760,33 +1036,81 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-	// $data["measurement"]= $this->order_query->measurement();
 			$where = $this->uri->segment(3);
-	 	//$last = $this->order_query->measurement($where);;
-	//$where = 'measurement.code  = '.$this->uri->segment(4);
 
 				 	$data["order_single_data"]= $this->order_query->get_order_det_single($where);
 				 	$data["Measurement_data"]= $this->order_query->get_order_det_single($where);
 				 	$data["TOTRECED"]= $this->order_query->get_recevied($where);
 				 	$data["TOTCASHRECEVIED"]= $this->order_query->get_recevied_cash($where);
-					  
-				 	
-			 
 				 	 $data["style"]= $this->master_data->get_dat(array('style'));
 				 	 $data["embroidery"]= $this->master_data->get_dat(array('embroidery'));
 				 	 $data["suit"]= $this->master_data->get_dat(array('suit'));
 				 	 $data["employee"]= $this->master_data->get_dat(array('employee'));
-				 	 
 				     $data["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-				 // 	 $data["employee"]= $this->master_data->get_dat(array('employee'));
 					
  	$this->load->view('order_deliverd',$data);
 	if(!$this->session->userdata('user')){
 		redirect('Login'); 
 	}	
+	}
 
-		
+	/**
+	 * JSON financial + ready-suit summary for Order Status Deliver dialog.
+	 */
+	public function delivery_summary_json()
+	{
+		$this->load->library('session');
+		@ini_set('display_errors', '0');
+		while (ob_get_level() > 0)
+		{
+			@ob_end_clean();
+		}
+		header('Content-Type: application/json; charset=UTF-8');
+
+		if ( ! $this->session->userdata('user'))
+		{
+			echo json_encode(array('success' => FALSE, 'message' => 'session_expired'));
+			return;
+		}
+
+		$order_id = (int) $this->input->get_post('order_id', TRUE);
+		if ($order_id <= 0)
+		{
+			$order_id = (int) $this->uri->segment(3);
+		}
+		if ($order_id <= 0)
+		{
+			echo json_encode(array('success' => FALSE, 'message' => 'invalid_order'));
+			return;
+		}
+
+		try
+		{
+			$summary = $this->order_query->get_order_delivery_summary($order_id);
+			if (empty($summary['ok']))
+			{
+				echo json_encode(array(
+					'success' => FALSE,
+					'message' => isset($summary['message']) ? $summary['message'] : 'not_found',
+				));
+				return;
+			}
+
+			echo json_encode(array(
+				'success' => TRUE,
+				'data' => $summary,
+				'deliver_url' => site_url('Order/process_del/'.$order_id),
+				'full_page_url' => site_url('Order/order_deliverd/'.$order_id),
+			), JSON_UNESCAPED_UNICODE);
+		}
+		catch (Throwable $e)
+		{
+			log_message('error', 'delivery_summary_json: '.$e->getMessage());
+			echo json_encode(array(
+				'success' => FALSE,
+				'message' => 'Could not load payment details.',
+			));
+		}
 	}
 	
 	
@@ -797,9 +1121,9 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		$this->load->helper('url'); 
 		$this->load->library('session');
 	//	$this->load->library('form_validation');
-	  $data["style"]= $this->master_data->get_dat(array('style'));
-	  $data["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-	  $data["suit"]= $this->master_data->get_dat(array('suit'));
+	  $data["style"]= $this->master_data->get_dat(array('style'), TRUE);
+	  $data["embroidery"]= $this->master_data->get_dat(array('embroidery'), TRUE);
+	  $data["suit"]= $this->master_data->get_dat(array('suit'), TRUE);
 	 	
 	// $data["measurement"]= $this->order_query->measurement();
 	// $data["customer_name"]= $this->order_query->get_customer($this->uri->segment(4));
@@ -927,10 +1251,18 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	   $data["style"]= $this->master_data->get_dat(array('style'));
 
 		$customer_code = (int) $this->uri->segment(3);
-		$measurement_code = (int) $this->uri->segment(4);
+		// Ignore non-numeric junk segments (e.g. relative "offline-app.html" requests).
+		$measurement_seg = (string) $this->uri->segment(4);
+		$measurement_code = ctype_digit($measurement_seg) ? (int) $measurement_seg : 0;
 		if ($customer_code < 1 && $measurement_code < 1)
 		{
 			redirect('Customer');
+			return;
+		}
+		if ($measurement_seg !== '' && ! ctype_digit($measurement_seg))
+		{
+			// Soft bounce relative asset/offline probes away from regenerating the form.
+			redirect('Order/order_add1/'.$customer_code.($measurement_code > 0 ? '/'.$measurement_code : ''));
 			return;
 		}
 
@@ -958,6 +1290,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	 $data["last_id"] = $this->master_data->get_max_id('trnno','order_mst');
 	 $data['staff_employees'] = $this->employee_query->get_staff_employees();
 	 $data['order_submit_token'] = $this->order_submit_token();
+	 $data['customer_context'] = $this->_order_form_customer_context($customer_code > 0 ? $customer_code : (int) $meas_rows[0]->Customerno);
  	$this->load->view('Order',$data);
 	}
  
@@ -984,6 +1317,12 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	 $data["last_id"] = $this->master_data->get_max_id('trnno','order_mst');
 	 $data['staff_employees'] = $this->employee_query->get_staff_employees();
 	 $data['order_submit_token'] = $this->order_submit_token();
+	 $ctx_customer = 0;
+	 if (!empty($data['Measurement_data']) && is_array($data['Measurement_data']) && isset($data['Measurement_data'][0]->Customerno))
+	 {
+	 	$ctx_customer = (int) $data['Measurement_data'][0]->Customerno;
+	 }
+	 $data['customer_context'] = $this->_order_form_customer_context($ctx_customer);
  	$this->load->view('Order',$data);
 	if(!$this->session->userdata('user')){
 		redirect('Login'); 
@@ -1063,6 +1402,26 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		$this->load->view('partials/customer_order_history_table', $data);
 	}
 
+	public function customer_last_order_lines()
+	{
+		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
+		$this->load->library('session');
+		header('Content-Type: application/json; charset=UTF-8');
+		if ( ! $this->session->userdata('user'))
+		{
+			echo json_encode(array('ok' => FALSE, 'message' => 'session_expired'));
+			return;
+		}
+		$customer_code = (int) $this->input->post('customer_code', TRUE);
+		$result = $this->order_query->get_last_order_lines_for_customer($customer_code);
+		echo json_encode($result, JSON_UNESCAPED_UNICODE);
+	}
+
+	private function _order_form_customer_context($customer_code)
+	{
+		return $this->order_query->get_customer_order_context((int) $customer_code);
+	}
+
 	public function order_lifecycle_history($order_id = 0)
 	{
 		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
@@ -1124,8 +1483,22 @@ public function process()
 	 	$this->load->model("insert");
 		if (!$this->is_valid_order_submit_token())
 		{
+			// Stale / double-click submit — NOT "this customer already has an order".
+			// Return to a fresh form with a new token so they can save again.
 			$this->session->set_flashdata('suss', 'duplicate');
-			redirect('Order/Order_Print');
+			$naap = (int) $this->input->post('Naapno');
+			$cust = (int) $this->input->post('Customerno');
+			if ($cust > 0 && $naap > 0)
+			{
+				redirect('Order/order_add1/'.$cust.'/'.$naap);
+				return;
+			}
+			if ($naap > 0)
+			{
+				redirect('Order/order_view/'.$naap);
+				return;
+			}
+			redirect('Welcome');
 			return;
 		}
 
@@ -1261,7 +1634,6 @@ for($i=0; $i<$line_count; $i++)
   $data2 ['status'] = 'Active';
   
   $res=$this->insert->insert_dat1($data2,'transfer_mst');
-  $this->dashboard_data->clear_dashboard_summary_cache();
 }
 
 		$this->db->trans_complete();
@@ -1273,14 +1645,20 @@ for($i=0; $i<$line_count; $i++)
 			return;
 		}
 
+		$this->dashboard_data->clear_dashboard_summary_cache();
+
 		if ($advance != 0)
 		{
 			$this->cash_ledger->invalidate_cash_ledger_opening_cache($data1['EDATE']);
 		}
+
+		// Order WhatsApp PDF is sent manually from the print page after staff picks a number.
+		// Do not auto-queue / auto-dispatch plain-text WhatsApp on create.
+		$this->session->set_flashdata('order_whatsapp_prompt', $order_trnno);
 		
 			// echo $where5;
  
-			redirect('Order/Order_Print',$data3); 
+			redirect('Order/Order_Print_det/'.$order_trnno); 
 			//	print_r($data);
 			//	die;
 				
@@ -1484,11 +1862,24 @@ for($i=0; $i<$line_count; $i++)
 				'pending' => $this->input->post('udaar'),
 ); 
 			$narration  = 'Recevied Agaisnt Order '. $this->uri->segment(3);
+
+			$this->db->trans_start();
+
 			$res=$this->insert->insert_dat1($data1,'dmst');
+			$last_dmst = (int) $this->db->insert_id();
+			if ($last_dmst < 1)
+			{
+				$this->db->trans_complete();
+				$this->session->set_flashdata('suss', 'incomplete');
+				redirect('Order/order_issue');
+				return;
+			}
+
 			$data5 = array(
 				'EDATE' => date('Y-m-d'),
 				'type' => '2',
 				'customer_id	' => $this->input->post('customer_code'),
+				'order_no' => $this->uri->segment(3),
 				'amount' => $this->input->post('Balance'),
 				'narration' => $narration,
 ); 	
@@ -1497,15 +1888,28 @@ for($i=0; $i<$line_count; $i++)
 			$res=$this->insert->insert_dat1($data5,'cash');
 	
  
- $last = $this->master_data->get_max_id('trnno','dmst');
- $last_dmst = $this->master_data->get_max_id('trnno','dmst');
- for($i=0; $i<count($this->input->post("order_sr")); $i++)
+ $delivered_any = FALSE;
+ $order_sr_list = $this->input->post('order_sr');
+ $returndel_list = $this->input->post('returndel');
+ if (!is_array($order_sr_list))
+ {
+	 $order_sr_list = array();
+ }
+ if (!is_array($returndel_list))
+ {
+	 $returndel_list = array();
+ }
+
+ for ($i = 0; $i < count($order_sr_list); $i++)
 {
-	if($this->input->post("returndel[".$i."]") == 'yes')
+	$returndel_val = isset($returndel_list[$i]) ? strtolower(trim((string) $returndel_list[$i])) : '';
+	if ($returndel_val === 'yes')
 	{
+	$delivered_any = TRUE;
+	$data = array();
 	$data ['DTRNNO'] = $last_dmst;
 	$data ['ORDER_TRNNO'] = $this->uri->segment(3);
-	$data ['ORDERSR'] = $this->input->post("order_sr[".$i."]");
+	$data ['ORDERSR'] = $order_sr_list[$i];
 	$data ['ord_dtl_date'] = date('Y-m-d');
    
   
@@ -1517,13 +1921,68 @@ for($i=0; $i<$line_count; $i++)
 );				 
 
 							$last = $this->uri->segment(3);
-							$last2 = $this->input->post("order_sr[".$i."]");
+							$last2 = $order_sr_list[$i];
 				 	$res=$this->insert->entry_update3_transfer($last,$last2,$data1,'transfer_mst');
   	 
 
 	}
   
 }
-redirect('Order/order_issue'); 
+
+			$this->db->trans_complete();
+			if ( ! $this->db->trans_status())
+			{
+				$this->session->set_flashdata('suss', 'incomplete');
+				redirect('Order/order_issue');
+				return;
+			}
+
+			if (isset($this->dashboard_data) && is_object($this->dashboard_data) && method_exists($this->dashboard_data, 'clear_dashboard_summary_cache'))
+			{
+				$this->dashboard_data->clear_dashboard_summary_cache();
+			}
+
+if ($delivered_any)
+{
+	$order_id = (int) $this->uri->segment(3);
+	$customer_id = (int) $this->input->post('customer_code');
+	$this->load->library('notification_service');
+	$notify_del = $this->notification_service->trigger('delivery_confirm', $order_id, array(
+		'customer_id' => $customer_id,
+		'balance' => (float) $bal,
+		'trigger_source' => 'order_process_del',
+		'allow_resend' => TRUE,
+		'defer_dispatch' => TRUE,
+	));
+	$this->notification_service->stash_delivery_flash($notify_del);
+	$this->notification_service->stash_whatsapp_flash($notify_del);
+
+	$udaar = (string) $this->input->post('udaar');
+	if ($udaar === 'YES' && $bal > 0)
+	{
+		$notify_pay = $this->notification_service->trigger('payment_reminder', $order_id, array(
+			'balance' => (float) $bal,
+			'due_date' => (string) $this->input->post('paid_Date'),
+			'customer_id' => $customer_id,
+			'trigger_source' => 'delivery_pending_balance',
+			'allow_resend' => TRUE,
+			'defer_dispatch' => TRUE,
+		));
+		if (empty($notify_del['dispatched']))
+		{
+			$this->notification_service->stash_delivery_flash($notify_pay);
+		}
+	}
+
+	$this->session->set_flashdata('suss', 'yes');
+}
+
+		$redirect_to = trim((string) $this->input->post('redirect_to', TRUE));
+		if ($redirect_to !== '' && strpos($redirect_to, '://') === FALSE && strpos($redirect_to, '//') !== 0)
+		{
+			redirect($redirect_to);
+			return;
+		}
+		redirect('Order/order_issue'); 
 }
 }

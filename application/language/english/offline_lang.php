@@ -1,0 +1,33 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$lang['offline_chip_title'] = 'Connection & sync status';
+$lang['offline_chip_checking'] = 'Checking…';
+$lang['offline_chip_online'] = 'Online';
+$lang['offline_chip_offline'] = 'Offline';
+$lang['offline_chip_pending'] = 'Pending Sync';
+$lang['offline_chip_syncing'] = 'Syncing';
+$lang['offline_chip_synced'] = 'Synced';
+$lang['offline_chip_failed'] = 'Sync Failed';
+$lang['offline_sync_now'] = 'Sync Now';
+$lang['offline_banner_offline'] = 'Offline — Changes will sync when connection is restored';
+$lang['offline_banner_online'] = 'Online — All changes synchronized';
+$lang['offline_banner_pending'] = 'Pending changes ready to sync';
+$lang['offline_banner_failed'] = 'Sync failed — tap Sync Now to retry';
+$lang['offline_saved_pending'] = 'Saved Offline — Pending Sync';
+$lang['offline_online_only'] = 'WhatsApp and admin settings need an online connection.';
+$lang['offline_whatsapp_online_only'] = 'WhatsApp needs online. Use Print / Save as PDF offline.';
+$lang['offline_report_cached_only'] = 'New report needs online. If this page is already loaded, use Print / PDF.';
+$lang['offline_form_unsupported'] = 'This form is not available offline.';
+$lang['offline_save_failed'] = 'Could not save offline: ';
+$lang['offline_sync_complete'] = 'Sync Complete';
+$lang['offline_sync_failed'] = 'Sync Failed';
+$lang['offline_sync_orders'] = 'orders';
+$lang['offline_sync_customers'] = 'customers';
+$lang['offline_sync_cash'] = 'cash';
+$lang['offline_sync_deliveries'] = 'deliveries';
+$lang['offline_sync_transfers'] = 'transfers';
+$lang['offline_sync_conflicts'] = 'conflicts';
+$lang['offline_last_synced'] = 'Last synced';
+$lang['offline_sync_status'] = 'Sync status';
+$lang['offline_pending_count'] = 'Pending changes';

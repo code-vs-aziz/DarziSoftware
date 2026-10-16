@@ -91,8 +91,7 @@ public function process()
 				'name' => $this->input->post('Name'),
 				'rate' => $rate !== '' ? (float) $rate : 0,
 				'remarks' => $this->input->post('Remarks'),
-	 
-  
+				'is_active' => $this->input->post('is_active') ? 1 : 0,
 );
 				
 			 
@@ -122,8 +121,7 @@ public function process()
 				'name' => $this->input->post('Name'),
 				'rate' => $rate !== '' ? (float) $rate : 0,
 				'remarks' => $this->input->post('Remarks'),
-	 
-  
+				'is_active' => $this->input->post('is_active') ? 1 : 0,
 );
 				
 				
@@ -145,7 +143,24 @@ public function process()
 				{
 				 //	$this->session->set_flashdata('suss', 'no');
 				}
-		}		
+		}
+
+	public function toggle_active($id = 0)
+	{
+		$id = (int) $id;
+		if ($id > 0)
+		{
+			$row = $this->db->where('SNO', $id)->get('suit')->row_array();
+			if ($row)
+			{
+				$next = empty($row['is_active']) ? 1 : 0;
+				$this->db->where('SNO', $id)->update('suit', array('is_active' => $next));
+				$this->master_data->clear_dat_cache('suit');
+				$this->session->set_flashdata('suss', 'yes');
+			}
+		}
+		redirect('Suit');
+	}
 		
  
 }

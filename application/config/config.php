@@ -483,7 +483,15 @@ $config['csrf_token_name'] = 'dz_csrf_token';
 $config['csrf_cookie_name'] = 'dz_csrf_cookie';
 $config['csrf_expire'] = 7200;
 $config['csrf_regenerate'] = FALSE;
-$config['csrf_exclude_uris'] = array();
+$config['csrf_exclude_uris'] = array(
+	'cron/process_notifications',
+	'cron/ping',
+	'api/auth/.+',
+	'api/measurements/.+',
+	'api/content/.+',
+	'api/shop/.+',
+	'api/erp_sync/.+',
+);
 
 /*
 |--------------------------------------------------------------------------

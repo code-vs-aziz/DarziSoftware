@@ -142,7 +142,8 @@ class Dashboard_data_model extends CI_Model
     $row = $this->db->get()->row();
     $summary['today_deliveries'] = $row ? (int) $row->total : 0;
 
-    $this->cache->save($cache_key, $summary, 120);
+    // 5 minutes: reduces stampede under concurrent dashboard hits after writes.
+    $this->cache->save($cache_key, $summary, 300);
     return $summary;
   }
 

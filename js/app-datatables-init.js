@@ -55,7 +55,8 @@
 				}
 				$(this).DataTable({
 					pagingType: 'full_numbers',
-					pageLength: 10,
+					pageLength: 25,
+					lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
 					lengthChange: true,
 					searching: true,
 					info: true

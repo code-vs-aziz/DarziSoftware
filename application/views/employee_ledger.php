@@ -148,7 +148,8 @@ $net_payable = $empopening + $wages_total - $payment_total;
 		</div>
 
 		<?php if (!$has_report) { ?>
-		<form class="report-form print-hide" action="<?php echo site_url('Cash/employee_ledger_pro'); ?>" method="post">
+		<form class="report-form print-hide" action="<?php echo site_url('Cash/employee_ledger_pro'); ?>" method="post" data-no-ajax="true">
+			<?php $this->load->view('partials/csrf_field'); ?>
 			<div class="report-form-grid">
 				<div class="report-field">
 					<label>From Date</label>

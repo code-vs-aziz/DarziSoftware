@@ -46,36 +46,25 @@ $rdate = ! empty($orders->RDATE) ? date('d-m-Y', strtotime($orders->RDATE)) : ''
 
 $odate = ! empty($orders->ORDERDATE) ? date('d-m-Y', strtotime($orders->ORDERDATE)) : '';
 
-$logo1 = $pdf_img('images/Logo 1.png');
-
-$logo3 = $pdf_img('images/Logo 3.jpg');
+$logo = $pdf_img('images/darzi-baba-logo.png');
 
 ?>
 
 <div class="order-pdf">
 <table width="100%" cellpadding="2" cellspacing="0" class="hdr">
 	<tr>
-		<td width="20%" align="center" valign="top">
-			<?php if ($logo1) { ?><img src="<?php echo $logo1; ?>" style="height:110px;"><?php } ?>
-		</td>
-		<td width="5%"></td>
-		<td width="75%" align="center" valign="top">
-			<table width="100%" cellpadding="0" cellspacing="0">
-				<tr>
-					<td width="12%" align="left" valign="middle" class="hdr-trnno"><b><?php echo (int) $orders->TRNNO; ?></b></td>
-					<td width="76%" align="center"><?php if ($logo3) { ?><img src="<?php echo $logo3; ?>" style="height:110px;"><?php } ?></td>
-					<td width="12%"></td>
-				</tr>
-			</table>
+		<td width="100%" align="center" valign="top">
+			<?php if ($logo) { ?><img src="<?php echo $logo; ?>" style="height:88px; width:auto; max-width:280px;" alt="Darzi Baba"><br><?php } ?>
+			<span class="hdr-trnno"><b><?php echo (int) $orders->TRNNO; ?></b></span>
 		</td>
 	</tr>
 	<tr>
-		<td align="center" class="hdr-phone">Ph: <?php echo esc_html($print_phone); ?></td>
-		<td></td>
-		<td align="right" class="hdr-badges">
-			<span class="hdr-address"><?php echo esc_html($print_address); ?></span><br>
-			<span class="hdr-badge">سپشلسٹ</span>
-			<span class="hdr-badge">پینٹ کوٹ،ویسکوٹ،شلوارقمیض</span>
+		<td align="center" class="hdr-phone">Ph: <?php echo esc_html($print_phone); ?>
+			<span class="hdr-badges" style="display:block; margin-top:4px;">
+				<span class="hdr-address"><?php echo esc_html($print_address); ?></span><br>
+				<span class="hdr-badge">سپشلسٹ</span>
+				<span class="hdr-badge">پینٹ کوٹ،ویسکوٹ،شلوارقمیض</span>
+			</span>
 		</td>
 	</tr>
 </table>
@@ -131,7 +120,11 @@ $logo3 = $pdf_img('images/Logo 3.jpg');
 	<tr>
 		<td class="col-meas" valign="top" style="width:88mm;">
 			<?php
-			extract(compact('order', 'type'), EXTR_SKIP);
+			if ( ! isset($types) || ! is_array($types))
+			{
+				$types = (isset($type) && $type !== '') ? array($type) : array();
+			}
+			extract(compact('order', 'type', 'types'), EXTR_SKIP);
 			include APPPATH.'views/partials/order_measurements_table.php';
 			?>
 		</td>

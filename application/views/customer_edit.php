@@ -1,5 +1,5 @@
 <?php
-ob_Start();
+ob_start();
 $this->load->helper('ui');
 
 $this->load->view('Head');
@@ -28,15 +28,7 @@ if (!$customer_row) {
 $customer_type = isset($customer_row->cus_type) && $customer_row->cus_type !== '' ? $customer_row->cus_type : 'Local';
 $edit_code = (int) $customer_row->code;
 ?>
-<style>
-	.customer-urdu-field {
-		direction: rtl;
-		text-align: right;
-		font-family: 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif;
-		font-size: 18px;
-		line-height: 1.8;
-	}
-</style>
+<link href="<?php echo base_url('css/customer-form-enhancements.css?v=5'); ?>" rel="stylesheet" media="all">
 <script>
 	function initCustomerUrduFields() {
 		if (!window.jQuery || !jQuery.fn.setUrduInput) {
@@ -55,86 +47,136 @@ $edit_code = (int) $customer_row->code;
 	});
 	jQuery(document).on('app:ajax-loaded', initCustomerUrduFields);
 </script>
-<body class="animsition erp-app">
+<body class="animsition erp-app erp-form-page customer-form-page">
 	<div class="page-wrapper">
 		<div class="main-content">
 			<div class="section__content section__content--p30">
 				<div class="container-fluid">
 					<?php if ($this->session->flashdata('suss') == 'yes') { ?>
-						<div class="alert alert-success" role="alert"><?php echo t('app_record_entered_short'); ?></div>
+						<div class="alert alert-success customer-alert" role="alert"><?php echo t('app_record_entered_short'); ?></div>
 					<?php } elseif ($this->uri->segment(4) === 'err') { ?>
-						<div class="alert alert-danger" role="alert">Naap No already exists for another customer.</div>
+						<div class="alert alert-danger customer-alert" role="alert"><?php echo t('customer_naap_exists'); ?></div>
 					<?php } ?>
+
 					<div class="col-md-12">
 						<div class="dz-card erp-module-card data-entry-card">
 							<div class="erp-card-head">
-								<h2 class="erp-module-title mb-0"><?php echo t('customer_form'); ?></h2>
-								<span class="erp-entry-number">Customer # : <?php echo $edit_code; ?></span>
+								<h2 class="erp-module-title mb-0"><?php echo t('customer_edit'); ?></h2>
+								<div class="erp-card-actions">
+									<span class="erp-entry-number"><?php echo t('customer_number'); ?> : <?php echo (int) $edit_code; ?></span>
+								</div>
 							</div>
+
 							<div class="card-body erp-card-body data-entry-body">
-								<form name="Form" action="<?php echo site_url('Customer/process_edit/' . $edit_code); ?>" method="post" data-no-ajax="true">
-									<input id="City" name="City" type="hidden" value="<?php echo esc_html((string) $customer_row->city); ?>">
-									<input id="Country" name="Country" type="hidden" value="<?php echo esc_html((string) $customer_row->country); ?>">
-									<input id="Remarks" name="Remarks" type="hidden" value="<?php echo esc_html((string) $customer_row->remarks); ?>">
-									<div class="row">
-										<div class="col-md-6">
-											<div class="form-group">
-												<label for="Name" class="control-label mb-1"><?php echo t('customer_name'); ?></label>
-												<input id="Name" name="Name" type="text" class="form-control customer-urdu-field" required value="<?php echo esc_html((string) $customer_row->name); ?>">
+								<div class="customer-form-layout">
+									<form name="Form" action="<?php echo site_url('Customer/process_edit/' . $edit_code); ?>" method="post" data-no-ajax="true">
+										<input id="City" name="City" type="hidden" value="<?php echo esc_html((string) $customer_row->city); ?>">
+										<input id="Country" name="Country" type="hidden" value="<?php echo esc_html((string) $customer_row->country); ?>">
+										<input id="Remarks" name="Remarks" type="hidden" value="<?php echo esc_html((string) $customer_row->remarks); ?>">
+
+										<div class="customer-info-panel">
+											<div class="customer-section__head">
+												<h3 class="customer-section__title"><?php echo t('customer_form'); ?></h3>
+											</div>
+											<div class="customer-info-panel__grid">
+												<div class="customer-info-panel__item">
+													<span><?php echo t('customer_number'); ?></span>
+													<strong><?php echo (int) $edit_code; ?></strong>
+												</div>
+												<div class="customer-info-panel__item">
+													<span><?php echo t('customer_manual_naap'); ?></span>
+													<strong><?php echo esc_html((string) $customer_row->man_napno); ?></strong>
+												</div>
+												<div class="customer-info-panel__item">
+													<span><?php echo t('customer_type'); ?></span>
+													<strong><?php echo $customer_type === 'Foreign' ? t('customer_type_foreign') : t('customer_type_local'); ?></strong>
+												</div>
+												<div class="customer-info-panel__item">
+													<span><?php echo t('customer_phone'); ?></span>
+													<strong><?php echo esc_html((string) ($customer_row->Phone !== '' ? $customer_row->Phone : '—')); ?></strong>
+												</div>
 											</div>
 										</div>
-										<div class="col-md-6">
-											<div class="form-group">
-												<label for="man_napno" class="control-label mb-1"><?php echo t('customer_manual_naap'); ?></label>
-												<input id="man_napno" name="man_napno" type="text" class="form-control" value="<?php echo esc_html((string) $customer_row->man_napno); ?>">
+
+										<div class="customer-section">
+											<div class="customer-section__head">
+												<h3 class="customer-section__title"><?php echo t('customer_section_basic'); ?></h3>
+											</div>
+											<div class="row">
+												<div class="col-md-6">
+													<div class="form-group">
+														<label for="Name" class="control-label mb-1"><?php echo t('customer_name'); ?></label>
+														<input id="Name" name="Name" type="text" class="form-control customer-urdu-field" required value="<?php echo esc_html((string) $customer_row->name); ?>">
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group">
+														<label for="man_napno" class="control-label mb-1"><?php echo t('customer_manual_naap'); ?></label>
+														<input id="man_napno" name="man_napno" type="text" class="form-control" value="<?php echo esc_html((string) $customer_row->man_napno); ?>">
+													</div>
+												</div>
 											</div>
 										</div>
-									</div>
-									<div class="row">
-										<div class="col-md-6">
-											<div class="form-group">
-												<label for="Phone" class="control-label mb-1"><?php echo t('customer_phone'); ?></label>
-												<input id="Phone" name="Phone" type="text" class="form-control" value="<?php echo esc_html((string) $customer_row->Phone); ?>">
+
+										<div class="customer-section">
+											<div class="customer-section__head">
+												<h3 class="customer-section__title"><?php echo t('customer_section_contact'); ?></h3>
+											</div>
+											<div class="row">
+												<div class="col-md-6">
+													<div class="form-group">
+														<label for="Phone" class="control-label mb-1"><?php echo t('customer_phone'); ?></label>
+														<input id="Phone" name="Phone" type="text" class="form-control" inputmode="tel" value="<?php echo esc_html((string) $customer_row->Phone); ?>">
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group">
+														<label for="CNIC" class="control-label mb-1"><?php echo t('customer_cnic'); ?></label>
+														<input id="CNIC" name="CNIC" type="text" class="form-control" value="<?php echo esc_html((string) $customer_row->cnic); ?>">
+													</div>
+												</div>
 											</div>
 										</div>
-										<div class="col-md-6">
-											<div class="form-group">
-												<label for="CNIC" class="control-label mb-1"><?php echo t('customer_cnic'); ?></label>
-												<input id="CNIC" name="CNIC" type="text" class="form-control" value="<?php echo esc_html((string) $customer_row->cnic); ?>">
+
+										<div class="customer-section">
+											<div class="customer-section__head">
+												<h3 class="customer-section__title"><?php echo t('customer_section_details'); ?></h3>
+											</div>
+											<div class="row">
+												<div class="col-md-6">
+													<div class="form-group">
+														<label class="control-label mb-1"><?php echo t('customer_type'); ?></label>
+														<div class="customer-type-chips">
+															<label class="customer-type-chip">
+																<input type="radio" name="type" value="Local" <?php echo $customer_type === 'Local' ? 'checked' : ''; ?>>
+																<span class="customer-type-chip__card"><?php echo t('customer_type_local'); ?></span>
+															</label>
+															<label class="customer-type-chip">
+																<input type="radio" name="type" value="Foreign" <?php echo $customer_type === 'Foreign' ? 'checked' : ''; ?>>
+																<span class="customer-type-chip__card"><?php echo t('customer_type_foreign'); ?></span>
+															</label>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group">
+														<label for="Address" class="control-label mb-1"><?php echo t('customer_address'); ?></label>
+														<input id="Address" name="Address" type="text" class="form-control customer-urdu-field" value="<?php echo esc_html((string) $customer_row->Address); ?>">
+													</div>
+												</div>
 											</div>
 										</div>
-									</div>
-									<div class="row">
-										<div class="col-md-6">
-											<div class="form-group">
-												<label for="emp-type" class="control-label mb-1"><?php echo t('customer_type'); ?></label>
-												<select id="emp-type" name="type" class="form-control">
-													<option value="Local" <?php echo $customer_type === 'Local' ? 'selected' : ''; ?>>Local</option>
-													<option value="Foreign" <?php echo $customer_type === 'Foreign' ? 'selected' : ''; ?>>Foreign</option>
-												</select>
+
+										<div class="customer-submit-sticky">
+											<div class="customer-submit-sticky__actions customer-submit-sticky__actions--split">
+												<a href="<?php echo site_url('Customer'); ?>" class="btn btn-lg btn-secondary btn-block" data-no-ajax="true"><?php echo t('app_back'); ?></a>
+												<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
+													<span><?php echo t('app_submit'); ?></span>
+												</button>
 											</div>
 										</div>
-									</div>
-									<div class="row">
-										<div class="col-md-12">
-											<div class="form-group">
-												<label for="Address" class="control-label mb-1"><?php echo t('customer_address'); ?></label>
-												<input id="Address" name="Address" type="text" class="form-control customer-urdu-field" value="<?php echo esc_html((string) $customer_row->Address); ?>">
-											</div>
-										</div>
-									</div>
-									<div class="row data-entry-actions">
-										<div class="col-md-4">
-											<a href="<?php echo site_url('Customer'); ?>" class="btn btn-lg btn-secondary btn-block" data-no-ajax="true"><?php echo t('app_back'); ?></a>
-										</div>
-										<div class="col-md-4">
-											<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
-												<span><?php echo t('app_submit'); ?></span>
-											</button>
-										</div>
-										<div class="col-md-4"></div>
-									</div>
-								</form>
+									</form>
+								</div>
 							</div>
 						</div>
 					</div>

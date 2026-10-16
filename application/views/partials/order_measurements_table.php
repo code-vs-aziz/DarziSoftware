@@ -8,20 +8,27 @@
 </colgroup>
 <?php
 foreach ($order as $orders) { break; }
-if ($type == 'Kurta') {
-	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">قمیض شلوار</td></tr>';
-} elseif ($type == 'Pajama') {
-	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">پاجامہ</td></tr>';
-} elseif ($type == 'Pent') {
-	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">پینٹ</td></tr>';
-} elseif ($type == 'Shirt') {
-	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">شرٹ</td></tr>';
-} elseif ($type == 'Coat') {
-	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">شروانی/کوٹ</td></tr>';
-} elseif ($type == 'Waistcoat') {
-	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">ویسکوٹ</td></tr>';
+if ( ! isset($types) || ! is_array($types))
+{
+	$types = (isset($type) && $type !== '') ? array($type) : array();
 }
-if ($type == 'Kurta') {
+$print_has_type = function ($needle) use ($types) {
+	return in_array($needle, $types, TRUE);
+};
+$meas_trim = function ($key) use ($orders) {
+	return isset($orders->$key) ? trim((string) $orders->$key) : '';
+};
+$has_kurta_nap = (
+	$meas_trim('KL') !== '' || $meas_trim('BL') !== '' || $meas_trim('Teera') !== '' ||
+	$meas_trim('Chaati') !== '' || $meas_trim('Gala') !== '' || $meas_trim('Shalwar_Lenght') !== '' ||
+	$meas_trim('Asan') !== '' || $meas_trim('geera') !== '' || $meas_trim('pait') !== '' ||
+	$meas_trim('WASIT') !== '' || $meas_trim('Poncha_Choraic') !== '' || $meas_trim('FPL') !== ''
+);
+$show_kurta_block = ($print_has_type('Kurta') || $has_kurta_nap);
+if ($show_kurta_block) {
+	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">قمیض شلوار</td></tr>';
+}
+if ($show_kurta_block) {
 ?>
 						<tr>
 		 
@@ -180,8 +187,10 @@ if ($type == 'Kurta') {
 			  <tr>
 				<td> </td> 
 			  </tr>
-			  <?php  }elseif($type == 'Pajama')
+			  <?php  }
+			  if($print_has_type('Pajama'))
 			  {
+				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">پاجامہ</td></tr>';
 			  ?>
 			  <tr>
 		 
@@ -212,8 +221,10 @@ if ($type == 'Kurta') {
 							</td>
 						</tr>			
 			  
-			  <?php  }elseif($type == 'Pent')
+			  <?php  }
+			  if($print_has_type('Pent'))
 			  {
+				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">پینٹ</td></tr>';
 			  ?>
 			  <tr>
 		 
@@ -231,7 +242,7 @@ if ($type == 'Kurta') {
 						</tr>
 						  <tr>
 		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->ہپ; ?></td>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->HIP; ?></td>
 						<td align="right" class="m-lbl"  >
 							   &nbsp; &nbsp; <b>ہپ   </b>  
 							 
@@ -258,8 +269,10 @@ if ($type == 'Kurta') {
 							 
 							</td>
 						</tr>
-			 <?php  }elseif($type == 'Shirt')
+			 <?php  }
+			  if($print_has_type('Shirt'))
 			  {
+				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">شرٹ</td></tr>';
 			  ?>
 			  <tr>
 		 
@@ -317,8 +330,10 @@ if ($type == 'Kurta') {
 							 
 							</td>
 						</tr>	
-						 <?php  }elseif($type == 'Coat')
+						 <?php  }
+			  if($print_has_type('Coat'))
 			  {
+				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">شروانی/کوٹ</td></tr>';
 			  ?>
 			  <tr>
 		 
@@ -350,7 +365,7 @@ if ($type == 'Kurta') {
 						</tr>		
 		 								  <tr>
 		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->Coatہپ; ?></td>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatHIP; ?></td>
 						<td align="right" class="m-lbl"  >
 							   &nbsp; &nbsp; <b>ہپ   </b>  
 							 
@@ -377,8 +392,10 @@ if ($type == 'Kurta') {
 							 
 							</td>
 						</tr>		
-						 <?php  }elseif($type == 'Waistcoat')
+						 <?php  }
+			  if($print_has_type('Waistcoat'))
 			  {
+				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">ویسکوٹ</td></tr>';
 			  ?>
 			  <tr>
 		 
@@ -396,7 +413,7 @@ if ($type == 'Kurta') {
 						</tr>
 						  <tr>
 		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastہپ; ?></td>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastHIP; ?></td>
 						<td align="right" class="m-lbl"  >
 							   &nbsp; &nbsp; <b>ہپ 
    </b>  
@@ -411,7 +428,7 @@ if ($type == 'Kurta') {
 						</tr>		
 		 								  <tr>
 		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  //echo $orders->Coatہپ; ?></td>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  //echo $orders->CoatHIP; ?></td>
 						<td align="right" class="m-lbl"  >
 							   &nbsp; &nbsp; <b><!--ہپ-->  </b>  
 							 

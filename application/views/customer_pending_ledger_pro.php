@@ -125,7 +125,8 @@ foreach ($payment as $payments) {
 		<?php } ?>
 
 		<?php if (!$has_report) { ?>
-		<form class="report-form print-hide" action="<?php echo site_url('Cash/customer_pending_ledger_pr'); ?>" method="post">
+		<form class="report-form print-hide" action="<?php echo site_url('Cash/customer_pending_ledger_pr'); ?>" method="post" data-no-ajax="true">
+			<?php $this->load->view('partials/csrf_field'); ?>
 			<div class="report-form-grid">
 				<div class="report-field">
 					<label>From Date</label>
@@ -220,7 +221,8 @@ foreach ($payment as $payments) {
 			<h3 id="pending-pay-title"><?php echo t('report_pending_pay_title'); ?></h3>
 			<p id="pending-pay-customer"></p>
 		</div>
-		<form method="post" action="<?php echo site_url('Cash/process_status'); ?>" id="pending-pay-form">
+		<form method="post" action="<?php echo site_url('Cash/process_status'); ?>" id="pending-pay-form" data-no-ajax="true">
+			<?php $this->load->view('partials/csrf_field'); ?>
 			<input type="hidden" name="fromdate" value="<?php echo esc_html($fromdate); ?>">
 			<input type="hidden" name="todate" value="<?php echo esc_html($todate); ?>">
 			<input type="hidden" name="dmst_trnno" id="pending-pay-trnno" value="">

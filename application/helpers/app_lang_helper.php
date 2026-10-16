@@ -265,17 +265,184 @@ if ( ! function_exists('app_lang_js_strings'))
 			'select_design',
 			'select_suit_type',
 			'phone_missing',
+			'wa_enter_phone',
+			'wa_pdf_sent',
+			'wa_send_pdf',
+			'notify_print_sent',
+			'notify_print_failed',
+			'notify_bridge_disabled',
+			'notify_bridge_not_ready',
+			'bridge_chip_ok',
+			'bridge_chip_wait',
+			'bridge_chip_off',
+			'bridge_chip_checking',
+			'bridge_banner_down',
+			'bridge_banner_scan',
+			'report_voice_processing',
+			'report_voice_listening',
+			'report_voice_ready',
+			'report_voice_fail',
+			'report_voice_unrecognized',
+			'report_voice_permission',
+			'report_voice_no_mic',
+			'report_voice_mic_error',
+			'report_voice_ollama_on',
+			'offline_chip_online',
+			'offline_chip_offline',
+			'offline_chip_pending',
+			'offline_chip_syncing',
+			'offline_chip_synced',
+			'offline_chip_failed',
+			'offline_chip_checking',
+			'offline_sync_now',
+			'offline_banner_offline',
+			'offline_banner_online',
+			'offline_banner_pending',
+			'offline_banner_failed',
+			'offline_saved_pending',
+			'offline_online_only',
+			'offline_whatsapp_online_only',
+			'offline_report_cached_only',
+			'offline_form_unsupported',
+			'offline_save_failed',
+			'offline_sync_complete',
+			'offline_sync_failed',
+			'offline_sync_orders',
+			'offline_sync_customers',
+			'offline_sync_cash',
+			'offline_sync_deliveries',
+			'offline_sync_transfers',
+			'offline_sync_conflicts',
+			'offline_last_synced',
+			'offline_sync_status',
+			'offline_pending_count',
 		);
 
 		$out = array();
 		foreach ($keys as $key)
 		{
-			$out[$key] = t('js_'.$key);
+			// Prefer dedicated offline_* / js_* keys; fall back gracefully.
+			if (strpos($key, 'offline_') === 0)
+			{
+				$out[$key] = t($key);
+			}
+			else
+			{
+				$out[$key] = t('js_'.$key);
+			}
 		}
 
 		$out['app_confirm'] = t('app_confirm');
 		$out['app_cancel'] = t('app_cancel');
 
+		$order_form_keys = array(
+			'order_suit_progress',
+			'order_suit_status_active',
+			'order_suit_status_done',
+			'order_suit_status_locked',
+			'order_suit_status_pending',
+			'order_suit_complete_first',
+			'order_copy_last_none',
+			'order_copy_last_fail',
+			'order_same_remaining_done',
+			'report_err_select_report',
+			'report_status_opening',
+			'report_status_opened',
+			'report_status_pdf',
+			'report_status_pdf_done',
+			'report_status_whatsapp',
+			'report_status_whatsapp_ok',
+			'report_status_whatsapp_link',
+			'report_prompt_phone',
+			'report_err_missing_dates',
+			'report_err_invalid_dates',
+			'report_err_from_after_to',
+			'report_err_range_too_large',
+			'report_err_permission',
+			'report_err_pdf_unsupported',
+			'report_err_missing_phone',
+			'report_err_bridge',
+			'report_err_session',
+			'report_err_network',
+			'report_err_generic',
+		);
+		foreach ($order_form_keys as $key)
+		{
+			$out[$key] = t($key);
+		}
+
 		return $out;
+	}
+}
+
+if ( ! function_exists('transfer_stage_label'))
+{
+	/**
+	 * Human label for transfer department code (HO, CUT, HO2, STIT).
+	 */
+	function transfer_stage_label($code)
+	{
+		$code = strtoupper(trim((string) $code));
+		$map = array(
+			'HO' => 'transfer_stage_ho',
+			'CUT' => 'transfer_stage_cut',
+			'HO2' => 'transfer_stage_ho2',
+			'STIT' => 'transfer_stage_stit',
+		);
+		return isset($map[$code]) ? t($map[$code]) : $code;
+	}
+}
+
+if ( ! function_exists('transfer_next_stage'))
+{
+	/**
+	 * Next department after a transfer from $from_code, or empty when stitching completes.
+	 */
+	function transfer_next_stage($from_code)
+	{
+		$from_code = strtoupper(trim((string) $from_code));
+		$map = array(
+			'HO' => 'CUT',
+			'CUT' => 'HO2',
+			'HO2' => 'STIT',
+			'STIT' => '',
+		);
+		return isset($map[$from_code]) ? $map[$from_code] : '';
+	}
+}
+
+if ( ! function_exists('transfer_flow_title'))
+{
+	/**
+	 * Title like "Booking → Cutting" or "Stitching → Ready".
+	 */
+	function transfer_flow_title($from_code)
+	{
+		$from_code = strtoupper(trim((string) $from_code));
+		$from_label = transfer_stage_label($from_code);
+		$next = transfer_next_stage($from_code);
+		if ($next === '')
+		{
+			return sprintf(t('transfer_flow_complete'), $from_label);
+		}
+		return sprintf(t('transfer_flow_title'), $from_label, transfer_stage_label($next));
+	}
+}
+
+if ( ! function_exists('transfer_pending_title'))
+{
+	/**
+	 * List-page title: "Pending Cutting → HO2".
+	 */
+	function transfer_pending_title($from_code)
+	{
+		$from_code = strtoupper(trim((string) $from_code));
+		$from_label = transfer_stage_label($from_code);
+		$next = transfer_next_stage($from_code);
+		if ($next === '')
+		{
+			return sprintf(t('transfer_pending_complete'), $from_label);
+		}
+		return sprintf(t('transfer_pending_flow'), $from_label, transfer_stage_label($next));
 	}
 }

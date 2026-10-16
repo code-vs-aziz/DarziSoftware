@@ -1,0 +1,7 @@
+-- Professional WhatsApp message templates (run once to update existing installs)
+UPDATE `notification_settings` SET
+  `template_order_booked` = '*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nآپ کا آرڈر کامیابی سے رجسٹر ہو گیا۔\n\n📋 *Order Details*\nOrder No: #{order_no}\nTotal Suits: {suit_count}\nTotal Bill: Rs {bill_total}\nAdvance Paid: Rs {advance}\nBalance: Rs {balance}\nReturn Date: {return_date}\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}',
+  `template_order_ready` = '*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nآپ کا آرڈر *تیار* ہے — آج وصول کر لیں۔\n\nOrder #: {order_no}\nSuits: {suit_count} | Bill: Rs {bill_total}\nBalance: Rs {balance}\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}',
+  `template_payment_reminder` = '*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nیاد دہانی: Order #{order_no} پر بقایا رقم باقی ہے۔\n\nPending Balance: Rs {balance}\nDue Date: {due_date}\nSuits: {suit_count} | Total Bill: Rs {bill_total}\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}',
+  `template_delivery_confirm` = '*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nشکریہ! Order #{order_no} کامیابی سے deliver ہو گیا۔\n\nSuits: {suit_count} | Bill: Rs {bill_total}\nAdvance: Rs {advance} | Balance: Rs {balance}\n\nدوبارہ تشریف لائیں — خوشی ہوگی۔\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}'
+WHERE `id` = 1;

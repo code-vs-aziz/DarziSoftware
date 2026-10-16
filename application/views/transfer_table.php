@@ -38,24 +38,15 @@ $this->load->helper('ui');
                                    <!-- <div class="card-header">Employee Form</div> -->
                                     <div class="card-body">
                                     <div class="card-title">
-                                            <h5 class="text-center"><?php echo t('transfer_order_heading'); ?> <?php  
-											if($this->uri->segment(3) == 'HO' or $this->uri->segment(4) == 'HO')
-											{
-													echo 'Booking';
+                                            <h5 class="text-center"><?php
+											$pending_dept = strtoupper(trim((string) (isset($DEPT) ? $DEPT : $this->uri->segment(3))));
+											if ($pending_dept === '') {
+												$pending_dept = strtoupper(trim((string) $this->uri->segment(4)));
 											}
-											elseif($this->uri->segment(3) == 'CUT' or $this->uri->segment(4) == 'CUT')
-											{
-													echo 'Cutting';
-											}
-											elseif($this->uri->segment(3) == 'HO2' or $this->uri->segment(4) == 'HO2')
-											{
-													echo 'HO2';
-											}
-											elseif($this->uri->segment(3) == 'STIT' or $this->uri->segment(4) == 'STIT')
-											{
-													echo 'Stitching';
-											}
-											   ?></h5>
+											echo esc_html(in_array($pending_dept, array('HO', 'CUT', 'HO2', 'STIT'), TRUE)
+												? transfer_pending_title($pending_dept)
+												: t('transfer_order_heading'));
+											?></h5>
                                         </div>
                                         <hr>
 									<section>
@@ -72,7 +63,12 @@ $this->load->helper('ui');
 			</form>
 			<?php } ?>
 			<div class="demo-html"></div>
-			<table id="example" class="display" style="width:100%" data-transfer-table="1">
+			<table id="example" class="display" style="width:100%" data-transfer-table="1"
+				data-ssp="1"
+				data-ssp-url="<?php echo esc_attr(isset($transfer_ssp_url) ? $transfer_ssp_url : ''); ?>"
+				data-dept="<?php echo esc_attr($DEPT); ?>"
+				data-bulk="<?php echo $show_bulk_transfer ? '1' : '0'; ?>"
+				data-list-from="<?php echo esc_attr(isset($transfer_list_from) ? $transfer_list_from : (string) $this->uri->segment(3)); ?>">
 			<thead>
 					<tr>
 						<?php if ($show_bulk_transfer) { ?><th><input type="checkbox" id="select-all-transfer" title="<?php echo esc_html(t('transfer_bulk_transfer_select_page')); ?>"></th><?php } ?>
@@ -95,93 +91,7 @@ $this->load->helper('ui');
 					</tr>
 				</thead>
 				<tbody>
-				<?php 
-				$order = 0 ;
-				$sr = 1 ;
-			 foreach($orderdata as $orderdata){
-			$line_sr = isset($orderdata->ORDERSR) ? (int) $orderdata->ORDERSR : (isset($orderdata->SUITNO) ? (int) $orderdata->SUITNO : 0);
-			if($orderdata->ORDERNO != $order  )
-			{
-						$order  = $orderdata->ORDERNO;
-						$sr = 1;
-						
-			}
-			 else
-			 {
-				 $sr = $sr + 1;
-			 }
-						                    ?>
-					<tr>
-						<?php if ($show_bulk_transfer) {
-						?>
-						<td>
-							<input type="checkbox" class="bulk-transfer-cb"
-								data-trnno="<?php echo (int) $orderdata->TRANSFERID; ?>"
-								data-order="<?php echo (int) $orderdata->ORDERNO; ?>"
-								data-sr="<?php echo $line_sr; ?>">
-						</td>
-						<?php } ?>
-						<td><?php echo $orderdata->ORDERNO.'-'.$sr; ?></td>
-						
-						<td>
-						<?php 
-						foreach($employee as $employees){
-						
-						
-						if($employees->empno == $orderdata->empno )
-						{
-							echo $employees->name; 
-						}
-						}
-					//	echo $orderdata->employee;
-						?>
-						
-						
-						</td>
-						<td><?php
-						$originalDate = $orderdata->ORDERDATE;
-						if ($originalDate === '' || $originalDate === NULL)
-						{
-							$originalDate = $orderdata->TRANSFEREDATE;
-						}
-						echo ($originalDate !== '' && $originalDate !== NULL) ? date('d-m-Y', strtotime($originalDate)) : '';
-						?></td>
-						<td><?php
-						$originalDate1 = $orderdata->RORDERDATE;
-						if ($originalDate1 === '' || $originalDate1 === NULL)
-						{
-							$originalDate1 = $orderdata->RETURNDATE;
-						}
-						echo ($originalDate1 !== '' && $originalDate1 !== NULL) ? date('d-m-Y', strtotime($originalDate1)) : '';
-						?></td>
-						<td><?php echo $orderdata->Phone; ?></td>
-						<td><?php echo $orderdata->name; ?></td>
-						<td><?php echo $orderdata->man_napno; ?></td>
-						<td><?php echo $orderdata->order_remarks; ?></td>
-						
-						<td>
-						<?php if($DEPT == 'CUT' or $DEPT == 'STIT' )  {?>
-						<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Transfer/transfer_Print/'.$orderdata->TRANSFERID.'/'.$DEPT.'/'.$line_sr); ?>" target="_blank"  >View</a>
-						<?php  }  ?>
-						</td>
-						
-						<td><a class="btn btn-primary dz-btn--filled btn-sm"  href="<?php echo site_url('Transfer/transfer_order/'.$orderdata->TRANSFERID.'/'.$DEPT.'/'.$line_sr); ?>"   >Transfer</a></td>
-						<td>
-						<?php
-							if($DEPT != 'HO' )
-							{
-						?>
-						
-						<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Transfer/transfer_return/'.$orderdata->TRANSFERID.'/'.$DEPT.'/'.$orderdata->ORDERNO.'/'.$line_sr.'/'.$this->uri->segment(3)); ?>"   >Return</a>
-						
-							<?php  }  ?>
-						</td>
-				 
-				 
-					 
-					</tr>
-				 <?php  } ?>		
-									</tbody>
+				</tbody>
 				 
 			</table>
 			 

@@ -26,17 +26,13 @@ if (!$report_print_header_styles_loaded)
 <div class="report-order-header-wrap">
 	<table>
 		<tr>
-			<td align="center" width="20%">
-				<img src="<?php echo $img_base; ?>images/Logo 1.png" style="height:150px; padding:0;">
-			</td>
-			<td></td>
-			<td align="center">
-				<img src="<?php echo $img_base; ?>images/Logo 3.jpg" style="height:150px; float:right; padding:0;">
+			<td align="center" colspan="2" style="padding-bottom:8px;">
+				<img src="<?php echo $img_base; ?>images/darzi-baba-logo.png?v=2" alt="Darzi Baba" style="height:auto; width:min(320px, 70vw); max-height:140px; object-fit:contain;">
 			</td>
 		</tr>
 		<tr>
 			<td style="font-weight:bold;" align="center">Ph: <?php echo esc_html($print_phone); ?></td>
-			<td align="right" colspan="2">
+			<td align="right">
 				<span style="margin-right:20px; font-weight:bold; color:white; background:black; border-radius:10px; width:63px; float:right; text-align:center;"> سپشلسٹ </span>
 				<span style="margin-right:20px; font-weight:bold; color:white; background:black; border-radius:10px; width:200px; float:right; text-align:center;"> پینٹ کوٹ،ویسکوٹ،شلوارقمیض </span>
 				<span class="ur urd" style="margin-right:20px; font-weight:bold; width:250px; float:right; text-align:center; direction:rtl;"><?php echo esc_html($print_address); ?></span>

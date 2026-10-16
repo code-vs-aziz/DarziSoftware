@@ -16,7 +16,8 @@ class MY_Controller extends CI_Controller {
 	{
 		parent::__construct();
 		$this->load_app_models();
-		if ($this->requires_login)
+		// CLI jobs (php index.php …) have no browser session.
+		if ($this->requires_login && ! is_cli())
 		{
 			$this->require_login();
 		}

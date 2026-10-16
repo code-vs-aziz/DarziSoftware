@@ -1,0 +1,310 @@
+/**
+ * Shared ERP form design — matches order/customer/measurement theme.
+ * Loaded globally; scopes to .erp-form-page and .data-entry-card.
+ */
+
+/* ─── Info / summary panel ─── */
+.erp-form-page .erp-info-panel,
+.erp-form-page .customer-info-panel,
+.erp-form-page .measurement-info-panel,
+.erp-form-page .order-customer-panel,
+.data-entry-card .erp-info-panel {
+	background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+	border: 1px solid #dbeafe;
+	border-radius: 12px;
+	padding: 1rem 1.15rem;
+	margin-bottom: 1.25rem;
+}
+
+.erp-form-page .erp-info-panel__grid,
+.erp-form-page .customer-info-panel__grid,
+.erp-form-page .measurement-info-panel__grid,
+.erp-form-page .order-customer-panel__grid,
+.data-entry-card .erp-info-panel__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: 0.85rem 1.25rem;
+}
+
+.erp-form-page .erp-info-panel__item span,
+.erp-form-page .customer-info-panel__item span,
+.erp-form-page .measurement-info-panel__item span,
+.erp-form-page .order-customer-panel__item span,
+.data-entry-card .erp-info-panel__item span {
+	display: block;
+	font-size: 12px;
+	color: #64748b;
+	margin-bottom: 0.15rem;
+}
+
+.erp-form-page .erp-info-panel__item strong,
+.erp-form-page .customer-info-panel__item strong,
+.erp-form-page .measurement-info-panel__item strong,
+.erp-form-page .order-customer-panel__item strong,
+.data-entry-card .erp-info-panel__item strong {
+	display: block;
+	font-size: 15px;
+	color: #0f172a;
+	word-break: break-word;
+}
+
+/* ─── Section cards ─── */
+.erp-form-page .erp-form-section,
+.erp-form-page .customer-section,
+.erp-form-page .measurement-section,
+.erp-form-page .order-section,
+.data-entry-card .erp-form-section {
+	border: 1px solid #e2e8f0;
+	border-radius: 12px;
+	padding: 1rem 1.15rem 1rem;
+	margin-bottom: 1rem;
+	background: #fff;
+}
+
+.erp-form-page .erp-form-section__head,
+.erp-form-page .customer-section__head,
+.erp-form-page .measurement-section__head,
+.erp-form-page .order-section__head,
+.data-entry-card .erp-form-section__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.85rem;
+}
+
+.erp-form-page .erp-form-section__title,
+.erp-form-page .customer-section__title,
+.erp-form-page .measurement-section__title,
+.erp-form-page .order-section__title,
+.data-entry-card .erp-form-section__title {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+
+/* ─── Fields inside data-entry forms ─── */
+.erp-form-page .data-entry-body .form-group,
+.data-entry-card .data-entry-body .form-group {
+	margin-bottom: 0.85rem;
+}
+
+.erp-form-page .data-entry-body .control-label,
+.data-entry-card .data-entry-body .control-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #475569;
+}
+
+.erp-form-page .data-entry-body .form-control,
+.data-entry-card .data-entry-body .form-control {
+	min-height: 38px;
+	border-radius: 8px;
+	border-color: #cbd5e1;
+	background: #fff;
+}
+
+.erp-form-page .data-entry-body .form-control:focus,
+.data-entry-card .data-entry-body .form-control:focus {
+	border-color: #2563eb;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.erp-form-page .data-entry-body .row,
+.data-entry-card .data-entry-body .row {
+	margin-left: -10px;
+	margin-right: -10px;
+}
+
+.erp-form-page .data-entry-body .row > [class*="col"],
+.data-entry-card .data-entry-body .row > [class*="col"] {
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+/* Urdu / RTL fields */
+.erp-urdu-field,
+.master-urdu-field,
+.employee-urdu-field,
+.suit-urdu-field,
+.customer-urdu-field {
+	direction: rtl;
+	text-align: right;
+	font-family: 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif;
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.7;
+}
+
+.erp-form-page .control-label.urd,
+.measurement-form-page .control-label.urd {
+	display: block;
+	float: none;
+	width: 100%;
+	text-align: right;
+	direction: rtl;
+	font-family: 'Noto Nastaliq Urdu Draft', 'Jameel Noori Nastaleeq', serif;
+	font-weight: 700;
+}
+
+/* ─── Pill tabs (measurement, config) ─── */
+.erp-form-page .measurement-tab-body .nav-tabs,
+.erp-form-page .erp-form-tabs .nav-tabs {
+	display: flex;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	gap: 0.4rem;
+	border: 0;
+	padding: 0.15rem 0 0.85rem;
+	margin: 0;
+}
+
+.erp-form-page .measurement-tab-body .nav-tabs .nav-link,
+.erp-form-page .erp-form-tabs .nav-tabs .nav-link {
+	border: 1px solid #e2e8f0 !important;
+	border-radius: 999px !important;
+	padding: 0.45rem 0.9rem !important;
+	font-size: 12px;
+	font-weight: 700;
+	color: #475569 !important;
+	background: #f8fafc !important;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.erp-form-page .measurement-tab-body .nav-tabs .nav-link.active,
+.erp-form-page .erp-form-tabs .nav-tabs .nav-link.active {
+	background: #eff6ff !important;
+	border-color: #2563eb !important;
+	color: #1d4ed8 !important;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ─── Sticky submit bar ─── */
+.erp-form-page .erp-submit-sticky,
+.erp-form-page .customer-submit-sticky,
+.erp-form-page .measurement-submit-sticky,
+.erp-form-page .order-payment-sticky,
+.data-entry-card .erp-submit-sticky,
+.data-entry-card .data-entry-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 20;
+	background: rgba(255, 255, 255, 0.96);
+	border: 1px solid #dbeafe;
+	border-radius: 12px;
+	padding: 0.85rem 1rem;
+	margin-top: 0.75rem;
+	box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+	backdrop-filter: blur(8px);
+}
+
+.erp-form-page .erp-submit-sticky__actions,
+.erp-form-page .customer-submit-sticky__actions,
+.erp-form-page .measurement-submit-sticky__actions,
+.data-entry-card .erp-submit-sticky__actions,
+.data-entry-card .data-entry-actions,
+.data-entry-card .row.data-entry-actions {
+	display: grid !important;
+	grid-template-columns: 1fr;
+	gap: 0.65rem;
+	margin: 0 !important;
+	flex-wrap: unset;
+}
+
+.data-entry-card .data-entry-actions--split,
+.data-entry-card .row.data-entry-actions--split {
+	grid-template-columns: 1fr 1.4fr;
+}
+
+.data-entry-card .data-entry-actions > [class*="col"],
+.data-entry-card .row.data-entry-actions > [class*="col"] {
+	max-width: 100% !important;
+	flex: none !important;
+	width: auto !important;
+	padding: 0 !important;
+}
+
+.erp-form-page .erp-submit-sticky__actions--split,
+.erp-form-page .customer-submit-sticky__actions--split,
+.erp-form-page .measurement-submit-sticky__actions--split,
+.data-entry-card .erp-submit-sticky__actions--split {
+	grid-template-columns: 1fr 1.4fr;
+}
+
+.erp-form-page .erp-submit-sticky .btn,
+.erp-form-page .customer-submit-sticky .btn,
+.erp-form-page .measurement-submit-sticky .btn,
+.erp-form-page .order-payment-sticky .btn,
+.data-entry-card .erp-submit-sticky .btn,
+.data-entry-card .data-entry-actions .btn {
+	min-height: 44px;
+	font-weight: 700;
+}
+
+/* ─── Alerts ─── */
+.erp-form-page .erp-form-alert,
+.erp-form-page .customer-alert,
+.erp-form-page .measurement-alert,
+.data-entry-card .erp-form-alert {
+	border-radius: 10px;
+	margin-bottom: 1rem;
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 767px) {
+	.erp-form-page .erp-info-panel,
+	.erp-form-page .customer-info-panel,
+	.erp-form-page .measurement-info-panel,
+	.data-entry-card .erp-info-panel {
+		padding: 0.85rem 0.9rem;
+	}
+
+	.erp-form-page .erp-form-section,
+	.erp-form-page .customer-section,
+	.erp-form-page .measurement-section,
+	.data-entry-card .erp-form-section {
+		padding: 0.85rem 0.9rem 0.85rem;
+	}
+
+	.erp-form-page .erp-submit-sticky__actions--split,
+	.erp-form-page .customer-submit-sticky__actions--split,
+	.erp-form-page .measurement-submit-sticky__actions--split,
+	.data-entry-card .data-entry-actions--split {
+		grid-template-columns: 1fr;
+	}
+
+	.erp-form-page .erp-card-head,
+	.data-entry-card .erp-card-head {
+		flex-direction: column;
+		align-items: flex-start !important;
+	}
+
+	.erp-form-page .erp-submit-sticky,
+	.erp-form-page .customer-submit-sticky,
+	.erp-form-page .measurement-submit-sticky,
+	.data-entry-card .erp-submit-sticky {
+		position: static !important;
+		bottom: auto !important;
+		left: 0 !important;
+		right: 0 !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		border-radius: 12px !important;
+		box-shadow: none !important;
+		padding: 0.75rem 0.85rem !important;
+	}
+
+	.erp-form-page .order-payment-sticky,
+	.data-entry-card .order-payment-sticky {
+		position: sticky !important;
+		left: 0 !important;
+		right: 0 !important;
+		bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		border-radius: 12px 12px 0 0 !important;
+		padding: 0.75rem 0.85rem calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
+	}
+}

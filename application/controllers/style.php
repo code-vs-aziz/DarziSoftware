@@ -94,8 +94,7 @@ public function process()
 				'rate' => $this->input->post('Rate'),
 				'design' => $this->input->post('DesignNo'),
 				'remarks' => $this->input->post('Remarks'),
-	 
-  
+				'is_active' => $this->input->post('is_active') ? 1 : 0,
 );
 				
 				
@@ -126,8 +125,7 @@ public function process()
 				'rate' => $this->input->post('Rate'),
 				'design' => $this->input->post('DesignNo'),
 				'remarks' => $this->input->post('Remarks'),
-	 
-  
+				'is_active' => $this->input->post('is_active') ? 1 : 0,
 );
 				
 				
@@ -144,7 +142,24 @@ public function process()
 				{
 				 //	$this->session->set_flashdata('suss', 'no');
 				}
-		}		
+		}
+
+	public function toggle_active($id = 0)
+	{
+		$id = (int) $id;
+		if ($id > 0)
+		{
+			$row = $this->db->where('DNO', $id)->get('style')->row_array();
+			if ($row)
+			{
+				$next = empty($row['is_active']) ? 1 : 0;
+				$this->db->where('DNO', $id)->update('style', array('is_active' => $next));
+				$this->master_data->clear_dat_cache('style');
+				$this->session->set_flashdata('suss', 'yes');
+			}
+		}
+		redirect('Style');
+	}
 		
  
 }

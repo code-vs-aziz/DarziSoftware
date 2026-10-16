@@ -51,7 +51,7 @@ $this->load->helper('ui');
 		text-decoration:none;
 	}
 	</style>
-<body class="animsition erp-app">
+<body class="animsition erp-app erp-form-page">
     <div class="page-wrapper">
         <!-- HEADER MOBILE-->
       <form id="transfer-order-form" name="Form" action="<?php echo site_url('Transfer/process/'.$this->uri->segment(3).'/'.$this->uri->segment(4).'/'.$this->uri->segment(5).''); ?>" method="post" target="_self" data-no-ajax="true">
@@ -82,7 +82,23 @@ $this->load->helper('ui');
                                 <div class="dz-card erp-module-card data-entry-card transfer-entry-card">
                                    <!-- <div class="card-header">Employee Form</div> -->
 									<div class="erp-card-head">
-										<h2 class="erp-module-title mb-0"><?php echo t('transfer_order_form'); ?></h2>
+										<?php
+											$transfer_from = isset($from_dept) ? strtoupper(trim((string) $from_dept)) : strtoupper(trim((string) $this->uri->segment(4)));
+											$transfer_to = transfer_next_stage($transfer_from);
+											$transfer_flow = in_array($transfer_from, array('HO', 'CUT', 'HO2', 'STIT'), TRUE)
+												? transfer_flow_title($transfer_from)
+												: t('transfer_order_form');
+										?>
+										<h2 class="erp-module-title mb-0"><?php echo esc_html($transfer_flow); ?></h2>
+										<?php if (in_array($transfer_from, array('HO', 'CUT', 'HO2', 'STIT'), TRUE)) { ?>
+										<p class="text-muted mb-0 mt-1" style="font-size:13px;">
+											<?php echo esc_html(t('transfer_from_dept')); ?>:
+											<strong><?php echo esc_html(transfer_stage_label($transfer_from)); ?></strong>
+											&nbsp;→&nbsp;
+											<?php echo esc_html(t('transfer_to_dept')); ?>:
+											<strong><?php echo esc_html($transfer_to !== '' ? transfer_stage_label($transfer_to) : t('transfer_stage_ready')); ?></strong>
+										</p>
+										<?php } ?>
 									</div>
                                     <div class="card-body erp-card-body data-entry-body">
                               <div   id="page1" style="display:block;">

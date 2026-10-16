@@ -56,7 +56,7 @@
 
 	/* Layout */
 	--dz-header-h: 64px;
-	--dz-footer-h: 40px;
+	--dz-footer-h: 44px;
 	--dz-sidebar-w: 260px;
 	--dz-content-max: 1400px;
 
@@ -167,22 +167,34 @@ h1, h2, h3, h4, h5, h6 {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: var(--dz-space-5) var(--dz-space-4);
+	padding: var(--dz-space-4) var(--dz-space-3);
 	border-bottom: 1px solid var(--dz-outline);
 	background: var(--dz-surface) !important;
-	min-height: 88px;
+	min-height: 96px;
 }
 
 .dz-sidebar__brand a {
 	display: block;
 	line-height: 0;
+	width: 100%;
+	max-width: 200px;
 }
 
 .app-sidebar-logo {
-	max-height: 56px;
-	width: auto;
-	max-width: 180px;
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 72px;
+	max-width: 200px;
 	object-fit: contain;
+	margin: 0 auto;
+}
+
+@media (max-width: 991px) {
+	.app-sidebar-logo {
+		max-height: 56px;
+		max-width: 160px;
+	}
 }
 
 .menu-sidebar .logo {
@@ -568,6 +580,174 @@ html.app-lang-ar .app-lang-switcher__btn[lang="ar"] {
 	}
 }
 
+/* WhatsApp bridge status chip (global header) */
+.dz-bridge-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	max-width: 11.5rem;
+	min-height: 2rem;
+	padding: 0.2rem 0.65rem 0.2rem 0.5rem;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none !important;
+	white-space: nowrap;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.dz-bridge-chip__dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	flex-shrink: 0;
+	background: currentColor;
+}
+
+.dz-bridge-chip__label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dz-bridge-chip.is-checking {
+	color: #64748b;
+	background: #f1f5f9;
+	border-color: #e2e8f0;
+}
+
+.dz-bridge-chip.is-ok {
+	color: #047857;
+	background: #ecfdf5;
+	border-color: #a7f3d0;
+}
+
+.dz-bridge-chip.is-wait {
+	color: #b45309;
+	background: #fffbeb;
+	border-color: #fcd34d;
+}
+
+.dz-bridge-chip.is-off {
+	color: #b91c1c;
+	background: #fef2f2;
+	border-color: #fecaca;
+}
+
+.dz-bridge-chip.is-wait .dz-bridge-chip__dot,
+.dz-bridge-chip.is-off .dz-bridge-chip__dot {
+	animation: dz-bridge-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dz-bridge-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.dz-bridge-chip:hover,
+.dz-bridge-chip:focus-visible {
+	filter: brightness(0.97);
+	outline: none;
+}
+
+.dz-bridge-chip--mobile {
+	max-width: 7.5rem;
+	padding-inline: 0.45rem;
+	font-size: 0.6875rem;
+}
+
+@media (max-width: 575px) {
+	.dz-bridge-chip--mobile .dz-bridge-chip__label {
+		max-width: 4.5rem;
+	}
+}
+
+/* Break banner above footer */
+.dz-bridge-break-banner {
+	position: fixed;
+	z-index: 1005;
+	left: var(--dz-sidebar-w, 260px);
+	right: 0;
+	bottom: calc(var(--dz-footer-h, 40px) + 0.75rem);
+	display: flex;
+	align-items: stretch;
+	max-width: 36rem;
+	margin-inline: auto;
+	border-radius: 10px;
+	border: 1px solid #fecaca;
+	background: #fff;
+	box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+	overflow: hidden;
+}
+
+.dz-bridge-break-banner[hidden] {
+	display: none !important;
+}
+
+.dz-bridge-break-banner__link {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	padding: 0.7rem 0.85rem;
+	color: #7f1d1d;
+	text-decoration: none !important;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	line-height: 1.35;
+}
+
+.dz-bridge-break-banner__link:hover {
+	background: #fef2f2;
+}
+
+.dz-bridge-break-banner__icon {
+	flex-shrink: 0;
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #dc2626;
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.85rem;
+}
+
+.dz-bridge-break-banner__close {
+	border: 0;
+	background: transparent;
+	color: #94a3b8;
+	font-size: 1.25rem;
+	line-height: 1;
+	padding: 0 0.75rem;
+	cursor: pointer;
+}
+
+.dz-bridge-break-banner__close:hover {
+	color: #475569;
+	background: #f8fafc;
+}
+
+@media (max-width: 991px) {
+	.dz-bridge-break-banner {
+		left: 0.75rem;
+		right: 0.75rem;
+		bottom: calc(var(--dz-footer-h, 40px) + 0.5rem);
+		max-width: none;
+		margin-inline: 0;
+	}
+}
+
+@media print {
+	.dz-bridge-chip,
+	.dz-bridge-break-banner {
+		display: none !important;
+	}
+}
+
 /* Mobile top bar */
 .dz-topbar-mobile__bar {
 	background: var(--dz-surface) !important;
@@ -687,10 +867,69 @@ html.app-lang-ar .dz-topbar-mobile__title {
 }
 
 .erp-global-footer {
+	position: fixed !important;
+	right: 0 !important;
+	bottom: 0 !important;
+	left: var(--dz-sidebar-w) !important;
+	z-index: 999;
+	height: var(--dz-footer-h);
 	background: var(--dz-surface) !important;
 	border-top: 1px solid var(--dz-outline) !important;
-	color: var(--dz-text-muted) !important;
-	font-size: 0.75rem;
+	box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06);
+	color: var(--dz-text-secondary) !important;
+	font-size: 0.8125rem;
+}
+
+.erp-global-footer::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 72px;
+	height: 2px;
+	background: var(--dz-primary);
+	border-radius: 0 0 var(--dz-radius-xs) var(--dz-radius-xs);
+	opacity: 0.85;
+}
+
+.erp-global-footer__bar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	padding: 0 clamp(var(--dz-space-4), 3vw, var(--dz-space-6));
+}
+
+.erp-global-footer__credit {
+	margin: 0;
+	text-align: center;
+	line-height: 1.35;
+	letter-spacing: 0.01em;
+	color: var(--dz-text-secondary);
+}
+
+.erp-global-footer__name {
+	color: var(--dz-primary-dark);
+	font-weight: 600;
+	text-decoration: none;
+	transition: color 0.15s ease;
+}
+
+.erp-global-footer__name:hover,
+.erp-global-footer__name:focus-visible {
+	color: var(--dz-primary);
+	text-decoration: underline;
+}
+
+@media (max-width: 991px) {
+	.erp-global-footer {
+		left: 0 !important;
+	}
+
+	.erp-global-footer__credit {
+		font-size: 0.75rem;
+	}
 }
 
 .dz-btn i,
@@ -1359,8 +1598,16 @@ textarea.form-control {
 		display: none !important;
 	}
 
-	.header-desktop {
+	.header-desktop,
+	.header-desktop.dz-topbar,
+	.header-desktop.dz-topbar.section__content {
 		display: none !important;
+		visibility: hidden !important;
+		pointer-events: none !important;
+		height: 0 !important;
+		min-height: 0 !important;
+		overflow: hidden !important;
+		opacity: 0 !important;
 	}
 
 	.erp-header-brand-text {
@@ -1539,5 +1786,1695 @@ textarea.form-control {
 
 	.order-camera-panel__view {
 		min-height: 220px;
+	}
+}
+
+/* ─── Reports hub ─── */
+.dz-report-hub {
+	max-width: var(--dz-content-max);
+	margin: 0 auto;
+	padding: var(--dz-space-2) 0 var(--dz-space-8);
+}
+
+.dz-report-hub__header {
+	margin-bottom: var(--dz-space-6);
+}
+
+.dz-report-hub__title {
+	margin: 0 0 var(--dz-space-2) !important;
+	font-size: 1.5rem !important;
+	font-weight: 600 !important;
+	color: var(--dz-text) !important;
+}
+
+.dz-report-hub__subtitle {
+	margin: 0;
+	font-size: 0.9375rem;
+	color: var(--dz-text-secondary);
+	max-width: 40rem;
+}
+
+.dz-report-hub__section {
+	margin-bottom: var(--dz-space-5);
+}
+
+.dz-report-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: var(--dz-space-3);
+}
+
+.dz-report-tile {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--dz-space-3);
+	padding: var(--dz-space-4);
+	min-height: 88px;
+	background: var(--dz-surface-variant);
+	border: 1px solid var(--dz-outline);
+	border-radius: var(--dz-radius-md);
+	box-shadow: none;
+	text-decoration: none !important;
+	color: inherit !important;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.dz-report-tile:hover,
+.dz-report-tile:focus {
+	background: var(--dz-surface);
+	border-color: var(--dz-primary-light);
+	box-shadow: var(--dz-elevation-2);
+	transform: translateY(-1px);
+	outline: none;
+}
+
+.dz-report-tile__icon {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--dz-radius-sm);
+	background: var(--dz-primary-container);
+	color: var(--dz-primary-dark);
+	font-size: 1rem;
+}
+
+.dz-report-tile__text {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.dz-report-tile__title {
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--dz-text);
+	line-height: 1.35;
+}
+
+.dz-report-tile__hint {
+	font-size: 0.75rem;
+	line-height: 1.4;
+	color: var(--dz-text-secondary);
+}
+
+.dz-report-tile__chevron {
+	flex-shrink: 0;
+	margin-top: 10px;
+	color: var(--dz-text-muted);
+	font-size: 0.75rem;
+	transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.dz-report-tile:hover .dz-report-tile__chevron {
+	color: var(--dz-primary-dark);
+	transform: translateX(2px);
+}
+
+html.app-lang-rtl .dz-report-tile:hover .dz-report-tile__chevron {
+	transform: translateX(-2px);
+}
+
+html.app-lang-rtl .dz-report-tile__chevron i {
+	transform: scaleX(-1);
+}
+
+@media (max-width: 575.98px) {
+	.dz-report-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.dz-report-quick__grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(140px, 1fr));
+	gap: var(--dz-space-3);
+	margin-bottom: var(--dz-space-3);
+}
+
+.dz-report-field label {
+	display: block;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--dz-text-secondary);
+	margin-bottom: 4px;
+}
+
+.dz-report-field input,
+.dz-report-field select {
+	width: 100%;
+	min-height: 40px;
+	border: 1px solid var(--dz-outline);
+	border-radius: var(--dz-radius-sm);
+	padding: 0.4rem 0.65rem;
+	background: var(--dz-surface);
+	color: var(--dz-text);
+}
+
+.dz-report-quick__presets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-bottom: var(--dz-space-3);
+}
+
+.dz-report-chip {
+	border: 1px solid var(--dz-outline);
+	background: var(--dz-surface-variant);
+	color: var(--dz-text-secondary);
+	border-radius: var(--dz-radius-full);
+	padding: 0.3rem 0.75rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.dz-report-chip:hover,
+.dz-report-chip.is-listening {
+	border-color: var(--dz-primary-light);
+	color: var(--dz-primary-dark);
+	background: var(--dz-primary-container);
+}
+
+.dz-report-quick__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: var(--dz-space-2);
+}
+
+.dz-report-status {
+	min-height: 1.25rem;
+	margin: 0;
+	font-size: 0.8125rem;
+	color: var(--dz-text-secondary);
+}
+
+.dz-report-status.is-ok { color: var(--dz-success); }
+.dz-report-status.is-error { color: var(--dz-error); }
+
+.dz-report-voice__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: stretch;
+}
+
+.dz-report-voice__row .form-control {
+	flex: 1 1 220px;
+	min-height: 40px;
+}
+
+.dz-report-voice__preview {
+	margin-top: 0.5rem;
+	padding: 0.65rem 0.85rem;
+	background: var(--dz-primary-container);
+	border: 1px solid var(--dz-outline);
+	border-radius: var(--dz-radius-sm);
+	font-size: 0.8125rem;
+	color: var(--dz-on-surface);
+}
+
+@media (max-width: 991.98px) {
+	.dz-report-quick__grid {
+		grid-template-columns: repeat(2, minmax(140px, 1fr));
+	}
+}
+
+@media (max-width: 575.98px) {
+	.dz-report-quick__grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ─── Print slip (order + blank) ─── */
+body.order-print-page,
+body.blank-print-page {
+	background: var(--dz-surface-container, #eef2f6) !important;
+	min-height: 100vh;
+}
+
+body.order-print-page .page-wrapper.top,
+body.blank-print-page .page-wrapper.top {
+	margin-top: 0 !important;
+	padding: 0 0.75rem 1.5rem;
+}
+
+body.order-print-page .container-fluid,
+body.blank-print-page .container-fluid {
+	padding-left: 0;
+	padding-right: 0;
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+.order-print-toolbar {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	background: rgba(255, 255, 255, 0.96);
+	backdrop-filter: blur(8px);
+	border-bottom: 1px solid var(--dz-outline, #d0d7de);
+	box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+	padding: 0.75rem 1rem;
+	margin: 0 0 1rem;
+}
+
+.order-print-toolbar__inner {
+	max-width: 1100px;
+	margin: 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.order-print-toolbar__left,
+.order-print-toolbar__right {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.order-print-toolbar .btn {
+	min-width: 7rem;
+	border-radius: 10px !important;
+	font-weight: 600;
+	box-shadow: none !important;
+}
+
+.print-size-selector {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	margin: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: #334155;
+}
+
+.print-size-selector__label {
+	white-space: nowrap;
+}
+
+.print-size-selector__select {
+	min-width: 8.5rem;
+	height: calc(1.5em + 0.75rem + 2px);
+	border-radius: 10px !important;
+	font-weight: 600;
+}
+
+/* Blank Print (slip + letterhead): full A4 sheet */
+body.print-size-small.blank-print-page .print-slip-sheet,
+body.print-size-a4.blank-print-page .print-slip-sheet {
+	width: min(100%, 210mm);
+	max-width: 210mm;
+}
+
+.blank-print-mode {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+body.blank-print-page .container-fluid,
+body.blank-print-page.print-size-a4 .container-fluid,
+body.blank-print-page.print-size-small .container-fluid,
+body.blank-print-page .order-print-toolbar__inner {
+	max-width: 210mm !important;
+}
+
+body.blank-print-page .print-slip-sheet,
+body.blank-print-page.print-size-a4 .print-slip-sheet,
+body.blank-print-page.print-size-small .print-slip-sheet {
+	width: min(100%, 210mm) !important;
+	max-width: 210mm !important;
+	height: 297mm !important;
+	min-height: 297mm !important;
+	max-height: none !important;
+	overflow: visible !important;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	padding: 14mm 16mm 16mm;
+}
+
+body.blank-print-page .print-slip-brand {
+	padding-bottom: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+body.blank-print-page .print-slip-brand__logo {
+	max-height: 110px !important;
+	width: min(280px, 55%) !important;
+	margin-bottom: 0.55rem;
+}
+
+body.blank-print-page .print-slip-content {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+body.blank-print-page--letterhead .print-letterhead-body {
+	flex: 1 1 auto;
+	min-height: 200mm;
+	border-top: 1px solid rgba(15, 23, 42, 0.12);
+	margin-top: 0.35rem;
+}
+
+body.blank-print-page .print-slip-watermark {
+	width: min(420px, 62%);
+	opacity: 0.055;
+}
+
+/* Order print needs more width for measurements + suits side-by-side */
+body.print-size-small.order-print-page .print-slip-sheet {
+	width: min(100%, 190mm);
+	max-width: 190mm;
+}
+
+body.print-size-a4.order-print-page .print-slip-sheet {
+	width: min(100%, 250mm);
+	max-width: 250mm;
+}
+
+body.print-size-small.blank-print-page .container-fluid,
+body.print-size-small.blank-print-page .order-print-toolbar__inner,
+body.print-size-a4.blank-print-page .container-fluid,
+body.print-size-a4.blank-print-page .order-print-toolbar__inner {
+	max-width: 210mm;
+}
+
+body.print-size-small.order-print-page .container-fluid,
+body.print-size-small.order-print-page .order-print-toolbar__inner {
+	max-width: 190mm;
+}
+
+body.print-size-a4.order-print-page .container-fluid,
+body.print-size-a4.order-print-page .order-print-toolbar__inner {
+	max-width: 250mm;
+}
+
+/*
+ * Blank page layout: header → content → footer on full A4.
+ */
+body.blank-print-page .print-slip-brand {
+	flex: 0 0 auto;
+}
+
+body.blank-print-page .print-slip-content {
+	width: 100%;
+	gap: 0.55rem;
+}
+
+body.blank-print-page .print-slip-info-block {
+	flex: 0 0 auto;
+	width: 100%;
+}
+
+body.blank-print-page .print-slip-body-block {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 160mm;
+	width: 100%;
+	border: 1px dashed #cbd5e1;
+	border-radius: 10px;
+	padding: 0.55rem 0.65rem 0.45rem;
+	background: rgba(255, 255, 255, 0.55);
+}
+
+body.blank-print-page .print-blank-write-area {
+	flex: 1 1 auto;
+	min-height: 80mm;
+}
+
+.print-blank-info-table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: auto;
+	direction: rtl;
+}
+
+.print-blank-info-table th,
+.print-blank-info-table td {
+	padding: 0.2rem 0.3rem;
+	vertical-align: bottom;
+	line-height: 1.35;
+	font-size: 0.92rem;
+}
+
+.print-blank-info-table__label {
+	white-space: nowrap;
+	font-weight: 700;
+	color: #0f172a;
+	padding-left: 0.35rem !important;
+}
+
+.print-blank-info-table__label small {
+	display: inline-block;
+	margin-right: 0.25rem;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: #475569;
+}
+
+.print-blank-info-table__value {
+	border-bottom: 1px dotted #111;
+	min-width: 3.5rem;
+	height: 1.45rem;
+}
+
+.print-blank-info-table__value--wide {
+	min-width: 8rem;
+	width: 42%;
+}
+
+.print-blank-suit-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	width: 100%;
+	flex: 0 0 auto;
+}
+
+.print-blank-suit-line {
+	display: flex;
+	align-items: flex-end;
+	gap: 0.4rem;
+	width: 100%;
+	min-height: 1.15rem;
+}
+
+.print-blank-suit-line--sub {
+	min-height: 0.95rem;
+	opacity: 0.9;
+}
+
+.print-blank-suit-line__no {
+	flex: 0 0 1.4rem;
+	font-weight: 700;
+	font-size: 0.85rem;
+	color: #334155;
+	text-align: right;
+	line-height: 1;
+}
+
+.print-blank-suit-line__rule {
+	flex: 1 1 auto;
+	border-bottom: 1px dotted #64748b;
+	min-height: 1px;
+	margin-bottom: 0.1rem;
+}
+
+.print-slip-sheet {
+	position: relative;
+	max-width: 1100px;
+	margin: 0 auto 2rem;
+	background: #fff;
+	border: 1px solid var(--dz-outline, #d0d7de);
+	border-radius: 16px;
+	box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+	padding: 1.25rem 1.5rem 1.5rem;
+	overflow: hidden;
+	transition: max-width 0.25s ease, width 0.25s ease;
+}
+
+.print-slip-watermark {
+	position: absolute;
+	left: 50%;
+	top: 52%;
+	transform: translate(-50%, -50%);
+	width: min(420px, 58%);
+	height: auto;
+	opacity: 0.07;
+	pointer-events: none;
+	user-select: none;
+	z-index: 0;
+	object-fit: contain;
+}
+
+.print-slip-sheet > *:not(.print-slip-watermark) {
+	position: relative;
+	z-index: 1;
+}
+
+.print-slip-brand {
+	text-align: center;
+	padding: 0.25rem 0 1rem;
+	border-bottom: 1px solid #e8edf3;
+	margin-bottom: 1rem;
+}
+
+/* Classic receipt header: equal side columns keep logo page-centered */
+.print-slip-brand--classic {
+	position: relative;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	column-gap: 0.65rem;
+	row-gap: 0.35rem;
+	text-align: center;
+	direction: ltr;
+	min-height: 0;
+	padding: 0.15rem 0.1rem 0.35rem;
+}
+
+.print-slip-brand--classic .print-slip-brand__trn {
+	grid-column: 1;
+	grid-row: 1;
+	justify-self: start;
+	align-self: center;
+	margin-top: 0;
+	position: relative;
+	z-index: 2;
+	min-width: 2.75rem;
+	height: auto;
+	min-height: 2rem;
+	padding: 0.35rem 0.65rem;
+	font-size: 1.15rem;
+	border-radius: 999px;
+}
+
+.print-slip-brand--classic .print-slip-brand__center {
+	grid-column: 2;
+	grid-row: 1;
+	position: static;
+	transform: none;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.15rem;
+	width: max-content;
+	max-width: 14rem;
+	pointer-events: auto;
+}
+
+.print-slip-brand--classic .print-slip-brand__logo {
+	margin: 0 auto 0.15rem;
+	max-height: 88px;
+	width: min(200px, 100%);
+}
+
+.print-slip-brand--classic .print-slip-brand__address {
+	width: auto;
+	max-width: 100%;
+	margin-top: 0;
+	font-size: 0.82rem;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.print-slip-brand--classic .print-slip-brand__phone {
+	font-size: 0.88rem;
+	text-align: center;
+}
+
+.print-slip-brand--classic .print-slip-brand__meta {
+	grid-column: 3;
+	grid-row: 1;
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	justify-content: flex-end;
+	justify-self: end;
+	align-self: center;
+	gap: 0.25rem;
+	min-width: 0;
+	width: auto;
+	max-width: 100%;
+	margin-left: 0;
+}
+
+/* Compact modern specialist chip — hugs text, no top clipping */
+.print-slip-brand__badge--single {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: auto !important;
+	max-width: 100%;
+	white-space: nowrap !important;
+	text-align: center;
+	line-height: 1.35 !important;
+	padding: 0.55rem 0.65rem 0.4rem !important;
+	border-radius: 5px !important;
+	font-size: 0.7rem !important;
+	font-weight: 600;
+	overflow: visible;
+	hyphens: none;
+	word-break: keep-all;
+}
+
+body.print-size-small .print-slip-brand--classic .print-slip-brand__logo {
+	max-height: 72px;
+	width: min(170px, 100%);
+}
+
+body.print-size-small .print-slip-brand--classic .print-slip-brand__center {
+	max-width: 11.5rem;
+}
+
+body.print-size-small .print-slip-brand--classic .print-slip-brand__address {
+	font-size: 0.74rem;
+}
+
+body.print-size-small .print-slip-brand--classic .print-slip-brand__phone {
+	font-size: 0.8rem;
+}
+
+body.print-size-small .print-slip-brand__badge--single {
+	font-size: 0.56rem !important;
+	line-height: 1.3 !important;
+	padding: 0.42rem 0.45rem 0.32rem !important;
+	border-radius: 4px !important;
+	white-space: normal !important;
+	max-width: 7.8rem;
+}
+
+body.print-size-a4 .print-slip-brand__badge--single {
+	font-size: 0.76rem !important;
+	padding: 0.58rem 0.75rem 0.42rem !important;
+	white-space: nowrap !important;
+	max-width: none;
+}
+
+.print-slip-brand__logo {
+	display: block;
+	width: min(280px, 62vw);
+	height: auto;
+	max-height: 110px;
+	object-fit: contain;
+	margin: 0 auto 0.75rem;
+}
+
+.print-slip-brand__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem 0.75rem;
+	color: #334155;
+	font-size: 0.92rem;
+}
+
+.print-slip-brand__phone {
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.print-slip-brand__badge,
+.print-slip-brand__badge.ur,
+.print-slip-brand__badge.urd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #f4f6f8;
+	color: #0f172a;
+	border: 1px solid #cbd5e1;
+	border-radius: 5px;
+	padding: 0.55rem 0.65rem 0.4rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	line-height: 1.35;
+	direction: rtl;
+	font-family: 'Noto Naskh Urdu', 'Noto Sans Arabic', Tahoma, sans-serif !important;
+	letter-spacing: 0;
+	overflow: visible;
+	white-space: nowrap;
+	box-shadow: none;
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+
+.print-slip-brand__address {
+	width: 100%;
+	direction: rtl;
+	font-weight: 700;
+	color: #0f172a;
+	margin-top: 0.15rem;
+}
+
+.print-slip-brand__trn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2rem;
+	height: 2rem;
+	padding: 0 0.45rem;
+	border: 1.5px solid #111;
+	border-radius: 999px;
+	font-weight: 700;
+	margin-top: 0.65rem;
+}
+
+.print-blank-write-area {
+	flex: 1 1 auto;
+	margin: 0.4rem 0 0;
+	min-height: 1.5rem;
+	width: 100%;
+	background-image: repeating-linear-gradient(
+		to bottom,
+		transparent 0,
+		transparent calc(1.55rem - 1px),
+		#94a3b8 calc(1.55rem - 1px),
+		#94a3b8 1.55rem
+	);
+	background-position: 0 0;
+	background-repeat: repeat-y;
+	background-size: 100% 1.55rem;
+}
+
+.print-blank-write-line {
+	display: none;
+}
+
+body.blank-print-page .print-slip-footer {
+	margin-top: 0.55rem;
+	flex: 0 0 auto;
+	padding: 0.55rem 0.75rem;
+}
+
+body.blank-print-page .print-slip-credit {
+	margin-top: 0.35rem;
+	flex: 0 0 auto;
+	padding-top: 0.25rem;
+}
+
+body.blank-print-page .print-slip-footer__title {
+	font-size: clamp(1rem, 2vw, 1.35rem);
+}
+
+body.blank-print-page .print-slip-footer__notes {
+	font-size: 0.78rem;
+}
+
+.print-slip-footer {
+	margin-top: 1.25rem;
+	padding: 0.85rem 1rem;
+	background: #f1f5f9;
+	border: 1px solid #e2e8f0;
+	border-radius: 12px;
+	display: grid;
+	grid-template-columns: 1.2fr 1fr;
+	gap: 0.75rem 1rem;
+	align-items: center;
+}
+
+.print-slip-footer__title {
+	direction: rtl;
+	text-align: center;
+	font-size: clamp(1.15rem, 2.4vw, 1.65rem);
+	font-weight: 800;
+	color: #0f172a;
+	line-height: 1.35;
+}
+
+.print-slip-footer__notes {
+	direction: rtl;
+	text-align: right;
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: #334155;
+	line-height: 1.55;
+}
+
+.print-slip-footer__notes span {
+	display: block;
+}
+
+.blank-print-page .page-wrapper.top {
+	margin-top: 0 !important;
+	padding: 0 0.75rem 1.5rem;
+}
+
+.blank-print-page .container-fluid {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+@media (max-width: 767.98px) {
+	.print-slip-sheet {
+		padding: 1rem;
+		border-radius: 12px;
+		margin-bottom: 1rem;
+	}
+
+	.print-slip-footer {
+		grid-template-columns: 1fr;
+	}
+
+	.order-print-toolbar__inner {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.order-print-toolbar .btn {
+		flex: 1 1 auto;
+	}
+}
+
+@media print {
+	body.order-print-page,
+	body.blank-print-page {
+		background: #fff !important;
+	}
+
+	.order-print-toolbar,
+	.print {
+		display: none !important;
+	}
+
+	.print-slip-sheet {
+		width: 100% !important;
+		max-width: none !important;
+		margin: 0;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		padding: 0.35cm 0.5cm;
+		overflow: visible;
+	}
+
+	.print-slip-watermark {
+		opacity: 0.06;
+		width: min(380px, 55%);
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.blank-print-page .page-wrapper.top {
+		padding: 0 !important;
+	}
+
+	body.blank-print-page .print-slip-sheet {
+		display: flex;
+		flex-direction: column;
+		width: 210mm !important;
+		max-width: 210mm !important;
+		height: 297mm !important;
+		min-height: 297mm !important;
+		overflow: visible !important;
+		padding: 14mm 16mm 16mm !important;
+		box-shadow: none !important;
+		border-radius: 0 !important;
+	}
+
+	body.blank-print-page--letterhead .print-letterhead-body {
+		min-height: 210mm;
+	}
+
+	body.blank-print-page .print-slip-brand__logo {
+		max-height: 100px !important;
+		width: min(260px, 50%) !important;
+	}
+
+	body.blank-print-page .print-slip-content {
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+
+	body.blank-print-page .print-slip-body-block {
+		flex: 1 1 auto;
+		min-height: 2.5rem;
+		border-color: #94a3b8;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	body.print-size-small .print-slip-sheet,
+	body.print-size-a4 .print-slip-sheet {
+		max-width: none;
+		width: 100% !important;
+	}
+
+	body.blank-print-page,
+	body.order-print-page {
+		margin: 0 !important;
+	}
+
+	.print-blank-write-area {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.print-slip-footer {
+		break-inside: avoid;
+		background: #eee !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.print-size-selector {
+		display: none !important;
+	}
+}
+
+/* ─── Print slip info + measurement spacing ─── */
+.print-slip-info {
+	display: grid;
+	grid-template-columns: 1fr;
+	align-items: start;
+	gap: 0.65rem 0.75rem;
+	margin: 0.15rem 0 0.75rem;
+	padding: 0.35rem 0 0.55rem;
+	border: none;
+	border-bottom: 1px solid #111;
+	border-radius: 0;
+	background: transparent;
+	direction: ltr;
+}
+
+.print-slip-info.has-photo {
+	grid-template-columns: 118px minmax(0, 1fr);
+}
+
+.print-slip-info__photo {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+}
+
+.print-slip-info__photo img {
+	width: 110px;
+	height: 110px;
+	object-fit: cover;
+	border-radius: 0;
+	border: 1px solid #111;
+	background: #fff;
+}
+
+/* Each title sits immediately beside its value (RTL: label right, value hugs it) */
+.print-slip-info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem 1.25rem;
+	align-items: end;
+	width: 100%;
+	min-width: 0;
+}
+
+.print-slip-pair {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 0.4rem;
+	min-width: 0;
+	width: 100%;
+	direction: rtl;
+}
+
+.print-slip-pair__label {
+	flex: 0 0 auto;
+	white-space: nowrap;
+	font-weight: 800;
+	font-size: 0.9rem;
+	color: #0f172a;
+	line-height: 1.4;
+}
+
+.print-slip-pair__value {
+	flex: 1 1 auto;
+	min-width: 2.5rem;
+	font-weight: 700;
+	font-size: 0.92rem;
+	color: #0f172a;
+	border-bottom: 1px dotted #111;
+	padding: 0.1rem 0.2rem 0.15rem;
+	line-height: 1.4;
+	text-align: right;
+	direction: rtl;
+}
+
+.print-slip-pair__value small {
+	font-weight: 700;
+	color: #334155;
+	margin-right: 0.35rem;
+	white-space: nowrap;
+}
+
+.print-slip-money {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.65rem 1.75rem;
+	padding: 0.5rem 0.5rem 0.2rem;
+	margin-top: 0.2rem;
+	text-align: center !important;
+	font-size: 0.9rem;
+	font-weight: 700;
+	direction: ltr !important;
+	width: 100%;
+}
+
+.print-slip-money span {
+	white-space: nowrap;
+	flex: 0 0 auto;
+	direction: rtl;
+	text-align: right;
+}
+
+.print-slip-money b {
+	margin-left: 0.3rem;
+}
+
+/* Legacy unused */
+.print-slip-info-table,
+.print-slip-info__fields,
+.print-slip-info__row,
+.print-slip-info__item,
+.print-slip-info__label,
+.print-slip-info__value {
+	display: none;
+}
+
+.print-slip-body {
+	display: grid;
+	/* Nap a bit wider so Urdu labels are not clipped */
+	grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+	gap: 0.85rem 0.9rem;
+	align-items: start;
+	width: 100%;
+	margin: 0.35rem 0 0.75rem;
+}
+
+body.order-print-page.print-size-small .print-slip-body {
+	grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+	gap: 0.7rem 0.8rem;
+}
+
+.print-slip-meas-col,
+.print-slip-suits-col {
+	min-width: 0;
+	width: 100%;
+}
+
+/* Shared panel chrome for Nap / Suit sections */
+.print-slip-panel {
+	border: 1px solid #d7dee8;
+	border-radius: 8px;
+	background: #fff;
+	padding: 0.55rem 0.7rem 0.7rem;
+	box-sizing: border-box;
+	overflow: visible;
+}
+
+.print-slip-panel--meas {
+	/* Extra room for Urdu Nastaliq descenders / long labels */
+	padding-left: 0.55rem;
+	padding-right: 0.75rem;
+}
+
+.print-slip-panel__head {
+	text-align: center;
+	font-size: 0.82rem;
+	font-weight: 800;
+	letter-spacing: 0.01em;
+	color: #0f172a;
+	background: #eef2f7;
+	border: 1px solid #dbe3ee;
+	border-radius: 6px;
+	padding: 0.28rem 0.4rem;
+	margin-bottom: 0.55rem;
+}
+
+.print-slip-meas__section {
+	margin-bottom: 0.55rem;
+}
+
+.print-slip-meas__section:last-of-type {
+	margin-bottom: 0.35rem;
+}
+
+.print-slip-meas__heading {
+	margin: 0 0 0.35rem;
+	text-align: center;
+	font-size: 0.78rem;
+	font-weight: 800;
+	color: #1e293b;
+	padding: 0.15rem 0;
+	border-bottom: 1px solid #cbd5e1;
+}
+
+/* Two neat columns: label (right) · value (left), one underline under each field */
+.print-slip-meas__grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 0.32rem 0.7rem;
+	width: 100%;
+}
+
+.print-slip-meas__field {
+	display: flex;
+	flex-direction: row;
+	direction: rtl;
+	align-items: baseline;
+	/* Label sticks right, value sticks left → one straight value column */
+	justify-content: space-between;
+	gap: 0.4rem;
+	min-width: 0;
+	padding: 0.22rem 0.15rem 0.2rem;
+	border-bottom: 1px solid #334155;
+	box-sizing: border-box;
+	font-size: 0.8rem;
+	line-height: 1.75;
+	overflow: visible;
+}
+
+.print-slip-meas__field--empty {
+	border-bottom-color: transparent;
+	visibility: hidden;
+	min-height: 1.5rem;
+}
+
+.print-slip-meas__field--note {
+	width: 100%;
+}
+
+.print-slip-meas__label {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-weight: 800;
+	color: #0f172a;
+	white-space: nowrap;
+	overflow: visible;
+	text-overflow: clip;
+	text-align: right;
+	line-height: 1.75;
+	padding-bottom: 0.05rem;
+}
+
+.print-slip-meas__val {
+	/* Fixed width so every value starts on the same left edge */
+	flex: 0 0 3.4rem;
+	width: 3.4rem;
+	min-width: 3.4rem;
+	font-weight: 700;
+	color: #111;
+	font-variant-numeric: tabular-nums;
+	text-align: left;
+	direction: ltr;
+	white-space: nowrap;
+	line-height: 1.75;
+	overflow: visible;
+}
+
+.print-slip-meas-note {
+	margin-top: 0.45rem;
+	width: 100%;
+}
+
+/* Suit cards: # · details · price (balanced gap) */
+.print-suit-card {
+	border: none;
+	border-bottom: 1px solid #e2e8f0;
+	border-radius: 0;
+	background: transparent;
+	padding: 0.55rem 0.15rem 0.55rem;
+	margin-bottom: 0.15rem;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+.print-suit-card:last-child {
+	margin-bottom: 0;
+	border-bottom: none;
+	padding-bottom: 0.25rem;
+}
+
+/* price LEFT · details · suit number RIGHT */
+.print-suit-card__row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: start;
+	gap: 0.45rem 0.75rem;
+	direction: ltr;
+	width: 100%;
+}
+
+.print-suit-card.has-fabric .print-suit-card__row {
+	grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+
+.print-suit-card__price {
+	flex: 0 0 auto;
+	font-weight: 800;
+	font-size: 0.84rem;
+	color: #0f172a;
+	min-width: 2.75rem;
+	text-align: left;
+	line-height: 1.45;
+	padding-top: 0.12rem;
+	letter-spacing: 0.01em;
+}
+
+.print-suit-card__fabric {
+	flex: 0 0 auto;
+	display: block;
+}
+
+.print-suit-card__fabric img {
+	display: block;
+	height: 30px;
+	width: 38px;
+	max-width: 38px;
+	object-fit: cover;
+	border: 1px solid #cbd5e1;
+	border-radius: 3px;
+	background: #fff;
+}
+
+.print-suit-card__titles {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.28rem;
+	text-align: right;
+	direction: rtl;
+}
+
+.print-suit-card__titleline {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-start;
+	align-items: baseline;
+	gap: 0.25rem 0.45rem;
+	direction: rtl;
+}
+
+.print-suit-card__type {
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: #64748b;
+	letter-spacing: 0.02em;
+}
+
+.print-suit-card__name {
+	font-size: 0.84rem;
+	font-weight: 800;
+	color: #0f172a;
+	line-height: 1.7;
+}
+
+.print-suit-card__remarks {
+	font-size: 0.86rem;
+	font-weight: 700;
+	color: #334155;
+	line-height: 1.7;
+}
+
+.print-suit-card__badge {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.45rem;
+	height: 1.45rem;
+	border-radius: 999px;
+	background: #0f172a;
+	color: #fff;
+	font-weight: 800;
+	font-size: 0.8rem;
+	line-height: 1;
+	margin-top: 0.05rem;
+}
+
+.print-suit-card__pockets {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-start;
+	gap: 0.25rem 0.45rem;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: #475569;
+	line-height: 1.65;
+	margin-top: 0.1rem;
+}
+
+.print-suit-card__extra {
+	margin-top: 0.15rem;
+	padding-top: 0;
+	border-top: none;
+	font-size: 0.76rem;
+	font-weight: 600;
+	color: #64748b;
+	text-align: right;
+	direction: rtl;
+	line-height: 1.55;
+}
+
+/* Legacy head/meta unused after compact row layout */
+.print-suit-card__head,
+.print-suit-card__meta {
+	display: none;
+}
+
+@media (max-width: 767.98px) {
+	.print-slip-brand--classic {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		gap: 0.55rem;
+	}
+
+	.print-slip-brand--classic .print-slip-brand__center {
+		position: static;
+		transform: none;
+		max-width: 100%;
+		width: 100%;
+		order: 1;
+	}
+
+	.print-slip-brand--classic .print-slip-brand__trn {
+		order: 0;
+		align-self: center;
+		justify-self: center;
+	}
+
+	.print-slip-brand--classic .print-slip-brand__meta {
+		order: 2;
+		align-items: center;
+		justify-content: center;
+		justify-self: center;
+		max-width: 100%;
+		width: auto;
+	}
+
+	.print-slip-brand__badge--single {
+		width: auto;
+		font-size: 0.72rem !important;
+		white-space: nowrap !important;
+	}
+
+	.print-slip-info,
+	.print-slip-info.has-photo {
+		grid-template-columns: 1fr;
+		justify-items: center;
+	}
+
+	.print-slip-info-grid {
+		grid-template-columns: 1fr;
+		width: 100%;
+	}
+
+	.print-slip-money {
+		gap: 0.45rem 0.85rem;
+	}
+
+	.print-slip-info__photo img {
+		width: 110px;
+		height: 110px;
+	}
+}
+
+@media print {
+	.print-slip-brand--classic {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+		align-items: center;
+		column-gap: 0.5rem;
+		padding-bottom: 0.45rem;
+		margin-bottom: 0.55rem;
+		min-height: 0;
+	}
+
+	.print-slip-brand--classic .print-slip-brand__center {
+		position: static;
+		transform: none;
+		max-width: 13rem;
+	}
+
+	.print-slip-brand--classic .print-slip-brand__logo {
+		max-height: 72px;
+	}
+
+	.print-slip-brand__badge {
+		background: #f4f6f8 !important;
+		color: #0f172a !important;
+		border: 1px solid #cbd5e1 !important;
+		font-family: 'Noto Naskh Urdu', 'Noto Sans Arabic', Tahoma, sans-serif !important;
+		overflow: visible !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	body.print-size-small .print-slip-brand__badge--single {
+		font-size: 0.54rem !important;
+		line-height: 1.3 !important;
+		padding: 0.4rem 0.4rem 0.3rem !important;
+		max-width: 7.5rem;
+		white-space: normal !important;
+	}
+
+	.print-slip-info {
+		background: transparent !important;
+		border-bottom: 1px solid #111 !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		break-inside: avoid;
+		padding: 0.35rem 0 0.55rem;
+		margin-bottom: 0.55rem;
+	}
+
+	.print-slip-info.has-photo {
+		grid-template-columns: 100px minmax(0, 1fr);
+	}
+
+	.print-slip-info__photo img {
+		width: 96px;
+		height: 96px;
+	}
+
+	.print-slip-money {
+		gap: 0.55rem 1.6rem;
+		justify-content: center !important;
+		direction: ltr !important;
+		text-align: center !important;
+	}
+
+	.print-slip-body {
+		display: grid !important;
+		grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+		gap: 0.55rem 0.75rem;
+	}
+
+	.print-slip-panel {
+		border: 1px solid #cbd5e1 !important;
+		border-radius: 6px !important;
+		padding: 0.45rem 0.5rem 0.55rem !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.print-slip-panel__head {
+		background: #eef2f7 !important;
+		border: 1px solid #dbe3ee !important;
+		font-size: 0.78rem !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.print-slip-meas__grid {
+		display: grid !important;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+		gap: 0.22rem 0.7rem !important;
+	}
+
+	.print-slip-meas__field {
+		font-size: 0.76rem !important;
+		line-height: 1.7 !important;
+		padding: 0.18rem 0.12rem 0.16rem !important;
+		border-bottom: 1px solid #334155 !important;
+		overflow: visible !important;
+	}
+
+	.print-slip-meas__label {
+		overflow: visible !important;
+		line-height: 1.7 !important;
+		text-align: right !important;
+	}
+
+	.print-slip-meas__field {
+		justify-content: space-between !important;
+	}
+
+	.print-slip-meas__val {
+		flex: 0 0 3.4rem !important;
+		width: 3.4rem !important;
+		min-width: 3.4rem !important;
+		text-align: left !important;
+	}
+
+	.print-suit-card {
+		border: none !important;
+		border-bottom: 1px solid #e2e8f0 !important;
+		padding: 0.45rem 0.1rem 0.45rem !important;
+		margin-bottom: 0.1rem !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.print-suit-card__row {
+		display: grid !important;
+		grid-template-columns: auto minmax(0, 1fr) auto !important;
+		gap: 0.4rem 0.7rem !important;
+		justify-content: stretch !important;
+	}
+
+	.print-suit-card.has-fabric .print-suit-card__row {
+		grid-template-columns: auto auto minmax(0, 1fr) auto !important;
+	}
+
+	.print-suit-card__price {
+		text-align: left !important;
+		min-width: 2.5rem !important;
+	}
+
+	.print-suit-card__name {
+		line-height: 1.65 !important;
+		font-size: 0.8rem !important;
+	}
+
+	.print-suit-card__pockets {
+		line-height: 1.5 !important;
+		font-size: 0.72rem !important;
+	}
+
+	.print-suit-card__badge {
+		background: #0f172a !important;
+		color: #fff !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+}
+
+/* ─── Print slip developer credit ─── */
+.print-slip-credit {
+	margin: 0.85rem 0 0;
+	padding: 0.55rem 1rem 0.45rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	text-align: center;
+	flex-wrap: nowrap;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.print-slip-credit__rule {
+	flex: 0 1 40px;
+	max-width: 48px;
+	min-width: 16px;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, #94a3b8, transparent);
+}
+
+.print-slip-credit__text {
+	margin: 0;
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 100%;
+	direction: rtl;
+	text-align: center;
+	font-size: 0.72rem;
+	font-weight: 600;
+	line-height: 1.55;
+	color: #475569;
+	letter-spacing: 0.01em;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	box-sizing: border-box;
+	padding: 0 0.15rem;
+}
+
+.print-slip-credit__text strong {
+	color: #0f172a;
+	font-weight: 800;
+}
+
+.print-slip-credit__phone {
+	display: inline-block;
+	margin: 0.1rem 0.2rem;
+	padding: 0.14rem 0.55rem;
+	border-radius: 999px;
+	background: #0f172a;
+	color: #fff !important;
+	font-weight: 800;
+	font-size: 0.82rem;
+	line-height: 1.25;
+	text-decoration: none !important;
+	letter-spacing: 0.03em;
+	direction: ltr;
+	unicode-bidi: embed;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+	.print-slip-credit {
+		padding-left: 0.75rem;
+		padding-right: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.print-slip-credit__text {
+		font-size: 0.7rem;
+		line-height: 1.55;
+	}
+
+	.print-slip-credit__rule {
+		display: none;
+	}
+}
+
+@media print {
+	.print-slip-credit {
+		break-inside: avoid;
+		flex-wrap: nowrap;
+		padding: 0.4rem 0.85rem 0.35rem !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		overflow: hidden !important;
+		box-sizing: border-box !important;
+	}
+
+	.print-slip-credit__text {
+		white-space: normal !important;
+		font-size: 8pt !important;
+		line-height: 1.45 !important;
+		min-width: 0 !important;
+	}
+
+	.print-slip-credit__phone {
+		font-size: 9pt !important;
+		padding: 0.1rem 0.45rem !important;
+		background: #0f172a !important;
+		color: #fff !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.print-slip-credit__rule {
+		max-width: 36px !important;
 	}
 }

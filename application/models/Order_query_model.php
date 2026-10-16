@@ -154,17 +154,22 @@ class Order_query_model extends CI_Model
 
   /**
    * Orders ready for delivery (STIT + Deactive), one row per order.
+   * Caps order IDs in SQL before loading line details (avoids hydrating all history).
    */
   function get_order_ready_deliver($filters = array())
   {
 	$filters = $this->_normalize_order_status_filters($filters);
 
-	$this->db->select('order_mst.trnno AS ORDERNO, transfer_mst.trnno AS TRANSFERID, transfer_mst.sr AS ORDERSR, order_dtl.type AS line_type, '.$this->_order_customer_snap_select_sql().', order_mst.total, order_mst.advance, customer.Phone, order_mst.RDATE AS RETURNDATE');
+	$order_limit = 100;
+	if (isset($filters['row_limit']) && (int) $filters['row_limit'] > 0)
+	{
+		$order_limit = min(200, (int) $filters['row_limit']);
+	}
+
+	// Phase 1: bounded distinct order IDs (latest STIT Deactive transfer per line).
+	$this->db->select('order_mst.trnno AS ORDERNO, MIN(order_mst.RDATE) AS RETURNDATE', FALSE);
 	$this->db->from('transfer_mst');
 	$this->db->join('order_mst', 'transfer_mst.order_id = order_mst.trnno');
-	$this->db->join('order_dtl', 'order_dtl.order_trnno = transfer_mst.order_id AND order_dtl.trnno = transfer_mst.sr', 'left');
-	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
-	$this->db->join('customer', 'customer.code = measurement.customer_code');
 	$this->db->where('transfer_mst.dept', 'STIT');
 	$this->db->where('transfer_mst.status', 'Deactive');
 	$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus != 1)', NULL, FALSE);
@@ -175,19 +180,56 @@ class Order_query_model extends CI_Model
 	);
 	if ($this->_has_order_status_detail_filters($filters))
 	{
+		$this->db->join('order_dtl', 'order_dtl.order_trnno = transfer_mst.order_id AND order_dtl.trnno = transfer_mst.sr', 'left');
+		$this->db->join('measurement', 'measurement.code = order_mst.naap_no', 'left');
+		$this->db->join('customer', 'customer.code = measurement.customer_code', 'left');
 		$this->_apply_order_status_detail_filters($filters);
 	}
-	$order_limit = 500;
-	if (isset($filters['row_limit']) && (int) $filters['row_limit'] > 0)
+	$this->db->group_by('order_mst.trnno');
+	$this->db->order_by('RETURNDATE', 'ASC');
+	$this->db->order_by('ORDERNO', 'ASC');
+	$this->db->limit($order_limit);
+	$id_q = $this->db->get();
+	if ($id_q === FALSE || $id_q->num_rows() < 1)
 	{
-		$order_limit = min(10000, (int) $filters['row_limit']);
+		return array();
 	}
+
+	$order_ids = array();
+	foreach ($id_q->result() as $id_row)
+	{
+		$oid = (int) $id_row->ORDERNO;
+		if ($oid > 0)
+		{
+			$order_ids[] = $oid;
+		}
+	}
+	if (empty($order_ids))
+	{
+		return array();
+	}
+
+	// Phase 2: line details only for the capped order set.
+	$this->db->select('order_mst.trnno AS ORDERNO, transfer_mst.trnno AS TRANSFERID, transfer_mst.sr AS ORDERSR, order_dtl.type AS line_type, '.$this->_order_customer_snap_select_sql().', order_mst.total, order_mst.advance, customer.Phone, order_mst.RDATE AS RETURNDATE');
+	$this->db->from('transfer_mst');
+	$this->db->join('order_mst', 'transfer_mst.order_id = order_mst.trnno');
+	$this->db->join('order_dtl', 'order_dtl.order_trnno = transfer_mst.order_id AND order_dtl.trnno = transfer_mst.sr', 'left');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->join('customer', 'customer.code = measurement.customer_code');
+	$this->db->where('transfer_mst.dept', 'STIT');
+	$this->db->where('transfer_mst.status', 'Deactive');
+	$this->db->where_in('order_mst.trnno', $order_ids);
+	$this->db->where(
+		'transfer_mst.trnno = (SELECT MAX(t2.trnno) FROM transfer_mst t2 WHERE t2.order_id = transfer_mst.order_id AND t2.sr = transfer_mst.sr AND t2.dept = \'STIT\' AND t2.status = \'Deactive\')',
+		NULL,
+		FALSE
+	);
 	$this->db->order_by('order_mst.RDATE', 'ASC');
 	$this->db->order_by('order_mst.trnno', 'ASC');
 	$this->db->order_by('transfer_mst.sr', 'ASC');
 	$q = $this->db->get();
 
-	if ($q->num_rows() < 1)
+	if ($q === FALSE || $q->num_rows() < 1)
 	{
 		return array();
 	}
@@ -386,7 +428,7 @@ class Order_query_model extends CI_Model
     $parts = array();
     foreach ($this->measurement_snap_field_names() as $col)
     {
-      $parts[] = 'COALESCE(oms.`'.$col.'`, measurement.`'.$col.'`) AS `'.$col.'`';
+      $parts[] = 'COALESCE(NULLIF(TRIM(oms.`'.$col.'`), \'\'), measurement.`'.$col.'`) AS `'.$col.'`';
     }
     return implode(', ', $parts);
   }
@@ -612,8 +654,9 @@ class Order_query_model extends CI_Model
 	//  $this->db->join('style', 'style.DNO = order_dtl.design');
 	   $this->db->join('order_measurement_snap oms', 'oms.order_trnno = order_mst.trnno', 'left');
 	   $this->db->join('measurement', 'measurement.code = order_mst.naap_no');
-	 $this->db->join('customer', 'customer.code = measurement.customer_code');
+	$this->db->join('customer', 'customer.code = measurement.customer_code');
 	$this->db->where($where);
+	$this->db->order_by('order_dtl.trnno', 'ASC');
 	 
 	$q = $this->db->get();
 
@@ -673,7 +716,7 @@ class Order_query_model extends CI_Model
 		return NULL;
 	}
 
-	$this->db->select('order_mst.trnno, order_mst.EDATE, order_mst.RDATE, order_mst.qty, order_mst.total, order_mst.advance, order_mst.Discount, '.$this->_order_customer_snap_select_sql().', customer.Phone');
+	$this->db->select('order_mst.trnno, order_mst.EDATE, order_mst.RDATE, order_mst.qty, order_mst.total, order_mst.advance, order_mst.Discount, order_mst.addprice, '.$this->_order_customer_snap_select_sql().', customer.Phone');
 	$this->db->from('order_mst');
 	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
 	$this->db->join('customer', 'customer.code = measurement.customer_code');
@@ -853,6 +896,15 @@ class Order_query_model extends CI_Model
 	 $this->db->where($where, NULL, FALSE);
 	 }
 	 $this->db->order_by('order_mst.trnno', 'DESC');
+	 // Hard cap when not using paged helper (legacy callers / single-row lookups).
+	 if ($where === '')
+	 {
+		 $this->db->limit(500);
+	 }
+	 else
+	 {
+		 $this->db->limit(50);
+	 }
 	 
 	$q = $this->db->get();
 
@@ -869,6 +921,110 @@ class Order_query_model extends CI_Model
 		
       return $data;
     }
+  }
+
+  /**
+   * Build pending-transfer query base (Active lines for a workflow dept).
+   *
+   * @param string $transfer_dept HO|CUT|HO2|STIT
+   * @param string $search
+   */
+  protected function _pending_transfer_base_query($transfer_dept, $search = '')
+  {
+	$transfer_dept = strtoupper(trim((string) $transfer_dept));
+	$this->db->from('order_mst');
+	$this->db->join('order_dtl', 'order_mst.trnno = order_dtl.order_trnno');
+	$this->db->join('suit', 'suit.SNO = order_dtl.SNO', 'left');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->join('customer', 'customer.code = measurement.customer_code');
+	$this->db->join(
+		'transfer_mst',
+		'transfer_mst.order_id = order_dtl.order_trnno AND transfer_mst.sr = order_dtl.trnno'
+			.' AND transfer_mst.dept = '.$this->db->escape($transfer_dept)
+			.' AND transfer_mst.status = "Active"',
+		'inner',
+		FALSE
+	);
+	$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus != 1)', NULL, FALSE);
+
+	$search = trim((string) $search);
+	if ($search !== '')
+	{
+		$this->db->group_start();
+		if (ctype_digit($search))
+		{
+			$this->db->or_where('order_mst.trnno', (int) $search);
+			$this->db->or_where('transfer_mst.trnno', (int) $search);
+		}
+		$this->db->or_like('customer.name', $search);
+		$this->db->or_like('customer.Phone', $search);
+		$this->db->or_like('customer.man_napno', $search);
+		$this->db->or_like('order_dtl.order_remarks', $search);
+		$this->db->group_end();
+	}
+  }
+
+  /**
+   * @return int
+   */
+  function count_pending_transfer_rows($transfer_dept, $search = '')
+  {
+	$transfer_dept = strtoupper(trim((string) $transfer_dept));
+	if (!in_array($transfer_dept, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+	{
+		return 0;
+	}
+	$this->db->select('COUNT(*) AS total', FALSE);
+	$this->_pending_transfer_base_query($transfer_dept, $search);
+	$row = $this->db->get()->row();
+	return $row ? (int) $row->total : 0;
+  }
+
+  /**
+   * Server-side page of pending transfer lines.
+   *
+   * @return array
+   */
+  function get_pending_transfer_rows($transfer_dept, $start = 0, $length = 25, $search = '')
+  {
+	$transfer_dept = strtoupper(trim((string) $transfer_dept));
+	if (!in_array($transfer_dept, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+	{
+		return array();
+	}
+	$start = max(0, (int) $start);
+	$length = (int) $length;
+	if ($length < 1)
+	{
+		$length = 25;
+	}
+	if ($length > 100)
+	{
+		$length = 100;
+	}
+
+	$this->db->select(
+		'order_mst.trnno AS ORDERNO,
+		order_mst.EDATE AS ORDERDATE,
+		order_mst.RDATE AS RORDERDATE,
+		order_dtl.trnno AS SUITNO,
+		order_dtl.trnno AS ORDERSR,
+		order_dtl.order_remarks,
+		transfer_mst.trnno AS TRANSFERID,
+		transfer_mst.RDATE AS RETURNDATE,
+		transfer_mst.EDATE AS TRANSFEREDATE,
+		transfer_mst.empno,
+		customer.Phone,
+		customer.name,
+		customer.man_napno',
+		FALSE
+	);
+	$this->_pending_transfer_base_query($transfer_dept, $search);
+	$this->db->order_by('order_mst.trnno', 'DESC');
+	$this->db->order_by('order_dtl.trnno', 'ASC');
+	$this->db->limit($length, $start);
+	$q = $this->db->get();
+	return ($q !== FALSE && $q->num_rows() > 0) ? $q->result() : array();
   }
   
   
@@ -1083,6 +1239,89 @@ class Order_query_model extends CI_Model
     {
       $filters = array();
     }
+    $days = (int) $days;
+    if ($days < 1)
+    {
+      $days = 30;
+    }
+    if ($days > 120)
+    {
+      $days = 120;
+    }
+
+    // Specific lookups (order # / naap / mobile) do not need a forced date window.
+    $has_lookup = FALSE;
+    foreach (array('order_no', 'naap_no', 'mobile_no') as $key)
+    {
+      if (isset($filters[$key]) && trim((string) $filters[$key]) !== '')
+      {
+        $has_lookup = TRUE;
+        break;
+      }
+    }
+    if ($has_lookup)
+    {
+      return $filters;
+    }
+
+    $has_any_date = FALSE;
+    foreach (array('return_from', 'return_to', 'order_from', 'order_to') as $key)
+    {
+      if (isset($filters[$key]) && trim((string) $filters[$key]) !== '')
+      {
+        $has_any_date = TRUE;
+        break;
+      }
+    }
+    if ($has_any_date)
+    {
+      // Cap wide ranges to protect Order Status / Ready screens.
+      $filters = $this->_cap_date_range_pair($filters, 'return_from', 'return_to', $days);
+      $filters = $this->_cap_date_range_pair($filters, 'order_from', 'order_to', $days);
+      return $filters;
+    }
+
+    $to = date('Y-m-d');
+    $from = date('Y-m-d', strtotime('-'.$days.' days'));
+    // Current tab filters by return date; delivered tab uses order dates.
+    if ( ! isset($filters['return_from']) || trim((string) $filters['return_from']) === '')
+    {
+      $filters['return_from'] = $from;
+    }
+    if ( ! isset($filters['return_to']) || trim((string) $filters['return_to']) === '')
+    {
+      $filters['return_to'] = $to;
+    }
+    if ( ! isset($filters['order_from']) || trim((string) $filters['order_from']) === '')
+    {
+      $filters['order_from'] = $from;
+    }
+    if ( ! isset($filters['order_to']) || trim((string) $filters['order_to']) === '')
+    {
+      $filters['order_to'] = $to;
+    }
+    return $filters;
+  }
+
+  protected function _cap_date_range_pair(array $filters, $from_key, $to_key, $max_days)
+  {
+    $from = isset($filters[$from_key]) ? trim((string) $filters[$from_key]) : '';
+    $to = isset($filters[$to_key]) ? trim((string) $filters[$to_key]) : '';
+    if ($from === '' || $to === '')
+    {
+      return $filters;
+    }
+    $from_ts = strtotime($from);
+    $to_ts = strtotime($to);
+    if ($from_ts === FALSE || $to_ts === FALSE || $to_ts < $from_ts)
+    {
+      return $filters;
+    }
+    $span = (int) floor(($to_ts - $from_ts) / 86400);
+    if ($span > (int) $max_days)
+    {
+      $filters[$from_key] = date('Y-m-d', $to_ts - ((int) $max_days * 86400));
+    }
     return $filters;
   }
 
@@ -1167,6 +1406,7 @@ class Order_query_model extends CI_Model
 	$this->_apply_order_status_detail_filters($filters);
 	$this->db->order_by('order_mst.RDATE', 'ASC');
 	$this->db->order_by('order_mst.trnno', 'ASC');
+	$this->db->limit(200);
 	 
 	$q = $this->db->get();
 	$data = array();
@@ -1185,10 +1425,7 @@ class Order_query_model extends CI_Model
 	{
 		$filters['stage'] = trim((string) $stage);
 	}
-	if ( ! $this->_has_order_status_detail_filters($filters))
-	{
-		return array();
-	}
+	// Stage (incl. All) loads without requiring dates/search — optional filters only.
 
 	$this->_select_order_status_fields();
     $this->db->from('order_mst');
@@ -1196,6 +1433,12 @@ class Order_query_model extends CI_Model
 	$this->db->join('order_dtl', 'order_dtl.order_trnno = transfer_mst.order_id and order_dtl.trnno = transfer_mst.sr');
 	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
 	$this->db->join('customer', 'customer.code = measurement.customer_code');
+	// Current status only: latest transfer row per suit line.
+	$this->db->where(
+		'transfer_mst.trnno = (SELECT MAX(t2.trnno) FROM transfer_mst t2 WHERE t2.order_id = transfer_mst.order_id AND t2.sr = transfer_mst.sr)',
+		NULL,
+		FALSE
+	);
 	$this->_apply_order_status_detail_filters($filters);
 	$this->db->where('order_mst.ostatus', 0);
 	if ($filters['stage'] === 'HO' || $filters['stage'] === 'CUT' || $filters['stage'] === 'HO2' || $filters['stage'] === 'STIT')
@@ -1208,18 +1451,25 @@ class Order_query_model extends CI_Model
 		$this->db->where('transfer_mst.dept', 'STIT');
 		$this->db->where('transfer_mst.status', 'Deactive');
 	}
+	elseif ($filters['stage'] === 'DELIVERED')
+	{
+		$this->db->where('transfer_mst.dept', 'STIT');
+		$this->db->where('transfer_mst.status', 'DELIVER');
+	}
 	else
 	{
+		// All: current Active stages + Ready + Delivered.
 		$this->db->group_start();
 		$this->db->where('transfer_mst.status', 'Active');
 		$this->db->or_group_start();
 		$this->db->where('transfer_mst.dept', 'STIT');
-		$this->db->where('transfer_mst.status', 'Deactive');
+		$this->db->where_in('transfer_mst.status', array('Deactive', 'DELIVER'));
 		$this->db->group_end();
 		$this->db->group_end();
 	}
 	$this->db->order_by('order_mst.RDATE', 'ASC');
 	$this->db->order_by('order_mst.trnno', 'ASC');
+	$this->db->limit(200);
 	 
 	$q = $this->db->get();
 	$data = array();
@@ -1689,6 +1939,140 @@ class Order_query_model extends CI_Model
 	return array('key' => 'other');
   }
 
+  function get_customer_order_context($customer_code)
+  {
+	$customer_code = (int) $customer_code;
+	$context = array(
+		'phone' => '',
+		'pending_balance' => 0,
+		'pending_count' => 0,
+		'order_count' => 0,
+		'last_order_no' => 0,
+		'last_order_date' => '',
+		'last_order_total' => 0,
+		'has_last_order' => FALSE,
+	);
+
+	if ($customer_code <= 0)
+	{
+		return $context;
+	}
+
+	$this->db->select('Phone');
+	$this->db->from('customer');
+	$this->db->where('code', $customer_code);
+	$cq = $this->db->get();
+	if ($cq->num_rows() < 1)
+	{
+		return $context;
+	}
+	$context['phone'] = trim((string) $cq->row()->Phone);
+
+	$this->db->select('COALESCE(SUM(balance), 0) AS pending_balance, COUNT(*) AS pending_count', FALSE);
+	$this->db->from('dmst');
+	$this->db->where('customer_id', $customer_code);
+	$this->db->where('balance !=', 0);
+	$this->db->where('pending', 'YES');
+	$this->db->group_start();
+	$this->db->where('paidstatus IS NULL', NULL, FALSE);
+	$this->db->or_where('paidstatus !=', 'YES');
+	$this->db->group_end();
+	$pq = $this->db->get();
+	if ($pq->num_rows() > 0)
+	{
+		$prow = $pq->row();
+		$context['pending_balance'] = round((float) $prow->pending_balance, 2);
+		$context['pending_count'] = (int) $prow->pending_count;
+	}
+
+	$this->db->select('COUNT(DISTINCT order_mst.trnno) AS order_count', FALSE);
+	$this->db->from('order_mst');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->where('measurement.customer_code', $customer_code);
+	$this->db->where('order_mst.ostatus !=', 1);
+	$ocq = $this->db->get();
+	if ($ocq->num_rows() > 0)
+	{
+		$context['order_count'] = (int) $ocq->row()->order_count;
+	}
+
+	$this->db->select('order_mst.trnno, order_mst.EDATE, order_mst.total');
+	$this->db->from('order_mst');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->where('measurement.customer_code', $customer_code);
+	$this->db->where('order_mst.ostatus !=', 1);
+	$this->db->order_by('order_mst.trnno', 'DESC');
+	$this->db->limit(1);
+	$loq = $this->db->get();
+	if ($loq->num_rows() > 0)
+	{
+		$lrow = $loq->row();
+		$context['has_last_order'] = TRUE;
+		$context['last_order_no'] = (int) $lrow->trnno;
+		$context['last_order_date'] = (string) $lrow->EDATE;
+		$context['last_order_total'] = round((float) $lrow->total, 2);
+	}
+
+	return $context;
+  }
+
+  function get_last_order_lines_for_customer($customer_code)
+  {
+	$customer_code = (int) $customer_code;
+	if ($customer_code <= 0)
+	{
+		return array('ok' => FALSE, 'lines' => array());
+	}
+
+	$this->db->select('order_mst.trnno, order_mst.qty');
+	$this->db->from('order_mst');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->where('measurement.customer_code', $customer_code);
+	$this->db->where('order_mst.ostatus !=', 1);
+	$this->db->order_by('order_mst.trnno', 'DESC');
+	$this->db->limit(1);
+	$oq = $this->db->get();
+	if ($oq->num_rows() < 1)
+	{
+		return array('ok' => FALSE, 'lines' => array());
+	}
+	$order = $oq->row();
+	$order_id = (int) $order->trnno;
+
+	$this->db->select('type, kolor_style, SNO, suitrate, addprice, spocket, fpocket, Shawlarpocket, order_remarks');
+	$this->db->from('order_dtl');
+	$this->db->where('order_trnno', $order_id);
+	$this->db->order_by('trnno', 'ASC');
+	$dq = $this->db->get();
+	if ($dq->num_rows() < 1)
+	{
+		return array('ok' => FALSE, 'lines' => array());
+	}
+
+	$lines = array();
+	foreach ($dq->result() as $row)
+	{
+		$lines[] = array(
+			'type' => (string) $row->type,
+			'sno' => (int) $row->SNO,
+			'suitrate' => (string) $row->suitrate,
+			'addprice' => (string) $row->addprice,
+			'kolor_style' => (string) $row->kolor_style,
+			'fpocket' => (string) $row->fpocket,
+			'spocket' => (string) $row->spocket,
+			'shawpocket' => (string) $row->Shawlarpocket,
+			'remarks' => (string) $row->order_remarks,
+		);
+	}
+
+	return array(
+		'ok' => TRUE,
+		'order_no' => $order_id,
+		'qty' => count($lines),
+		'lines' => $lines,
+	);
+  }
+
   function get_customer_order_history($customer_code)
   {
 	$customer_code = (int) $customer_code;
@@ -1771,6 +2155,341 @@ class Order_query_model extends CI_Model
 
       return $data->name;
     }
+  }
+
+  /**
+   * Remaining payable on one order (total − booking advance − discount − dmst − cash).
+   *
+   * @param int $order_id
+   * @return float
+   */
+  protected function _order_remaining_balance($order_id)
+  {
+	$order_id = (int) $order_id;
+	if ($order_id <= 0)
+	{
+		return 0.0;
+	}
+	$this->db->select('total, advance, discount');
+	$this->db->from('order_mst');
+	$this->db->where('trnno', $order_id);
+	$this->db->limit(1);
+	$q = $this->db->get();
+	if ($q === FALSE || $q->num_rows() < 1)
+	{
+		return 0.0;
+	}
+	$row = $q->row();
+	$remaining = round(
+		(float) $row->total
+		- (float) $row->advance
+		- (float) $row->discount
+		- (float) $this->get_recevied($order_id)
+		- (float) $this->get_recevied_cash($order_id),
+		2
+	);
+	return ($remaining < 0) ? 0.0 : $remaining;
+  }
+
+  /**
+   * Full delivery + payment summary for one order (Order Status dialog).
+   *
+   * @return array
+   */
+  function get_order_delivery_summary($order_id)
+  {
+	$order_id = (int) $order_id;
+	$out = array(
+		'ok' => FALSE,
+		'message' => 'not_found',
+		'order_id' => $order_id,
+	);
+	if ($order_id <= 0)
+	{
+		return $out;
+	}
+
+	$this->db->select('order_mst.trnno, order_mst.total, order_mst.advance, order_mst.discount, order_mst.qty, order_mst.EDATE AS ORDERDATE, order_mst.RDATE, order_mst.EDATE, order_mst.ostatus, order_mst.naap_no, customer.man_napno, customer.code AS customer_code, customer.name AS customer_name, customer.Phone');
+	$this->db->from('order_mst');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no', 'left');
+	$this->db->join('customer', 'customer.code = measurement.customer_code', 'left');
+	$this->db->where('order_mst.trnno', $order_id);
+	$this->db->limit(1);
+	$hq = $this->db->get();
+	if ($hq === FALSE || $hq->num_rows() < 1)
+	{
+		return $out;
+	}
+	$header = $hq->row();
+
+	$total = round((float) $header->total, 2);
+	$advance_booking = round((float) $header->advance, 2);
+	$discount = round((float) $header->discount, 2);
+	$received_dmst = round((float) $this->get_recevied($order_id), 2);
+	$received_cash = round((float) $this->get_recevied_cash($order_id), 2);
+	$advance_total = round($advance_booking + $received_dmst + $received_cash, 2);
+	$order_balance = round($total - $advance_booking - $discount - $received_dmst - $received_cash, 2);
+	if ($order_balance < 0)
+	{
+		$order_balance = 0.0;
+	}
+
+	$customer_code = (int) $header->customer_code;
+
+	// Other orders' unpaid balances for this customer (ignore pending flag — balance>0 is what staff see in history).
+	$previous_outstanding = 0.0;
+	if ($customer_code > 0)
+	{
+		$this->db->select('COALESCE(SUM(balance), 0) AS prev_bal', FALSE);
+		$this->db->from('dmst');
+		$this->db->where('customer_id', $customer_code);
+		$this->db->where('order_id !=', $order_id);
+		$this->db->where('balance >', 0);
+		$this->db->group_start();
+		$this->db->where('paidstatus IS NULL', NULL, FALSE);
+		$this->db->or_where('paidstatus !=', 'YES');
+		$this->db->group_end();
+		$pq = $this->db->get();
+		if ($pq !== FALSE && $pq->num_rows() > 0)
+		{
+			$previous_outstanding = round((float) $pq->row()->prev_bal, 2);
+		}
+	}
+	$amount_due_now = round($order_balance + $previous_outstanding, 2);
+
+	// Latest transfer status per suit line (avoid duplicate HO/CUT/STIT rows).
+	$latest_transfer = array();
+	$this->db->select('sr, dept, status');
+	$this->db->from('transfer_mst');
+	$this->db->where('order_id', $order_id);
+	$this->db->order_by('trnno', 'ASC');
+	$tq = $this->db->get();
+	if ($tq !== FALSE && $tq->num_rows() > 0)
+	{
+		foreach ($tq->result() as $trow)
+		{
+			$latest_transfer[(int) $trow->sr] = $trow;
+		}
+	}
+
+	$this->db->select('order_dtl.trnno AS line_sr, order_dtl.type, order_dtl.SNO, order_dtl.suitrate, order_dtl.addprice, order_dtl.drate, order_dtl.erate, order_dtl.order_remarks, suit.name AS suit_name');
+	$this->db->from('order_dtl');
+	$this->db->join('suit', 'suit.SNO = order_dtl.SNO', 'left');
+	$this->db->where('order_dtl.order_trnno', $order_id);
+	$this->db->order_by('order_dtl.trnno', 'ASC');
+	$lq = $this->db->get();
+	$suits = array();
+	$ready_count = 0;
+	if ($lq !== FALSE && $lq->num_rows() > 0)
+	{
+		foreach ($lq->result() as $row)
+		{
+			$line_sr = (int) $row->line_sr;
+			$trow = isset($latest_transfer[$line_sr]) ? $latest_transfer[$line_sr] : NULL;
+			$dept = $trow ? strtoupper(trim((string) $trow->dept)) : '';
+			$tstatus = $trow ? trim((string) $trow->status) : '';
+			$line_total = round(
+				(float) $row->suitrate + (float) $row->addprice + (float) $row->drate + (float) $row->erate,
+				2
+			);
+			$is_ready = ($dept === 'STIT' && $tstatus === 'Deactive');
+			$is_delivered = (strtoupper($tstatus) === 'DELIVER');
+			if ($is_ready)
+			{
+				$ready_count++;
+			}
+			$status_label = 'Booking';
+			if ($is_delivered)
+			{
+				$status_label = 'Delivered';
+			}
+			elseif ($is_ready)
+			{
+				$status_label = 'Ready 4 Deliver';
+			}
+			elseif ($dept === 'STIT')
+			{
+				$status_label = 'Stitching';
+			}
+			elseif ($dept === 'HO2')
+			{
+				$status_label = 'After Cutting';
+			}
+			elseif ($dept === 'CUT')
+			{
+				$status_label = 'Cutting';
+			}
+			elseif ($dept === 'HO')
+			{
+				$status_label = 'Booking';
+			}
+
+			$suits[] = array(
+				'line_sr' => $line_sr,
+				'type' => (string) $row->type,
+				'suit_name' => (string) $row->suit_name,
+				'remarks' => (string) $row->order_remarks,
+				'line_total' => $line_total,
+				'dept' => $dept,
+				'transfer_status' => $tstatus,
+				'is_ready' => $is_ready,
+				'is_delivered' => $is_delivered,
+				'status_label' => $status_label,
+			);
+		}
+	}
+
+	$history = array();
+	$dmst_by_key = array(); // dedupe key => true
+	$order_remaining_map = array(); // order_id => latest known remaining after receipt
+
+	// All delivery receipts for this customer (paid + pending) so Balance column is filled.
+	$this->db->select('dmst.trnno, dmst.EDATE, dmst.PAID, dmst.balance, dmst.pending, dmst.order_id, dmst.NPAID_dATE');
+	$this->db->from('dmst');
+	$this->db->group_start();
+	$this->db->where('dmst.order_id', $order_id);
+	if ($customer_code > 0)
+	{
+		$this->db->or_where('dmst.customer_id', $customer_code);
+	}
+	$this->db->group_end();
+	$this->db->order_by('dmst.EDATE', 'DESC');
+	$this->db->order_by('dmst.trnno', 'DESC');
+	$this->db->limit(50);
+	$hq2 = $this->db->get();
+	if ($hq2 !== FALSE && $hq2->num_rows() > 0)
+	{
+		foreach ($hq2->result() as $h)
+		{
+			$oid = (int) $h->order_id;
+			$paid = round((float) $h->PAID, 2);
+			$bal = round((float) $h->balance, 2);
+			$date = (string) $h->EDATE;
+			if ( ! isset($order_remaining_map[$oid]))
+			{
+				$order_remaining_map[$oid] = $bal;
+			}
+			$key = $oid.'|'.$date.'|'.number_format($paid, 2, '.', '');
+			$dmst_by_key[$key] = TRUE;
+			$history[] = array(
+				'kind' => 'delivery_receipt',
+				'date' => $date,
+				'order_id' => $oid,
+				'paid' => $paid,
+				'balance' => $bal,
+				'pending' => (string) $h->pending,
+				'due_date' => (string) $h->NPAID_dATE,
+				'label' => ($oid === $order_id)
+					? ('Receipt on order #'.$oid)
+					: ('Receipt on order #'.$oid),
+			);
+		}
+	}
+
+	// Cash receipts: fill Balance from matching dmst / order remaining; skip duplicates of dmst rows.
+	$this->db->select('cash.TRNNO, cash.EDATE, cash.amount, cash.narration, cash.order_no, cash.type');
+	$this->db->from('cash');
+	$this->db->group_start();
+	$this->db->where('cash.order_no', $order_id);
+	if ($customer_code > 0)
+	{
+		$this->db->or_where('cash.customer_id', $customer_code);
+	}
+	$this->db->group_end();
+	$this->db->order_by('cash.EDATE', 'DESC');
+	$this->db->order_by('cash.TRNNO', 'DESC');
+	$this->db->limit(40);
+	$cq = $this->db->get();
+	if ($cq !== FALSE && $cq->num_rows() > 0)
+	{
+		foreach ($cq->result() as $c)
+		{
+			$oid = (int) $c->order_no;
+			$narration = trim((string) $c->narration);
+			if ($oid <= 0 && preg_match('/\b(?:Order|آرڈر)\s*#?\s*(\d+)/iu', $narration, $m))
+			{
+				$oid = (int) $m[1];
+			}
+			$paid = round((float) $c->amount, 2);
+			$date = (string) $c->EDATE;
+			$key = $oid.'|'.$date.'|'.number_format($paid, 2, '.', '');
+			if ($oid > 0 && isset($dmst_by_key[$key]))
+			{
+				continue; // already shown via dmst with balance
+			}
+
+			$bal = NULL;
+			if ($oid > 0)
+			{
+				if (isset($order_remaining_map[$oid]))
+				{
+					$bal = $order_remaining_map[$oid];
+				}
+				else
+				{
+					// Compute remaining for that order if dmst row was not loaded.
+					$bal = $this->_order_remaining_balance($oid);
+					$order_remaining_map[$oid] = $bal;
+				}
+			}
+
+			$history[] = array(
+				'kind' => 'cash',
+				'date' => $date,
+				'order_id' => $oid,
+				'paid' => $paid,
+				'balance' => $bal,
+				'pending' => '',
+				'due_date' => '',
+				'label' => $narration !== ''
+					? $narration
+					: ('Cash'.($oid > 0 ? (' against order #'.$oid) : '')),
+			);
+		}
+	}
+
+	usort($history, function ($a, $b) {
+		$cmp = strcmp((string) $b['date'], (string) $a['date']);
+		if ($cmp !== 0)
+		{
+			return $cmp;
+		}
+		return ((int) $b['order_id']) - ((int) $a['order_id']);
+	});
+
+	return array(
+		'ok' => TRUE,
+		'message' => '',
+		'order_id' => $order_id,
+		'customer' => array(
+			'code' => $customer_code,
+			'name' => (string) $header->customer_name,
+			'phone' => (string) $header->Phone,
+			'naap_no' => (string) $header->man_napno,
+		),
+		'dates' => array(
+			'order_date' => (string) $header->ORDERDATE,
+			'return_date' => (string) $header->RDATE,
+			'entry_date' => (string) $header->EDATE,
+		),
+		'qty' => (float) $header->qty,
+		'suits' => $suits,
+		'suit_count' => count($suits),
+		'ready_count' => $ready_count,
+		'can_deliver' => ($ready_count > 0 && (int) $header->ostatus === 0),
+		'money' => array(
+			'order_total' => $total,
+			'booking_advance' => $advance_booking,
+			'received_on_delivery' => $received_dmst,
+			'received_cash' => $received_cash,
+			'advance_total' => $advance_total,
+			'discount' => $discount,
+			'order_remaining' => $order_balance,
+			'previous_outstanding' => $previous_outstanding,
+			'amount_due_now' => $amount_due_now,
+		),
+		'history' => array_slice($history, 0, 40),
+	);
   }
   
   

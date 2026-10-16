@@ -93,8 +93,7 @@ public function process()
 				'design' => $this->input->post('design'),
 				'rate' => $this->input->post('Rate'),
 				'remarks' => $this->input->post('Remarks'),
-	 
-  
+				'is_active' => $this->input->post('is_active') ? 1 : 0,
 );
 				
 				
@@ -126,8 +125,7 @@ public function process()
 				'design' => $this->input->post('design'),
 				'rate' => $this->input->post('Rate'),
 				'remarks' => $this->input->post('Remarks'),
-	 
-  
+				'is_active' => $this->input->post('is_active') ? 1 : 0,
 );
 				
 				
@@ -144,6 +142,23 @@ public function process()
 				{
 				 //	$this->session->set_flashdata('suss', 'no');
 				}
-		}	
+		}
+
+	public function toggle_active($id = 0)
+	{
+		$id = (int) $id;
+		if ($id > 0)
+		{
+			$row = $this->db->where('ENO', $id)->get('embroidery')->row_array();
+			if ($row)
+			{
+				$next = empty($row['is_active']) ? 1 : 0;
+				$this->db->where('ENO', $id)->update('embroidery', array('is_active' => $next));
+				$this->master_data->clear_dat_cache('embroidery');
+				$this->session->set_flashdata('suss', 'yes');
+			}
+		}
+		redirect('Embroidery');
+	}
  
 }

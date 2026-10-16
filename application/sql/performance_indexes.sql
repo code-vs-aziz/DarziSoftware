@@ -43,6 +43,8 @@ CREATE INDEX IF NOT EXISTS idx_transfer_mst_sr_dept ON transfer_mst (sr, dept);
 CREATE INDEX IF NOT EXISTS idx_transfer_mst_dashboard ON transfer_mst (dept, status, order_id, sr);
 CREATE INDEX IF NOT EXISTS idx_transfer_mst_order_status ON transfer_mst (order_id, sr, status, dept);
 CREATE INDEX IF NOT EXISTS idx_transfer_mst_employee_ledger ON transfer_mst (empno, EDATE, dept, status, order_id, sr);
+-- Ready-for-delivery / latest-transfer lookups (include trnno for MAX() subquery)
+CREATE INDEX IF NOT EXISTS idx_transfer_mst_latest_stit ON transfer_mst (order_id, sr, dept, status, trnno);
 
 -- Order detail line joins
 CREATE INDEX IF NOT EXISTS idx_order_dtl_order_sr ON order_dtl (order_trnno, trnno);
@@ -61,7 +63,23 @@ CREATE INDEX IF NOT EXISTS idx_cash_customer_ledger ON cash (customer_id, EDATE,
 
 -- Cash ledger date/type filters
 CREATE INDEX IF NOT EXISTS idx_cash_ledger_date_type ON cash (EDATE, type);
+CREATE INDEX IF NOT EXISTS idx_cash_type_edate ON cash (type, EDATE);
 CREATE INDEX IF NOT EXISTS idx_order_mst_edate_advance ON order_mst (EDATE, advance);
+
+-- Notification queue claim / duplicate checks (table may not exist on older DBs)
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'notification_queue') > 0,
+  'CREATE INDEX IF NOT EXISTS idx_notify_queue_status_id ON notification_queue (status, id)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'notification_queue') > 0,
+  'CREATE INDEX IF NOT EXISTS idx_notify_queue_dup ON notification_queue (order_id, event_type, created_at, status)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Employee-wise sale / STIT delivery reports
 CREATE INDEX IF NOT EXISTS idx_transfer_mst_emp_sale ON transfer_mst (dept, status, EDATE, empno);

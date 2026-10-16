@@ -1,131 +1,103 @@
 <?php
 	ob_Start();
 $this->load->helper('ui');
- 
+
 	$this->load->view('Head');
 	$this->load->view('Header');
- 
-  
+
+	$measurement_row = null;
+	if (!empty($measurement) && is_array($measurement)) {
+		foreach ($measurement as $measurement_row) {
+			break;
+		}
+	}
+	if (!$measurement_row) {
+		$measurement_row = (object) array('MCODE' => 0, 'MREMARKS' => '');
+	}
+	$measurement = $measurement_row;
+	$measurement_customer = null;
+	if (!empty($customer_data) && is_array($customer_data)) {
+		foreach ($customer_data as $measurement_customer) {
+			break;
+		}
+	}
 ?>
-
- 
- 
- 
-  		<style>
- 
-	.ur {
-		font-family: 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', sans serif;;
-	}
-	 #Remarks  {
-		direction: rtl;
-		border: 1px solid #ccc;
-		vertical-align: middle;
-		direction: rtl;
-		padding: 2px;
-		font-size: 16px;
-	}
-	#kb {
-		width:500px;
-	}
-	a {
-		color:#4ea0e8;
-		text-decoration:none;
-	}
-	</style>
- 	<script>
+<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=7'); ?>" rel="stylesheet" media="all">
+<link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/notonastaliqurdudraft.css">
+<script>
 	$(function() {
-		
-			$('#Remarks').setUrduInput();
-	  
-			///$('#q').focus();
-		});
-	</script>
-  
- <style>
-	.urd{
-			font-weight:bold;
-			    font-family: 'Noto Nastaliq Urdu Draft', serif;
-				float: right;
-	}
-
- </style>
- <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/notonastaliqurdudraft.css">
- <meta content="text/html; charset=utf-8" http-equiv=Content-Type>
-<body class="animsition erp-app">
+		$('#Remarks').setUrduInput();
+	});
+</script>
+<body class="animsition erp-app erp-form-page measurement-form-page">
     <div class="page-wrapper">
-        <!-- HEADER MOBILE-->
-		<?php  foreach($measurement as $measurement){   } ?>
-      <form name="Form" action="<?php echo site_url('Measurement/process_edit/'.$measurement->MCODE.''); ?>" method="post">
-            <!-- MAIN CONTENT-->
+      <form name="Form" action="<?php echo site_url('Measurement/process_edit/'.$measurement_row->MCODE.''); ?>" method="post" data-no-ajax="true">
             <div class="main-content">
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
-						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show">
-											<span class="badge badge-pill badge-success">Success</span>
+						<?php if($this->session->flashdata('suss') == 'yes') { ?>
+					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show measurement-alert">
+											<span class="badge badge-pill badge-success"><?php echo t('app_success'); ?></span>
 											<?php echo t('app_record_entered_short'); ?>
 											<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 												<span aria-hidden="true">×</span>
 											</button>
 										</div>
-						<?php  } ?>				
+						<?php  } ?>
                      	<div class="col-md-12">
                                 <div class="dz-card erp-module-card data-entry-card measurement-entry-card">
-                                   <!-- <div class="card-header">Employee Form</div> -->
 									<div class="erp-card-head">
-										<h2 class="erp-module-title mb-0"><?php echo t('measurement_form'); ?></h2>
+										<h2 class="erp-module-title mb-0"><?php echo t('measurement_edit'); ?></h2>
+										<?php if ($measurement_customer) { ?>
+										<div class="erp-card-actions">
+											<span class="erp-entry-number"><?php echo t('customer_manual_naap'); ?> : <?php echo esc_html((string) $measurement_customer->man_napno); ?></span>
+										</div>
+										<?php } ?>
 									</div>
                                     <div class="card-body erp-card-body data-entry-body">
-                                    
-										  	<?php 
-			 foreach($customer_data as $customer_data){
-									 
-			
-						                    ?>
-                              <div   id="page1" style="display:block;">
-           
-			 
- 				
-					<div class="row">
-						<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('customer_name'); ?></label>
-												<input id="c" name="a"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php  echo $customer_data->name; ?>" disabled>
-												<input id="c" name="customerno1"   type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php  echo $customer_data->code; ?>">
-												 
-                                            </div>  
+									<div class="measurement-form-layout">
+                              <div id="page1" style="display:block;">
+
+					<?php if ($measurement_customer) { ?>
+					<input name="customerno1" type="hidden" value="<?php echo (int) $measurement_customer->code; ?>">
+					<div class="measurement-info-panel">
+						<div class="measurement-section__head">
+							<h3 class="measurement-section__title"><?php echo t('customer_title'); ?></h3>
 						</div>
-									<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('customer_phone'); ?></label>
-												<input id="c" name="a"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php  echo $customer_data->Phone; ?>" disabled>
-												 
-                                            </div>  
+						<div class="measurement-info-panel__grid">
+							<div class="measurement-info-panel__item">
+								<span><?php echo t('customer_name'); ?></span>
+								<strong><?php echo esc_html((string) $measurement_customer->name); ?></strong>
+							</div>
+							<div class="measurement-info-panel__item">
+								<span><?php echo t('customer_phone'); ?></span>
+								<strong><?php echo esc_html((string) $measurement_customer->Phone); ?></strong>
+							</div>
+							<div class="measurement-info-panel__item">
+								<span><?php echo t('customer_manual_naap'); ?></span>
+								<strong><?php echo esc_html((string) $measurement_customer->man_napno); ?></strong>
+							</div>
 						</div>
-					 	<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('customer_manual_naap'); ?></label>
-                                                <input   name="man_napno"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php  echo $customer_data->man_napno; ?>" disabled>
-                                            </div>   
+					</div>
+					<input name="man_napno" type="hidden" value="<?php echo esc_html((string) $measurement_customer->man_napno); ?>">
+					<?php } ?>
+
+					<div class="measurement-section">
+						<div class="measurement-section__head">
+							<h3 class="measurement-section__title"><?php echo t('measurement_section_garments'); ?></h3>
 						</div>
-					</div>	
-			 <?Php  } ?>
 		 <div class="measurement-tab-body">
 										<div class="default-tab">
 											<nav>
 												<div class="nav nav-tabs" id="nav-tab" role="tablist">
-													<a class="nav-item nav-link active" id="nav-home-Kurta" data-toggle="tab" href="#nav-Kurta" role="tab" aria-controls="nav-Kurta" aria-selected="true">Kurta</a>
-													
-													<a class="nav-item nav-link" id="nav-Pajama-tab" data-toggle="tab" href="#nav-Pajama" role="tab" aria-controls="nav-Pajama" aria-selected="false">Pajama</a>
-													<a class="nav-item nav-link" id="nav-Pent-tab" data-toggle="tab" href="#nav-Pent" role="tab" aria-controls="nav-contact" aria-selected="false">Pent</a>
-													<a class="nav-item nav-link" id="nav-Shrit-tab" data-toggle="tab" href="#nav-Shrit" role="tab" aria-controls="nav-contact" aria-selected="false">Shrit</a>
-													<a class="nav-item nav-link" id="nav-Coat-tab" data-toggle="tab" href="#nav-Coat" role="tab" aria-controls="nav-contact" aria-selected="false">Coat+Sherwani</a>
-													<a class="nav-item nav-link" id="nav-Waistcoat-tab" data-toggle="tab" href="#nav-Waistcoat" role="tab" aria-controls="nav-contact" aria-selected="false">Waistcoat</a>
+													<a class="nav-item nav-link active" id="nav-home-Kurta" data-toggle="tab" href="#nav-Kurta" role="tab" aria-controls="nav-Kurta" aria-selected="true"><?php echo t('measurement_tab_kurta'); ?></a>
+													<a class="nav-item nav-link" id="nav-Pajama-tab" data-toggle="tab" href="#nav-Pajama" role="tab" aria-controls="nav-Pajama" aria-selected="false"><?php echo t('measurement_tab_pajama'); ?></a>
+													<a class="nav-item nav-link" id="nav-Pent-tab" data-toggle="tab" href="#nav-Pent" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_pent'); ?></a>
+													<a class="nav-item nav-link" id="nav-Shrit-tab" data-toggle="tab" href="#nav-Shrit" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_shirt'); ?></a>
+													<a class="nav-item nav-link" id="nav-Coat-tab" data-toggle="tab" href="#nav-Coat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_coat'); ?></a>
+													<a class="nav-item nav-link" id="nav-Waistcoat-tab" data-toggle="tab" href="#nav-Waistcoat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_waistcoat'); ?></a>
 												</div>
 											</nav>
-											
-											
 											<div class="tab-content pl-3 pt-2" id="nav-tabContent">
 												<div class="tab-pane fade show active" id="nav-Kurta" role="tabpanel" aria-labelledby="nav-Kurta-tab">
 	 			<div class="row data-entry-actions">
@@ -592,54 +564,37 @@ $this->load->helper('ui');
 											</div>
 
 										</div>
-									</div>			 
- 	
- 			
- 	
-					<div class="row">
-						<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">نوٹ لائن</label>
-                                                <input   name="Remarks"  id="Remarks" type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->MREMARKS; ?>"   >
-                                            </div>  
-						</div>
-		 
-					</div>	
-					 			 			<div class="row">
-									
-												<div class="col">
-											 
-											
-											</div>
-												<div class="col">
-                                               <!-- <button id="submit-button" type="submit" name="savBtn" onclick="return valid()"  class="btn btn-lg btn-info btn-block">-->
-                                                <button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
-	
-                                                    <span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
-                                                    <span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
-                                                </button>
-                                            </div>
-										 <div class="col">
-											 
-											
-											</div>
-										 
-										
-</div>
-</div>
+									</div>
+					</div>
 
-                      </form>
-          <?php
-  /*include('footer.php'); */
- ?>
-                     
+					<div class="measurement-section measurement-notes">
+						<div class="measurement-section__head">
+							<h3 class="measurement-section__title"><?php echo t('measurement_section_notes'); ?></h3>
+						</div>
+						<div class="form-group">
+							<label for="Remarks" class="control-label mb-1 urd"><?php echo t('measurement_note_line'); ?></label>
+							<input name="Remarks" id="Remarks" type="text" class="form-control txtbox" value="<?php echo esc_html((string) $measurement_row->MREMARKS); ?>">
+						</div>
+					</div>
+
+					<div class="measurement-submit-sticky">
+						<div class="measurement-submit-sticky__actions measurement-submit-sticky__actions--split">
+							<a href="<?php echo site_url('Measurement'); ?>" class="btn btn-lg btn-secondary btn-block" data-no-ajax="true"><?php echo t('app_back'); ?></a>
+							<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
+								<span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
+								<span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
+							</button>
+						</div>
+					</div>
+</div>
+</div>
+                                    </div>
+                                </div>
+                     	</div>
                     </div>
                 </div>
             </div>
-            <!-- END MAIN CONTENT-->
-            <!-- END PAGE CONTAINER-->
-        </div>
-
+                      </form>
     </div>
 <script>
 function myFunction() {

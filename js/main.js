@@ -1596,11 +1596,8 @@
 
 
   try {
-    // Hamburger Menu
-    $('.hamburger').on('click', function () {
-      $(this).toggleClass('is-active');
-      $('.navbar-mobile').slideToggle('500');
-    });
+    // Hamburger Menu — handled by dz-responsive-shell.js (drawer)
+    $('.hamburger').off('click.dzLegacyNav');
     $('.navbar-mobile__list li.has-dropdown > a').on('click', function () {
       var dropdown = $(this).siblings('ul.navbar-mobile__dropdown');
       $(this).toggleClass('active');

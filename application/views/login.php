@@ -6,14 +6,19 @@ $flash_error = $this->session->flashdata('error');
 <html lang="<?php echo esc_html(app_html_lang()); ?>" dir="<?php echo app_is_rtl() ? 'rtl' : 'ltr'; ?>" class="<?php echo esc_html(app_lang_css_class()); ?>">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
 	<title><?php echo esc_html(t('auth_sign_in_title')); ?></title>
+	<link rel="icon" href="<?php echo base_url('images/favicon-32.png'); ?>?v=1" type="image/png" sizes="32x32">
+	<link rel="icon" href="<?php echo base_url('images/favicon-16.png'); ?>?v=1" type="image/png" sizes="16x16">
+	<link rel="shortcut icon" href="<?php echo base_url('favicon.ico'); ?>?v=1">
+	<link rel="apple-touch-icon" href="<?php echo base_url('images/apple-touch-icon.png'); ?>?v=1" sizes="180x180">
+	<meta name="theme-color" content="#ffffff">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
 	<link href="<?php echo base_url(); ?>vendor/bootstrap-4.1/bootstrap.min.css" rel="stylesheet" media="all">
 	<link href="<?php echo base_url(); ?>vendor/font-awesome-5/css/fontawesome-all.min.css?v=5154" rel="stylesheet" media="all">
-	<link href="<?php echo base_url(); ?>css/login.css?v=1" rel="stylesheet" media="all">
+	<link href="<?php echo base_url(); ?>css/login.css?v=4" rel="stylesheet" media="all">
 	<?php $this->load->view('partials/csrf_bootstrap'); ?>
 </head>
 <body class="login-advanced">
@@ -22,7 +27,7 @@ $flash_error = $this->session->flashdata('error');
 		<div class="login-card">
 			<header class="login-card__head">
 				<div class="login-card__logo">
-					<img src="<?php echo base_url('images/darzi-baba-logo.png'); ?>" width="280" height="140" alt="Darzi Baba">
+					<img src="<?php echo base_url('images/darzi-baba-logo.png'); ?>?v=2" width="320" height="201" alt="Darzi Baba">
 				</div>
 				<h1><?php echo t('app_brand'); ?></h1>
 				<p class="login-subtitle"><?php echo t('auth_sign_in_subtitle'); ?></p>
@@ -63,8 +68,11 @@ $flash_error = $this->session->flashdata('error');
 		</div>
 	</main>
 	<footer class="login-footer">
-		<div class="login-footer__inner">
-			<a href="https://wa.me/923060407042" target="_blank" rel="noopener noreferrer"><?php echo esc_html(t('app_powered_by')); ?> <?php echo esc_html(t('app_powered_by_name')); ?></a>
+		<div class="login-footer__bar">
+			<p class="login-footer__credit">
+				<?php echo esc_html(t('app_software_powered_by')); ?>
+				<a href="https://wa.me/923060407042" target="_blank" rel="noopener noreferrer" class="login-footer__name"><?php echo esc_html(t('app_powered_by_name')); ?></a>
+			</p>
 		</div>
 	</footer>
 	<script>window.APP_LANG = <?php echo json_encode(app_lang_js_strings(), JSON_UNESCAPED_UNICODE); ?>;</script>
