@@ -116,6 +116,48 @@ $customer_add_url = site_url('Customer/Customer_add');
 			addBtn.setAttribute('href', href);
 		}
 
+		function openFromSuggestOrSearch(term) {
+			if (active >= 0 && items[active] && items[active].url) {
+				go(items[active].url);
+				return;
+			}
+			if (items.length === 1 && items[0].url) {
+				go(items[0].url);
+				return;
+			}
+			// Resolve now so number search never lands on customer hub/list first.
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', suggestUrl + '?q=' + encodeURIComponent(term), true);
+			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState !== 4) return;
+				if (xhr.status !== 200) {
+					go(prefix + encodeURIComponent(term) + '?per_page=25');
+					return;
+				}
+				try {
+					var data = JSON.parse(xhr.responseText);
+					var rows = (data && data.results) ? data.results : [];
+					if (rows.length === 1) {
+						go(measurementUrl(rows[0]));
+						return;
+					}
+					if (rows.length > 1) {
+						for (var i = 0; i < rows.length; i++) {
+							rows[i].url = measurementUrl(rows[i]);
+							rows[i].name = rows[i].name || ('#' + rows[i].code);
+						}
+						render(rows);
+						return;
+					}
+					renderEmpty(term);
+				} catch (e) {
+					go(prefix + encodeURIComponent(term) + '?per_page=25');
+				}
+			};
+			xhr.send();
+		}
+
 		window.erpHomeSearchSubmit = function (event) {
 			if (event && event.preventDefault) event.preventDefault();
 			var term = input ? String(input.value || '').replace(/^\s+|\s+$/g, '') : '';
@@ -123,15 +165,7 @@ $customer_add_url = site_url('Customer/Customer_add');
 				alert(needTerm);
 				return false;
 			}
-			if (active >= 0 && items[active] && items[active].url) {
-				go(items[active].url);
-				return false;
-			}
-			if (items.length === 1 && items[0].url) {
-				go(items[0].url);
-				return false;
-			}
-			go(prefix + encodeURIComponent(term) + '?per_page=25');
+			openFromSuggestOrSearch(term);
 			return false;
 		};
 

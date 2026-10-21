@@ -83,8 +83,8 @@ class Customer extends MY_Controller {
 	}
 
 	/**
-	 * Customer record hub: profile summary + measurements / orders / balance links.
-	 * Reuses existing ERP data; does not create records.
+	 * Shop booking entry: open measurement, then order on submit.
+	 * Pass ?hub=1 to show the full customer record page instead.
 	 */
 	public function record()
 	{
@@ -123,6 +123,20 @@ class Customer extends MY_Controller {
 
 		$meas_map = $this->customer_query->get_primary_measurement_codes_for_codes(array($code));
 		$meas_code = isset($meas_map[$code]) ? (int) $meas_map[$code] : 0;
+
+		// Default shop flow: search → measurement → order (not the hub page).
+		if ($this->input->get('hub') !== '1')
+		{
+			if ($meas_code > 0)
+			{
+				redirect('Measurement/measurement_edit/'.$code.'?return=order');
+			}
+			else
+			{
+				redirect('Measurement/measurement_add/'.$code.'?return=order');
+			}
+			return;
+		}
 
 		$this->load->model('order_query');
 		$context = $this->order_query->get_customer_order_context($code);
@@ -273,6 +287,28 @@ class Customer extends MY_Controller {
 
 		$enc_term = rawurlencode($term);
 		$total_rows = $this->customer_query->count_search_customers($term);
+
+		// Exact / single match from home search: open measurement → order, skip list.
+		if ($total_rows === 1 && $offset === 0)
+		{
+			$one = $this->customer_query->search_customers_paged($term, 1, 0);
+			if ( ! empty($one[0]->code))
+			{
+				$code = (int) $one[0]->code;
+				$meas_map = $this->customer_query->get_primary_measurement_codes_for_codes(array($code));
+				$meas_code = isset($meas_map[$code]) ? (int) $meas_map[$code] : 0;
+				if ($meas_code > 0)
+				{
+					redirect('Measurement/measurement_edit/'.$code.'?return=order');
+				}
+				else
+				{
+					redirect('Measurement/measurement_add/'.$code.'?return=order');
+				}
+				return;
+			}
+		}
+
 		if ($total_rows > 0 && $per_page > 0)
 		{
 			$max_offset = (int) (ceil($total_rows / $per_page) - 1) * $per_page;
