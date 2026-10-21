@@ -38,7 +38,7 @@ $this->load->helper('ui');
 		'waistcoat' => isset($measurement_row->remarks_waistcoat) ? (string) $measurement_row->remarks_waistcoat : '',
 	);
 ?>
-<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=8'); ?>" rel="stylesheet" media="all">
+<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=9'); ?>" rel="stylesheet" media="all">
 <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/notonastaliqurdudraft.css">
 <script>
 	function initMeasurementUrduNotes() {
@@ -126,9 +126,9 @@ $this->load->helper('ui');
 													<a class="nav-item nav-link" id="nav-Waistcoat-tab" data-toggle="tab" href="#nav-Waistcoat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_waistcoat'); ?></a>
 												</div>
 											</nav>
-											<div class="tab-content pl-3 pt-2" id="nav-tabContent">
+											<div class="tab-content" id="nav-tabContent">
 												<div class="tab-pane fade show active" id="nav-Kurta" role="tabpanel" aria-labelledby="nav-Kurta-tab">
-	 			<div class="row data-entry-actions">
+	 			<div class="row">
 						<div class="col">		
                                              <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
                                                 <label for="KL" class="control-label mb-1 urd">قمیض لمبائی</label>

@@ -34,7 +34,7 @@
 .measurement-form-page .measurement-entry-card > .erp-card-head {
 	background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 	border-bottom: 1px solid var(--meas-outline);
-	padding: 1rem 1.15rem;
+	padding: 0.65rem 0.85rem;
 }
 
 .measurement-form-page .erp-module-title {
@@ -56,22 +56,40 @@
 }
 
 .measurement-form-page .data-entry-body {
-	padding: 1rem 1.15rem 1.25rem;
+	padding: 0.65rem 0.75rem 0.85rem;
 	background: var(--meas-bg);
 }
 
 .measurement-form-page .measurement-form-layout {
 	width: 100%;
-	max-width: 1100px;
-	margin: 0 auto;
+	max-width: none;
+	margin: 0;
+}
+
+/* Use full content width — no narrow centered card look */
+.measurement-form-page .col-md-12 {
+	max-width: 100%;
+	flex: 0 0 100%;
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
+.measurement-form-page .section__content--p30 {
+	padding: 8px 10px 12px !important;
+}
+
+.measurement-form-page .container-fluid {
+	padding-left: 8px !important;
+	padding-right: 8px !important;
+	max-width: none !important;
 }
 
 .measurement-form-page .measurement-info-panel {
 	background: var(--meas-surface);
 	border: 1px solid var(--meas-outline);
 	border-radius: var(--meas-radius);
-	padding: 1rem 1.15rem;
-	margin-bottom: 1rem;
+	padding: 0.65rem 0.85rem;
+	margin-bottom: 0.65rem;
 	box-shadow: var(--dz-elevation-0, none);
 }
 
@@ -103,8 +121,8 @@
 .measurement-form-page .measurement-section {
 	border: 1px solid var(--meas-outline);
 	border-radius: var(--meas-radius);
-	padding: 1rem 1.1rem 1.1rem;
-	margin-bottom: 1rem;
+	padding: 0.65rem 0.75rem 0.75rem;
+	margin-bottom: 0.65rem;
 	background: var(--meas-surface);
 }
 
@@ -112,8 +130,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 0.75rem;
-	margin-bottom: 0.85rem;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
 }
 
 .measurement-form-page .measurement-section__title {
@@ -137,12 +155,36 @@
 	flex-wrap: nowrap;
 	overflow-x: auto;
 	overflow-y: hidden;
-	gap: 0.45rem;
+	gap: 0.4rem;
 	border: 0;
-	padding: 0.1rem 0 0.9rem;
+	padding: 0 0 0.55rem;
 	margin: 0;
 	-webkit-overflow-scrolling: touch;
 	scrollbar-width: thin;
+}
+
+/* Never treat measurement field rows as sticky action bars */
+.measurement-form-page .measurement-tab-body .row.data-entry-actions,
+.measurement-form-page .data-entry-card .measurement-tab-body .row.data-entry-actions {
+	display: flex !important;
+	flex-wrap: wrap !important;
+	grid-template-columns: unset !important;
+	position: static !important;
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin-left: -6px !important;
+	margin-right: -6px !important;
+}
+
+.measurement-form-page .measurement-tab-body .row.data-entry-actions > [class*="col"],
+.measurement-form-page .data-entry-card .measurement-tab-body .row.data-entry-actions > [class*="col"] {
+	flex: 0 0 25% !important;
+	max-width: 25% !important;
+	width: 25% !important;
+	padding-left: 6px !important;
+	padding-right: 6px !important;
 }
 
 .measurement-form-page .measurement-tab-body .nav-tabs .nav-link {
@@ -175,21 +217,32 @@
 	padding: 0 !important;
 }
 
+.measurement-form-page .measurement-tab-body .tab-content {
+	padding-left: 0 !important;
+	padding-top: 0 !important;
+}
+
 .measurement-form-page .measurement-tab-body .tab-pane > .row {
-	margin-left: -8px;
-	margin-right: -8px;
+	display: flex !important;
+	flex-wrap: wrap !important;
+	margin-left: -6px !important;
+	margin-right: -6px !important;
 	margin-bottom: 0;
 }
 
-.measurement-form-page .measurement-tab-body .tab-pane > .row > .col {
-	padding-left: 8px;
-	padding-right: 8px;
-	margin-bottom: 0.75rem;
+.measurement-form-page .measurement-tab-body .tab-pane > .row > .col,
+.measurement-form-page .measurement-tab-body .tab-pane > .row > [class*="col"] {
+	flex: 0 0 25% !important;
+	max-width: 25% !important;
+	width: 25% !important;
+	padding-left: 6px !important;
+	padding-right: 6px !important;
+	margin-bottom: 0.5rem !important;
 }
 
 .measurement-form-page .measurement-tab-body .form-group {
 	margin: 0 !important;
-	padding: 0.65rem 0.7rem !important;
+	padding: 0.4rem 0.5rem !important;
 	background: var(--meas-surface-2);
 	border: 1px solid var(--meas-outline);
 	border-radius: var(--meas-radius-sm);
@@ -209,26 +262,26 @@
 	width: 100%;
 	text-align: right;
 	direction: rtl;
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 700;
 	color: var(--meas-muted);
-	margin-bottom: 0.4rem !important;
+	margin-bottom: 0.25rem !important;
 	font-family: var(--meas-font-urdu);
-	line-height: 1.35;
+	line-height: 1.25;
 }
 
 .measurement-form-page .measurement-tab-body .form-control.txtbox {
-	height: var(--meas-field-h);
-	min-height: var(--meas-field-h);
+	height: 36px;
+	min-height: 36px;
 	border-radius: var(--meas-radius-sm);
 	border: 1px solid var(--meas-outline-strong);
 	background: #fff;
 	direction: rtl;
 	text-align: right;
-	font-size: 16px;
+	font-size: 15px;
 	font-weight: 600;
 	color: var(--meas-text);
-	padding: 0.45rem 0.7rem;
+	padding: 0.25rem 0.5rem;
 	font-family: var(--meas-font);
 }
 
@@ -240,8 +293,8 @@
 
 /* Per-garment note — unique field inside each tab */
 .measurement-form-page .measurement-garment-note {
-	margin-top: 0.35rem;
-	padding: 0.85rem 0.9rem;
+	margin-top: 0.2rem;
+	padding: 0.55rem 0.65rem;
 	border-radius: var(--meas-radius-sm);
 	border: 1px dashed #7dd3fc;
 	background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
@@ -260,18 +313,18 @@
 }
 
 .measurement-form-page .measurement-garment-note__input {
-	height: 46px;
-	min-height: 46px;
+	height: 38px;
+	min-height: 38px;
 	border-radius: var(--meas-radius-sm);
 	border: 1px solid #7dd3fc;
 	background: #fff;
 	direction: rtl;
 	text-align: right;
 	font-family: var(--meas-font-urdu);
-	font-size: 17px;
+	font-size: 15px;
 	font-weight: 700;
 	color: var(--meas-text);
-	padding: 0.45rem 0.75rem;
+	padding: 0.3rem 0.55rem;
 }
 
 .measurement-form-page .measurement-garment-note__input:focus {
@@ -331,27 +384,42 @@
 	margin-bottom: 1rem;
 }
 
+@media (max-width: 1199px) {
+	.measurement-form-page .measurement-tab-body .tab-pane > .row > .col,
+	.measurement-form-page .measurement-tab-body .tab-pane > .row > [class*="col"],
+	.measurement-form-page .measurement-tab-body .row.data-entry-actions > [class*="col"] {
+		flex: 0 0 33.333% !important;
+		max-width: 33.333% !important;
+		width: 33.333% !important;
+	}
+}
+
 @media (max-width: 767px) {
 	.measurement-form-page .data-entry-body {
-		padding: 0.85rem 0.75rem 1rem;
+		padding: 0.55rem 0.5rem 0.75rem;
 	}
 
 	.measurement-form-page .measurement-info-panel {
-		padding: 0.85rem 0.9rem;
-		margin-bottom: 0.85rem;
+		padding: 0.55rem 0.65rem;
+		margin-bottom: 0.55rem;
 	}
 
 	.measurement-form-page .measurement-info-panel__grid {
 		grid-template-columns: 1fr 1fr;
-		gap: 0.65rem 0.85rem;
+		gap: 0.5rem 0.65rem;
 	}
 
 	.measurement-form-page .measurement-section {
-		padding: 0.85rem 0.8rem 0.9rem;
+		padding: 0.55rem 0.55rem 0.65rem;
 	}
 
-	.measurement-form-page .measurement-tab-body .tab-pane > .row > .col {
-		margin-bottom: 0.65rem;
+	.measurement-form-page .measurement-tab-body .tab-pane > .row > .col,
+	.measurement-form-page .measurement-tab-body .tab-pane > .row > [class*="col"],
+	.measurement-form-page .measurement-tab-body .row.data-entry-actions > [class*="col"] {
+		flex: 0 0 50% !important;
+		max-width: 50% !important;
+		width: 50% !important;
+		margin-bottom: 0.45rem !important;
 	}
 
 	.measurement-form-page .measurement-submit-sticky__actions--split {
@@ -369,8 +437,11 @@
 		grid-template-columns: 1fr;
 	}
 
-	.measurement-form-page .measurement-tab-body .tab-pane > .row > .col {
-		flex: 0 0 100%;
-		max-width: 100%;
+	.measurement-form-page .measurement-tab-body .tab-pane > .row > .col,
+	.measurement-form-page .measurement-tab-body .tab-pane > .row > [class*="col"],
+	.measurement-form-page .measurement-tab-body .row.data-entry-actions > [class*="col"] {
+		flex: 0 0 50% !important;
+		max-width: 50% !important;
+		width: 50% !important;
 	}
 }
