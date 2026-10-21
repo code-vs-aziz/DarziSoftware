@@ -128,6 +128,7 @@ else
 	<script src="<?php echo base_url(); ?>js/master-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/customer-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/cash-entry.js?v=2"></script>
+	<script src="<?php echo base_url(); ?>js/order-status-deliver.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/config-predefined.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/transfer-bulk-table.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/app-datatables-init.js?v=1"></script>

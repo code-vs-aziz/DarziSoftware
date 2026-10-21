@@ -127,7 +127,6 @@ $this->load->helper('ui');
 				<?php 
 				$order = 0 ;
 				$sr = 1 ;
-				$ready_orders_shown = array();
 			 foreach($orderdata as $orderdata){
 				 if($orderdata->ostatus == 0)
 				 {
@@ -142,11 +141,9 @@ $this->load->helper('ui');
 				 $sr = $sr + 1;
 			 }
 			 $is_delivered = (isset($orderdata->status) && (string) $orderdata->status === 'DELIVER');
-			 $is_ready = ( ! $is_delivered && $orderdata->dept == 'STIT' && $orderdata->status == 'Deactive');
-			 $show_deliver = $is_ready && empty($ready_orders_shown[$orderdata->ORDERNO]);
-			 if ($show_deliver) {
-				 $ready_orders_shown[$orderdata->ORDERNO] = TRUE;
-			 }
+			 // Ready 4 Deliver = stitching complete (STIT + Deactive). Deliver only on those rows.
+			 $is_ready = ( ! $is_delivered && isset($orderdata->dept) && $orderdata->dept === 'STIT' && isset($orderdata->status) && (string) $orderdata->status === 'Deactive');
+			 $show_deliver = $is_ready;
 						                    ?>
 					<tr>
 						<td><?php echo $orderdata->ORDERNO.'-'.$sr; ?></td>
@@ -235,18 +232,6 @@ $this->load->helper('ui');
 			</table>
 			 
 	</section>
-          <?php
-  /*include('footer.php'); */
- ?>
-                     
-                    </div>
-                </div>
-            </div>
-            <!-- END MAIN CONTENT-->
-            <!-- END PAGE CONTAINER-->
-        </div>
-
-    </div>
 
 <div class="modal fade" id="osDeliverModal" tabindex="-1" role="dialog" aria-labelledby="osDeliverModalTitle" aria-hidden="true">
 	<div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
@@ -399,6 +384,7 @@ $this->load->helper('ui');
 <script>
 window.ORDER_STATUS_DELIVER = <?php echo json_encode(array(
 	'summaryUrl' => site_url('Order/delivery_summary_json'),
+	'deliverUrlBase' => rtrim(site_url('Order/process_del'), '/').'/',
 	'labels' => array(
 		'loading' => t('app_loading'),
 		'load_fail' => t('order_status_load_fail'),
@@ -415,9 +401,17 @@ window.ORDER_STATUS_DELIVER = <?php echo json_encode(array(
 	),
 ), JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="<?php echo base_url('js/order-status-deliver.js?v=4'); ?>"></script>
+<script>if (window.jQuery) { jQuery(document).trigger('order-status:ready'); }</script>
 
- 
+                    </div><!-- card-body -->
+                </div><!-- card -->
+            </div><!-- col-md-12 -->
+                    </div><!-- container-fluid -->
+                </div>
+            <!-- END MAIN CONTENT-->
+            </div><!-- main-content -->
+        </div><!-- page-wrapper -->
+
 </body>
 
 </html>

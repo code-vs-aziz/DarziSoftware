@@ -2,9 +2,16 @@
 	'use strict';
 
 	var cfg = window.ORDER_STATUS_DELIVER || {};
-	var labels = cfg.labels || {};
+	var labels = (cfg && cfg.labels) || {};
 	var modalMode = 'view';
 	var currentData = null;
+	var clickBound = false;
+	var submitBound = false;
+
+	function syncCfg() {
+		cfg = window.ORDER_STATUS_DELIVER || cfg || {};
+		labels = cfg.labels || labels || {};
+	}
 
 	function money(n) {
 		var v = Number(n || 0);
@@ -22,7 +29,7 @@
 	}
 
 	function showModal() {
-		if (window.AppModal) {
+		if (window.AppModal && typeof window.AppModal.show === 'function') {
 			window.AppModal.show('#osDeliverModal');
 		} else if ($ && $.fn.modal) {
 			$('#osDeliverModal').modal('show');
@@ -187,17 +194,23 @@
 		fillSuits(data, canDeliver);
 		fillHistory(data);
 
-		document.getElementById('os-customer-code').value = (data.customer && data.customer.code) || '';
-		document.getElementById('os-total-amount').value = (data.money && data.money.order_total) || 0;
-		document.getElementById('os-advance').value = (data.money && data.money.advance_total) || 0;
-		document.getElementById('os-discount').value = (data.money && data.money.discount) || 0;
-		document.getElementById('os-return-date').value = (data.dates && data.dates.return_date) || '';
-		document.getElementById('os-collect-now').value = (data.money && data.money.order_remaining) || 0;
+		var custCode = document.getElementById('os-customer-code');
+		var totalAmount = document.getElementById('os-total-amount');
+		var advance = document.getElementById('os-advance');
+		var discount = document.getElementById('os-discount');
+		var returnDate = document.getElementById('os-return-date');
+		var collectNow = document.getElementById('os-collect-now');
+		if (custCode) { custCode.value = (data.customer && data.customer.code) || ''; }
+		if (totalAmount) { totalAmount.value = (data.money && data.money.order_total) || 0; }
+		if (advance) { advance.value = (data.money && data.money.advance_total) || 0; }
+		if (discount) { discount.value = (data.money && data.money.discount) || 0; }
+		if (returnDate) { returnDate.value = (data.dates && data.dates.return_date) || ''; }
+		if (collectNow) { collectNow.value = (data.money && data.money.order_remaining) || 0; }
 
 		if (form) {
-			form.action = cfg.deliverUrlBase
+			form.action = (cfg.deliverUrlBase
 				? (cfg.deliverUrlBase + data.order_id)
-				: ('/Order/process_del/' + data.order_id);
+				: ('/index.php/Order/process_del/' + data.order_id));
 			if (data._deliver_url) {
 				form.action = data._deliver_url;
 			}
@@ -221,9 +234,15 @@
 	}
 
 	function openForOrder(orderId, mode) {
+		syncCfg();
+		if (!document.getElementById('osDeliverModal')) {
+			window.alert(labels.load_fail || 'Deliver dialog is not available. Refresh the page.');
+			return;
+		}
 		setLoading(true);
 		showModal();
-		var url = (cfg.summaryUrl || '') + (String(cfg.summaryUrl || '').indexOf('?') >= 0 ? '&' : '?') + 'order_id=' + encodeURIComponent(orderId);
+		var base = cfg.summaryUrl || '';
+		var url = base + (String(base).indexOf('?') >= 0 ? '&' : '?') + 'order_id=' + encodeURIComponent(orderId);
 		fetch(url, {
 			credentials: 'same-origin',
 			headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
@@ -240,7 +259,8 @@
 				res.data._deliver_url = res.deliver_url;
 				res.data._full_page_url = res.full_page_url;
 				setLoading(false);
-				document.getElementById('os-modal-body').hidden = false;
+				var body = document.getElementById('os-modal-body');
+				if (body) { body.hidden = false; }
 				applyData(res.data, mode);
 			})
 			.catch(function (err) {
@@ -248,30 +268,61 @@
 			});
 	}
 
-	document.addEventListener('click', function (e) {
-		var payBtn = e.target.closest('.btn-os-payment');
-		var delBtn = e.target.closest('.btn-os-deliver');
-		if (payBtn) {
-			e.preventDefault();
-			openForOrder(payBtn.getAttribute('data-order-id'), 'view');
+	function bindEvents() {
+		if (!clickBound) {
+			clickBound = true;
+			document.addEventListener('click', function (e) {
+				var t = e.target;
+				if (!t) { return; }
+				if (typeof t.closest !== 'function') {
+					while (t && t !== document) {
+						if (t.classList && (t.classList.contains('btn-os-payment') || t.classList.contains('btn-os-deliver'))) {
+							break;
+						}
+						t = t.parentNode;
+					}
+				}
+				var payBtn = (e.target.closest ? e.target.closest('.btn-os-payment') : null)
+					|| (t && t.classList && t.classList.contains('btn-os-payment') ? t : null);
+				var delBtn = (e.target.closest ? e.target.closest('.btn-os-deliver') : null)
+					|| (t && t.classList && t.classList.contains('btn-os-deliver') ? t : null);
+				if (payBtn) {
+					e.preventDefault();
+					e.stopPropagation();
+					openForOrder(payBtn.getAttribute('data-order-id'), 'view');
+				}
+				if (delBtn) {
+					e.preventDefault();
+					e.stopPropagation();
+					openForOrder(delBtn.getAttribute('data-order-id'), 'deliver');
+				}
+			}, true);
 		}
-		if (delBtn) {
-			e.preventDefault();
-			openForOrder(delBtn.getAttribute('data-order-id'), 'deliver');
-		}
-	});
 
-	var form = document.getElementById('os-deliver-form');
-	if (form) {
-		form.addEventListener('submit', function (e) {
-			if (modalMode !== 'deliver' || !currentData || !currentData.can_deliver) {
-				e.preventDefault();
-				return;
-			}
-			var ok = window.confirm(labels.confirm || 'Deliver selected suits and save payment?');
-			if (!ok) {
-				e.preventDefault();
-			}
+		if (!submitBound) {
+			submitBound = true;
+			document.addEventListener('submit', function (e) {
+				if (!e.target || e.target.id !== 'os-deliver-form') {
+					return;
+				}
+				syncCfg();
+				if (modalMode !== 'deliver' || !currentData || !currentData.can_deliver) {
+					e.preventDefault();
+					return;
+				}
+				var ok = window.confirm(labels.confirm || 'Deliver selected suits and save payment?');
+				if (!ok) {
+					e.preventDefault();
+				}
+			});
+		}
+	}
+
+	bindEvents();
+
+	if ($ && $.fn && $.fn.on) {
+		$(document).on('app:ajax-loaded order-status:ready', function () {
+			syncCfg();
 		});
 	}
 })(window, document, window.jQuery);
