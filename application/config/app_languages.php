@@ -23,21 +23,22 @@ $config['app_languages'] = array(
 		'css_class'  => 'app-lang-en',
 		'rtl'        => FALSE,
 	),
+	/* Keep layout LTR like English — only strings/fonts change with language. */
 	'urdu' => array(
 		'label'      => 'اردو',
 		'native'     => 'Urdu',
 		'html_lang'  => 'ur',
-		'dir'        => 'rtl',
+		'dir'        => 'ltr',
 		'css_class'  => 'app-lang-ur',
-		'rtl'        => TRUE,
+		'rtl'        => FALSE,
 	),
 	'arabic' => array(
 		'label'      => 'العربية',
 		'native'     => 'Arabic',
 		'html_lang'  => 'ar',
-		'dir'        => 'rtl',
+		'dir'        => 'ltr',
 		'css_class'  => 'app-lang-ar',
-		'rtl'        => TRUE,
+		'rtl'        => FALSE,
 	),
 );
 

@@ -309,7 +309,7 @@ h1, h2, h3, h4, h5, h6 {
 	color: #fff;
 }
 
-/* Urdu / Arabic sidebar — proper script font + RTL item layout */
+/* Urdu / Arabic — fonts only; keep English LTR layout orientation */
 html.app-lang-ur,
 html.app-lang-ar {
 	--dz-sidebar-w: 288px;
@@ -324,11 +324,6 @@ html.app-lang-ar .menu-sidebar {
 
 html.app-lang-ur .dz-nav__item > a,
 html.app-lang-ar .dz-nav__item > a {
-	flex-direction: row-reverse;
-	direction: rtl;
-	text-align: right;
-	justify-content: flex-start;
-	gap: 10px;
 	min-height: 48px;
 	padding: 10px 14px !important;
 }

@@ -190,18 +190,7 @@ body.dz-nav-open {
 		pointer-events: none;
 	}
 
-	html.app-lang-rtl .header-mobile .navbar-mobile,
-	html.app-lang-rtl .navbar-mobile.dz-drawer,
-	html.app-lang-ur .header-mobile .navbar-mobile,
-	html.app-lang-ur .navbar-mobile.dz-drawer,
-	html.app-lang-ar .header-mobile .navbar-mobile,
-	html.app-lang-ar .navbar-mobile.dz-drawer {
-		left: auto;
-		right: 0;
-		border-right: 0 !important;
-		border-left: 1px solid var(--dz-outline) !important;
-		transform: translateX(105%);
-	}
+	/* Keep mobile drawer on the left for all languages (same as English). */
 
 	body.dz-nav-open .header-mobile .navbar-mobile,
 	body.dz-nav-open .navbar-mobile.dz-drawer {
@@ -790,12 +779,7 @@ body.dz-nav-open {
 		padding-left: var(--dz-sidebar-w) !important;
 	}
 
-	html.app-lang-rtl .page-container,
-	html.app-lang-ur .page-container,
-	html.app-lang-ar .page-container {
-		padding-left: 0 !important;
-		padding-right: var(--dz-sidebar-w) !important;
-	}
+	/* Language change must not move sidebar to the right. */
 
 	.main-content {
 		padding-bottom: calc(var(--dz-footer-h) + 16px) !important;

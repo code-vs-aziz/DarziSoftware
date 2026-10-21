@@ -82,10 +82,10 @@ else
 
     <!-- Main CSS-->
     <link href="<?php echo base_url(); ?>css/theme.css" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=57" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/app-unified-theme.css?v=9" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=58" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/app-unified-theme.css?v=10" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/erp-form-enhancements.css?v=5" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/dz-responsive.css?v=5" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/dz-responsive.css?v=6" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/dz-mobile-app.css?v=5" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/app-ajax-loader.css?v=2" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/offline-erp.css?v=1" rel="stylesheet" media="all">

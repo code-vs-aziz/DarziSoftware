@@ -46,72 +46,15 @@
 	margin: 0 !important;
 }
 
-/* RTL UI (Urdu + Arabic) */
-html.app-lang-rtl .menu-sidebar,
-html.app-lang-rtl .navbar-sidebar,
-html.app-lang-rtl .erp-card-head,
-html.app-lang-rtl .erp-module-title,
-html.app-lang-rtl .dz-card__header,
-html.app-lang-rtl .form-group label,
-html.app-lang-rtl .control-label,
-html.app-lang-rtl .erp-breadcrumb,
-html.app-lang-rtl .table th,
-html.app-lang-rtl .table td,
-html.app-lang-ur .menu-sidebar,
-html.app-lang-ur .navbar-sidebar,
-html.app-lang-ur .erp-card-head,
+/* Language fonts only — do not flip page orientation for Urdu/Arabic */
+html.app-lang-ur body.animsition,
+html.app-lang-ur body.erp-app,
+html.app-lang-ur .dz-card__title,
 html.app-lang-ur .erp-module-title,
-html.app-lang-ur .dz-card__header,
-html.app-lang-ur .form-group label,
-html.app-lang-ur .control-label,
-html.app-lang-ur .erp-breadcrumb,
-html.app-lang-ur .table th,
-html.app-lang-ur .table td {
-	text-align: right;
-}
-html.app-lang-rtl .dz-topbar__inner,
-html.app-lang-rtl .dz-topbar-mobile__inner,
-html.app-lang-ur .dz-topbar__inner,
-html.app-lang-ur .dz-topbar-mobile__inner {
-	direction: rtl;
+html.app-lang-ur .dz-nav__label {
+	font-family: var(--dz-font-urdu) !important;
 }
 
-html.app-lang-rtl .dz-topbar__crumb,
-html.app-lang-ur .dz-topbar__crumb {
-	flex-direction: row-reverse;
-	justify-content: flex-end;
-}
-html.app-lang-rtl input[type="date"],
-html.app-lang-rtl input[type="number"],
-html.app-lang-rtl input[type="tel"],
-html.app-lang-rtl .form-control[type="text"]:not(.urd):not(.txtbox),
-html.app-lang-ur input[type="date"],
-html.app-lang-ur input[type="number"],
-html.app-lang-ur input[type="tel"],
-html.app-lang-ur .form-control[type="text"]:not(.urd):not(.txtbox) {
-	direction: ltr;
-	text-align: left;
-}
-html.app-lang-rtl .order-remark-group,
-html.app-lang-rtl .order-predefined-tags,
-html.app-lang-rtl input.urd,
-html.app-lang-rtl input.txtbox,
-html.app-lang-ur .order-remark-group,
-html.app-lang-ur .order-predefined-tags,
-html.app-lang-ur input.urd,
-html.app-lang-ur input.txtbox {
-	direction: rtl;
-	text-align: right;
-}
-html.app-lang-rtl .dataTables_wrapper,
-html.app-lang-ur .dataTables_wrapper {
-	direction: rtl;
-}
-html.app-lang-rtl .erp-entry-number,
-html.app-lang-ur .erp-entry-number {
-	margin-left: 0;
-	margin-right: auto;
-}
 html.app-lang-ar body.animsition,
 html.app-lang-ar body.erp-app,
 html.app-lang-ar .dz-card__title,
@@ -119,19 +62,20 @@ html.app-lang-ar .erp-module-title {
 	font-family: var(--dz-font-arabic) !important;
 }
 
-html.app-lang-ur .menu-sidebar,
-html.app-lang-ur .navbar-sidebar {
-	text-align: initial;
-	direction: ltr;
+/* Urdu-entry fields stay RTL for typing; chrome stays LTR */
+html.app-lang-ur .order-remark-group,
+html.app-lang-ur .order-predefined-tags,
+html.app-lang-ur input.urd,
+html.app-lang-ur input.txtbox,
+html.app-lang-ur textarea.urd,
+html.app-lang-ar .order-remark-group,
+html.app-lang-ar .order-predefined-tags,
+html.app-lang-ar input.urd,
+html.app-lang-ar input.txtbox,
+html.app-lang-ar textarea.urd {
+	direction: rtl;
+	text-align: right;
 }
-
-html.app-lang-ar .menu-sidebar,
-html.app-lang-ar .navbar-sidebar {
-	text-align: initial;
-	direction: ltr;
-}
-
-/* Legacy alias — keep urdu-only rules above for older cached HTML */
 
 html {
 	overflow-y: scroll;
