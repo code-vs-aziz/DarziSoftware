@@ -145,6 +145,61 @@ body.login-advanced {
 	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.login-input-group--password input {
+	padding-right: 2.75rem;
+}
+
+.login-input-group__toggle {
+	position: absolute;
+	right: 0.35rem;
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--login-text-muted);
+	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+}
+
+.login-input-group__toggle:hover,
+.login-input-group__toggle:focus-visible {
+	color: var(--login-primary-dark);
+	background: rgba(14, 165, 233, 0.08);
+	outline: none;
+}
+
+.login-input-group__toggle[aria-pressed="true"] {
+	color: var(--login-primary-dark);
+}
+
+html[dir="rtl"] .login-input-group__icon {
+	left: auto;
+	right: 0.875rem;
+}
+
+html[dir="rtl"] .login-input-group input {
+	padding-left: 1rem;
+	padding-right: 2.5rem;
+}
+
+html[dir="rtl"] .login-input-group--password input {
+	padding-left: 2.75rem;
+	padding-right: 2.5rem;
+}
+
+html[dir="rtl"] .login-input-group__toggle {
+	right: auto;
+	left: 0.35rem;
+}
+
 .login-input-group input:focus {
 	outline: none;
 	border-color: var(--login-primary);

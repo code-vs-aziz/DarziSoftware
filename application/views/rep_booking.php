@@ -7,6 +7,15 @@ $rows = array();
 $order_counter = array();
 $status_counts = array();
 
+$design_type_labels = array(
+	'Kurta' => t('design_type_kurta'),
+	'Pajama' => t('design_type_pajama'),
+	'Pent' => t('design_type_pent'),
+	'Shirt' => t('design_type_shirt'),
+	'Coat' => t('design_type_coat'),
+	'Waistcoat' => t('design_type_waistcoat'),
+);
+
 foreach ($payment as $orderdata) {
 	if (!isset($orderdata->ostatus) || (string) $orderdata->ostatus !== '0') {
 		continue;
@@ -35,13 +44,34 @@ foreach ($payment as $orderdata) {
 		$status_counts[$stage] = 0;
 	}
 	$status_counts[$stage]++;
+
+	$raw_type = isset($orderdata->suit_type) ? trim((string) $orderdata->suit_type) : '';
+	$suit_type = ($raw_type !== '' && isset($design_type_labels[$raw_type]))
+		? $design_type_labels[$raw_type]
+		: $raw_type;
+	$suit_name = isset($orderdata->suit_name) ? trim((string) $orderdata->suit_name) : '';
+	if ($suit_type !== '' && $suit_name !== '') {
+		$order_type = $suit_type.' — '.$suit_name;
+	} elseif ($suit_type !== '') {
+		$order_type = $suit_type;
+	} else {
+		$order_type = $suit_name;
+	}
+
+	$karigar = isset($orderdata->karigar_name) ? trim((string) $orderdata->karigar_name) : '';
+	if ($karigar === '' && ($stage === 'Booking' || $stage === 'HO2')) {
+		$karigar = '—';
+	}
+
 	$rows[] = array(
 		$order_no.'-'.$order_counter[$order_no],
 		isset($orderdata->RORDERDATE) && $orderdata->RORDERDATE !== '' ? date('d-m-Y', strtotime($orderdata->RORDERDATE)) : '',
 		isset($orderdata->Phone) ? $orderdata->Phone : '',
 		isset($orderdata->name) ? $orderdata->name : '',
 		isset($orderdata->man_napno) ? $orderdata->man_napno : '',
+		$order_type,
 		$stage,
+		$karigar,
 	);
 }
 
@@ -69,7 +99,7 @@ $report_fields = array(
 	array('label' => 'From Date', 'name' => 'fromdate', 'type' => 'date'),
 	array('label' => 'To Date', 'name' => 'todate', 'type' => 'date'),
 );
-$report_columns = array('Order', 'Return Date', 'Phone', 'Customer', 'Naap No', 'Status');
+$report_columns = array('Order', 'Return Date', 'Phone', 'Customer', 'Naap No', 'Order Type', 'Status', 'Karigar');
 $report_rows = $rows;
 $report_has_report = $has_report;
 $report_summary = array(

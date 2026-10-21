@@ -2,6 +2,7 @@
 
 import { LanguageProvider } from "@/lib/i18n";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 
@@ -25,6 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SiteHeader />
         <main className="db-main">{children}</main>
         <SiteFooter phone={contact.phone} whatsapp={contact.whatsapp} />
+        <MobileTabBar />
       </div>
     </LanguageProvider>
   );

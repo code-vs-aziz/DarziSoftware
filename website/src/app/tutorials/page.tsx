@@ -20,7 +20,7 @@ export default function TutorialsPage() {
       <div className="db-wrap">
         <h1 className="db-page-title">{t("navTutorials")}</h1>
         <p className="db-lead">{t("tutorialsLead")}</p>
-        <div className="db-grid" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))" }}>
+        <div className="db-grid db-grid--cards">
           {catalog.map((group) => (
             <article className="db-path-card" key={group.garment}>
               <h3>{lang === "ur" ? group.label_ur : group.label_en}</h3>

@@ -1548,6 +1548,11 @@ public function process()
 		}
 
 		$firstDate = date("Y-m-d", strtotime($this->input->post('retrun_Date')));
+		$image_val = $this->input->post('iamge');
+		if ($image_val === NULL || $image_val === FALSE)
+		{
+			$image_val = '';
+		}
 		 	$data1 = array(
 				'EDATE' => date('Y-m-d'),
 				'naap_no' => $naap_code,
@@ -1556,12 +1561,13 @@ public function process()
 				'snap_customer_code' => isset($meas_row->Customerno) ? (int) $meas_row->Customerno : (isset($meas_row->customer_code) ? (int) $meas_row->customer_code : 0),
 				'RDATE' => $firstDate,
 				'staff_empno' => $staff_empno,
-				'qty' => $this->input->post('Quantity'),
+				'qty' => $this->input->post('Quantity') !== NULL && $this->input->post('Quantity') !== '' ? $this->input->post('Quantity') : 1,
 				'total' => $total_amount,
 				'advance' => $advance,
 				'Discount' => $discount,
-				'addprice' => $this->input->post('addprice'),
-				'image' => $this->input->post('iamge'),
+				'addprice' => $this->input->post('addprice') !== NULL ? $this->input->post('addprice') : 0,
+				'image' => (string) $image_val,
+				'ostatus' => 0,
 		 
   
 ); 
@@ -1600,40 +1606,42 @@ public function process()
 	
 for($i=0; $i<$line_count; $i++)
 {
-	$data ['order_trnno'] = $order_trnno;
-  $data ['design'] = 0;
-  $data ['type'] = $this->input->post("desigtype[".$i."]");
-  $data ['kolor_style'] = $this->input->post("kolorstyle".$i."");
-  $data ['ENO'] = 0;
-  $line_sno = (int) $this->input->post("suit[".$i."]");
-  $data ['SNO'] = $line_sno;
-  $data ['snap_suit_name'] = $this->order_query->get_suit_name_by_sno($line_sno);
-  $data ['suitrate'] = $this->input->post("ssrate[".$i."]");
-  $data ['drate'] = 0;
-  $data ['erate'] = 0;
-  $data ['addprice'] = $this->input->post("add[".$i."]");
-  $data ['spocket'] = $this->input->post("spocket[".$i."]");
-  $data ['fpocket'] = $this->input->post("fpocket[".$i."]");
-  $data ['Shawlarpocket'] = $this->input->post("shawpocket[".$i."]");
-  $data ['order_remarks'] = $this->input->post("Remarks[".$i."]");
-  
- 
-  $res=$this->insert->insert_dat1($data,'order_dtl');
-  $order_detail_sr = $this->db->insert_id();
-	
+	$data = array();
+	$data['order_trnno'] = $order_trnno;
+	$data['design'] = 0;
+	$data['type'] = (string) $this->input->post('desigtype['.$i.']');
+	$kolor = $this->input->post('kolorstyle'.$i);
+	$data['kolor_style'] = ($kolor === NULL || $kolor === FALSE) ? '' : (string) $kolor;
+	$data['ENO'] = 0;
+	$line_sno = (int) $this->input->post('suit['.$i.']');
+	$data['SNO'] = $line_sno;
+	$data['snap_suit_name'] = $this->order_query->get_suit_name_by_sno($line_sno);
+	$data['suitrate'] = (float) $this->input->post('ssrate['.$i.']');
+	$data['drate'] = 0;
+	$data['erate'] = 0;
+	$add = $this->input->post('add['.$i.']');
+	$data['addprice'] = ($add === NULL || $add === FALSE || $add === '') ? 0 : $add;
+	$sp = $this->input->post('spocket['.$i.']');
+	$fp = $this->input->post('fpocket['.$i.']');
+	$shaw = $this->input->post('shawpocket['.$i.']');
+	$data['spocket'] = ($sp === NULL || $sp === FALSE) ? '' : (string) $sp;
+	$data['fpocket'] = ($fp === NULL || $fp === FALSE) ? '' : (string) $fp;
+	$data['Shawlarpocket'] = ($shaw === NULL || $shaw === FALSE) ? '' : (string) $shaw;
+	$remarks = $this->input->post('Remarks['.$i.']');
+	$data['order_remarks'] = ($remarks === NULL || $remarks === FALSE) ? '' : (string) $remarks;
 
-  
-  
-  
- $data2 ['EDATE'] = date('Y-m-d');
-  $data2 ['order_id'] = $order_trnno;
-  $data2 ['sr'] = $order_detail_sr;
-   
-  $data2 ['qty'] = 1;
-  $data2 ['dept'] = 'HO';
-  $data2 ['status'] = 'Active';
-  
-  $res=$this->insert->insert_dat1($data2,'transfer_mst');
+	$res = $this->insert->insert_dat1($data, 'order_dtl');
+	$order_detail_sr = $this->db->insert_id();
+
+	$data2 = array();
+	$data2['EDATE'] = date('Y-m-d');
+	$data2['order_id'] = $order_trnno;
+	$data2['sr'] = $order_detail_sr;
+	$data2['qty'] = 1;
+	$data2['dept'] = 'HO';
+	$data2['status'] = 'Active';
+
+	$res = $this->insert->insert_dat1($data2, 'transfer_mst');
 }
 
 		$this->db->trans_complete();

@@ -109,7 +109,13 @@ $modal_nav_attr = 'data-no-ajax="true" data-app-modal-nav="true"';
 			<?php if (empty($is_search)) { ?>
 			<p class="text-muted small mb-2">Customers are not loaded until you search. This keeps the page fast with large databases.</p>
 			<?php } elseif (empty($customer)) { ?>
-			<p class="text-warning small mb-2">No customers matched your search.</p>
+			<div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between mb-3" role="status">
+				<div>
+					<strong><?php echo esc_html(t('home_search_empty')); ?></strong>
+					<div class="small mb-0"><?php echo esc_html(t('home_search_empty_hint')); ?></div>
+				</div>
+				<a class="btn btn-primary dz-btn--filled btn-sm mt-2 mt-sm-0" href="<?php echo site_url('Customer/Customer_add'.( ! empty($search_term) ? '?phone='.rawurlencode(preg_replace('/\D+/', '', (string) $search_term)) : '')); ?>"><?php echo esc_html(t('home_search_add_customer')); ?></a>
+			</div>
 			<?php } ?>
 			<div class="demo-html"></div>
 			<div class="table-responsive">

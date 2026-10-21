@@ -43,8 +43,12 @@ else
 	<link rel="icon" href="<?php echo base_url('images/favicon-32.png'); ?>?v=1" type="image/png" sizes="32x32">
 	<link rel="icon" href="<?php echo base_url('images/favicon-16.png'); ?>?v=1" type="image/png" sizes="16x16">
 	<link rel="shortcut icon" href="<?php echo base_url('favicon.ico'); ?>?v=1">
-	<link rel="apple-touch-icon" href="<?php echo base_url('images/apple-touch-icon.png'); ?>?v=1" sizes="180x180">
-	<meta name="theme-color" content="#1f4b3f">
+	<link rel="apple-touch-icon" href="<?php echo base_url('images/apple-touch-icon.png'); ?>?v=2" sizes="180x180">
+	<meta name="theme-color" content="#0ea5e9">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="default">
+	<meta name="apple-mobile-web-app-title" content="DarziERP">
 	<link rel="manifest" href="<?php echo base_url('manifest.webmanifest'); ?>">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,10 +82,10 @@ else
 
     <!-- Main CSS-->
     <link href="<?php echo base_url(); ?>css/theme.css" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=48" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=57" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/app-unified-theme.css?v=9" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/erp-form-enhancements.css?v=5" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/dz-responsive.css?v=3" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/dz-responsive.css?v=5" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/dz-mobile-app.css?v=5" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/app-ajax-loader.css?v=2" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/offline-erp.css?v=1" rel="stylesheet" media="all">

@@ -4,18 +4,49 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class Master_data_model extends CI_Model
 
 {
+  /**
+   * Linux MySQL (lower_case_table_names=0) is case-sensitive.
+   * Legacy code often passes TitleCase table names.
+   */
+  function normalize_table_name($tab_name)
+  {
+    if (is_array($tab_name))
+    {
+      $tab_name = reset($tab_name);
+    }
+    $tab_name = trim((string) $tab_name);
+    if ($tab_name === '')
+    {
+      return $tab_name;
+    }
+
+    static $map = array(
+      'measurement' => 'measurement',
+      'customer' => 'customer',
+      'employee' => 'employee',
+      'embroidery' => 'embroidery',
+      'style' => 'style',
+      'suit' => 'suit',
+      'button' => 'button',
+      'order_mst' => 'order_mst',
+      'order_dtl' => 'order_dtl',
+      'transfer_mst' => 'transfer_mst',
+      'users' => 'users',
+      'jmst' => 'jmst',
+      'jdtl' => 'jdtl',
+    );
+
+    $key = strtolower($tab_name);
+    return isset($map[$key]) ? $map[$key] : $tab_name;
+  }
+
   function get_dat($tab_name, $active_only = FALSE)
   {
     if (is_array($tab_name))
     {
       $tab_name = reset($tab_name);
     }
-    $tab_name = (string) $tab_name;
-    // MySQL table names are usually lowercase on this app.
-    if (strcasecmp($tab_name, 'Embroidery') === 0)
-    {
-      $tab_name = 'embroidery';
-    }
+    $tab_name = $this->normalize_table_name($tab_name);
     $active_only = (bool) $active_only;
     $status_tables = array('embroidery', 'style', 'suit');
 
@@ -62,15 +93,7 @@ class Master_data_model extends CI_Model
    */
   function clear_dat_cache($tab_name)
   {
-    if (is_array($tab_name))
-    {
-      $tab_name = reset($tab_name);
-    }
-    $tab_name = (string) $tab_name;
-    if (strcasecmp($tab_name, 'Embroidery') === 0)
-    {
-      $tab_name = 'embroidery';
-    }
+    $tab_name = $this->normalize_table_name($tab_name);
     $cache_tables = array('embroidery', 'style', 'suit', 'employee');
     if ( ! in_array($tab_name, $cache_tables, TRUE))
     {
@@ -134,6 +157,7 @@ class Master_data_model extends CI_Model
     /* all the queries relating to the data we want to retrieve will go in here. */
  
     //$this->db->where($where_arr);
+    $tab_name = $this->normalize_table_name($tab_name);
     $this->db->select('*');
 	$this->db->from($tab_name);
 	$this->db->where($where);
@@ -160,6 +184,7 @@ class Master_data_model extends CI_Model
     /* all the queries relating to the data we want to retrieve will go in here. */
  
     //$this->db->where($where_arr);
+	$tab = $this->normalize_table_name($tab);
 	$this->db->select_max($field);
 	$q = $this->db->get($tab);
 

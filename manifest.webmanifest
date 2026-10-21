@@ -1,12 +1,13 @@
 {
   "name": "Darzi Baba ERP",
   "short_name": "DarziERP",
-  "description": "Tailoring shop ERP — works offline via Offline Desk",
-  "start_url": "./offline-app.html",
+  "description": "Darzi Baba tailoring shop ERP",
+  "start_url": "./index.php/Login",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#e8f0ec",
-  "theme_color": "#1f4b3f",
+  "orientation": "any",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0ea5e9",
   "lang": "en",
   "icons": [
     {
@@ -17,7 +18,14 @@
     {
       "src": "images/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

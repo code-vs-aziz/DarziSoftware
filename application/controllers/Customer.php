@@ -45,15 +45,16 @@ class Customer extends MY_Controller {
 		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-	  $data["max_naap"]= $this->master_data->get_max_id('man_napno', 'customer');
-	
- 	$this->load->view('customer',$data);
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
-
-		
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
+		$data = array();
+		$data['max_naap'] = $this->master_data->get_max_id('man_napno', 'customer');
+		$phone = $this->input->get('phone', TRUE);
+		$data['prefill_phone'] = $phone !== NULL ? trim((string) $phone) : '';
+		$this->load->view('customer', $data);
 	}
 		public function customer_edit()
 	{
@@ -80,6 +81,66 @@ class Customer extends MY_Controller {
 		$this->session->set_flashdata('id', $last);
 		$this->load->view('customer_edit', $data);
 	}
+
+	/**
+	 * Customer record hub: profile summary + measurements / orders / balance links.
+	 * Reuses existing ERP data; does not create records.
+	 */
+	public function record()
+	{
+		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
+		$this->load->helper('url');
+		$this->load->library('session');
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
+
+		$code = (int) $this->uri->segment(3);
+		if ($code < 1)
+		{
+			show_error('Invalid customer code.', 400);
+			return;
+		}
+
+		$rows = $this->master_data->get_dat_where('customer', 'customer.code = '.$code);
+		if ( ! is_array($rows) || empty($rows))
+		{
+			show_error('Customer not found.', 404);
+			return;
+		}
+		$customer = NULL;
+		foreach ($rows as $customer)
+		{
+			break;
+		}
+		if ( ! $customer)
+		{
+			show_error('Customer not found.', 404);
+			return;
+		}
+
+		$meas_map = $this->customer_query->get_primary_measurement_codes_for_codes(array($code));
+		$meas_code = isset($meas_map[$code]) ? (int) $meas_map[$code] : 0;
+
+		$this->load->model('order_query');
+		$context = $this->order_query->get_customer_order_context($code);
+		$orders = $this->order_query->get_customer_order_history($code);
+		$open_suits = $this->order_query->get_customer_open_suits($code, 25);
+
+		$data = array(
+			'customer' => $customer,
+			'customer_code' => $code,
+			'measurement_code' => $meas_code,
+			'has_measurement' => $meas_code > 0,
+			'order_context' => $context,
+			'order_history' => $orders,
+			'open_suits' => $open_suits,
+			'ledger_from' => date('Y-m-d', strtotime('-1 year')),
+		);
+		$this->load->view('customer_record', $data);
+	}
 	
 	
 		public function index()
@@ -105,6 +166,52 @@ class Customer extends MY_Controller {
  	$this->load->view('customer_view',$data);
 
 		
+	}
+
+	/**
+	 * Live suggest JSON for home / typeahead search.
+	 */
+	public function search_suggest()
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		if ( ! $this->session->userdata('user'))
+		{
+			$this->output->set_status_header(401);
+			$this->output->set_content_type('application/json');
+			$this->output->set_output(json_encode(array('ok' => FALSE, 'results' => array())));
+			return;
+		}
+
+		$q = trim((string) $this->input->get('q', TRUE));
+		$results = array();
+		if (mb_strlen($q) >= 2)
+		{
+			$rows = $this->customer_query->search_customers_paged($q, 12, 0);
+			$codes = array();
+			foreach ($rows as $row)
+			{
+				$codes[] = (int) $row->code;
+			}
+			$meas_map = $this->customer_query->get_primary_measurement_codes_for_codes($codes);
+			foreach ($rows as $row)
+			{
+				$code = (int) $row->code;
+				$meas_code = isset($meas_map[$code]) ? (int) $meas_map[$code] : 0;
+				$results[] = array(
+					'code' => $code,
+					'name' => (string) $row->name,
+					'phone' => isset($row->Phone) ? (string) $row->Phone : '',
+					'naap' => isset($row->man_napno) ? (string) $row->man_napno : '',
+					'has_measurement' => $meas_code > 0,
+					'measurement_code' => $meas_code,
+				);
+			}
+		}
+
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode(array('ok' => TRUE, 'results' => $results)));
 	}
 
 	/**

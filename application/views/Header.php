@@ -80,7 +80,12 @@ if ( ! function_exists('erp_nav_section')) {
 $erp_nav_html = '';
 
 if (!empty($erp_can['dashboard.view'])) {
-	$erp_nav_html .= erp_nav_item(t('menu_dashboard'), site_url('Welcome'), 'fa-home', erp_nav_is_active('welcome', $erp_router_class, $erp_router_method, $erp_uri));
+	$erp_nav_html .= erp_nav_item(
+		t('menu_dashboard'),
+		site_url('Welcome/dashboard'),
+		'fa-chart-pie',
+		($erp_router_class === 'welcome' && in_array($erp_router_method, array('dashboard', 'overview'), TRUE))
+	);
 }
 if (!empty($erp_can['customer.manage'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_customer'), site_url('Customer'), 'fa-users', erp_nav_is_active('customer', $erp_router_class, $erp_router_method, $erp_uri));
@@ -159,9 +164,12 @@ $erp_bc_labels = array(
 	'website' => t('menu_website'),
 	'rbac' => t('menu_rbac'),
 );
-$erp_is_dashboard = ($erp_router_class === 'welcome' && in_array($erp_router_method, array('index', 'overview', ''), TRUE));
+$erp_is_home = ($erp_router_class === 'welcome' && in_array($erp_router_method, array('index', ''), TRUE));
+$erp_is_dashboard = ($erp_router_class === 'welcome' && in_array($erp_router_method, array('dashboard', 'overview'), TRUE));
 if ($erp_router_class === 'welcome' && $erp_router_method === 'report') {
 	$erp_page_title = t('menu_reports');
+} elseif ($erp_is_home) {
+	$erp_page_title = t('menu_dashboard_home');
 } elseif ($erp_router_class === 'transfer' && ($erp_router_method === 'transfer_order' || $erp_router_method === 'transfer_table')) {
 	$erp_transfer_dept = '';
 	if ($erp_router_method === 'transfer_order') {
@@ -181,6 +189,8 @@ if ($erp_router_class === 'welcome' && $erp_router_method === 'report') {
 	}
 } elseif ($erp_is_dashboard) {
 	$erp_page_title = t('dash_title');
+} elseif ($erp_router_class === 'welcome') {
+	$erp_page_title = t('menu_dashboard_home');
 } else {
 	$erp_page_title = isset($erp_bc_labels[$erp_router_class])
 		? $erp_bc_labels[$erp_router_class]
@@ -196,7 +206,7 @@ if (!empty($erp_can['dashboard.view'])) {
 		'label' => t('menu_nav_home'),
 		'url' => site_url('Welcome'),
 		'icon' => 'fa-home',
-		'active' => erp_nav_is_active('welcome', $erp_router_class, $erp_router_method, $erp_uri),
+		'active' => ($erp_router_class === 'welcome' && in_array($erp_router_method, array('index', ''), TRUE)),
 	);
 }
 if (!empty($erp_can['customer.manage'])) {
@@ -248,7 +258,7 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 <nav class="navbar-mobile dz-drawer d-lg-none" id="dz-mobile-drawer" aria-label="Main">
 	<div class="dz-drawer__brand">
 		<a href="<?php echo site_url('Welcome'); ?>">
-			<img src="<?php echo base_url('images/darzi-baba-logo.png'); ?>?v=2" alt="Darzi Baba" width="140" height="88">
+			<img src="<?php echo base_url('images/darzi-baba-logo.png'); ?>?v=5" alt="Darzi Baba" width="140" height="88">
 		</a>
 		<button type="button" class="dz-drawer__close" data-dz-nav-close="true" aria-label="<?php echo esc_html(t('app_close')); ?>"><?php echo ui_icon('times'); ?></button>
 	</div>
@@ -280,7 +290,7 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 <aside class="menu-sidebar d-none d-lg-block dz-sidebar">
 	<div class="dz-sidebar__brand">
 		<a href="<?php echo site_url('Welcome'); ?>">
-			<img src="<?php echo base_url('images/darzi-baba-logo.png'); ?>?v=2" alt="Darzi Baba" class="app-sidebar-logo" width="220" height="138">
+			<img src="<?php echo base_url('images/darzi-baba-logo.png'); ?>?v=5" alt="Darzi Baba" class="app-sidebar-logo" width="220" height="138">
 		</a>
 	</div>
 	<div class="menu-sidebar__content js-scrollbar1 dz-sidebar__scroll">
@@ -296,14 +306,16 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 	<header class="header-desktop dz-topbar">
 		<div class="dz-topbar__inner">
 			<div class="dz-topbar__lead">
-				<?php if ( ! $erp_is_dashboard) { ?>
+				<?php if ( ! $erp_is_home && ! $erp_is_dashboard) { ?>
 				<nav class="dz-topbar__crumb" aria-label="Breadcrumb">
-					<a href="<?php echo site_url('Welcome'); ?>"><?php echo esc_html(t('menu_dashboard')); ?></a>
+					<a href="<?php echo site_url('Welcome'); ?>"><?php echo esc_html(t('menu_dashboard_home')); ?></a>
 					<span class="dz-topbar__crumb-sep" aria-hidden="true">/</span>
 					<span class="dz-topbar__crumb-current" aria-current="page"><?php echo esc_html($erp_page_title); ?></span>
 				</nav>
 				<?php } ?>
+				<?php if ( ! $erp_is_home) { ?>
 				<h1 class="dz-topbar__title"><?php echo esc_html($erp_page_title); ?></h1>
+				<?php } ?>
 			</div>
 			<div class="dz-topbar__tools">
 				<?php $this->load->view('partials/offline_status_chip', array('offline_indicator_variant' => 'desktop')); ?>

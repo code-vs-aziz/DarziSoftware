@@ -62,6 +62,7 @@ class Measurement extends MY_Controller {
 					$data["customer_data"]= $this->master_data->get_dat_where( 'customer',$where);
 					$data["last_id"] = $this->master_data->get_max_id('code','Measurement');
 				 $data["measurement"]= $this->order_query->measurement($where);
+				 $data['return_order'] = $this->input->get('return') === 'order';
   	
 		 
 				 $this->session->set_flashdata('id', $this->uri->segment(3));
@@ -312,6 +313,13 @@ public function process()
 				$last = $this->uri->segment(3);
 				
 				$res=$this->insert->entry_update1('code',$last,$data,'Measurement');
+				$customer_code = (int) $this->input->post('customerno1', TRUE);
+				if ($this->input->post('return_to', TRUE) === 'order' && $customer_code > 0)
+				{
+					$meas_code = (int) $last;
+					redirect('Order/order_add1/'.$customer_code.($meas_code > 0 ? '/'.$meas_code : ''));
+					return;
+				}
 				redirect('Order/order_view/'.$last.'');
 				if($res==true)
 				{	

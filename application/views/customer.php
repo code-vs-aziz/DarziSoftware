@@ -131,7 +131,7 @@ $max_naap_next = isset($max_naap) ? ((int) $max_naap + 1) : '';
 												<div class="col-md-6">
 													<div class="form-group">
 														<label for="Phone" class="control-label mb-1"><?php echo t('customer_phone'); ?></label>
-														<input id="Phone" name="Phone" type="text" class="form-control" inputmode="tel" value="">
+														<input id="Phone" name="Phone" type="text" class="form-control" inputmode="tel" value="<?php echo isset($prefill_phone) ? esc_attr((string) $prefill_phone) : ''; ?>">
 													</div>
 												</div>
 												<div class="col-md-6">

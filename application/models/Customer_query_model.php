@@ -110,29 +110,13 @@ class Customer_query_model extends CI_Model
     return $q->result();
   }
 
+  /**
+   * Flexible customer match: name/naap/cnic contains; phone matches anywhere
+   * (partial digits without network code, spaces/dashes ignored).
+   */
   protected function _apply_customer_search($term_raw)
   {
-    $term_raw = trim((string) $term_raw);
-    if ($term_raw === '')
-    {
-      return;
-    }
-    $digits = preg_replace('/\D+/', '', $term_raw);
-    $this->db->group_start();
-    $this->db->where('man_napno', $term_raw);
-    $this->db->or_where('Phone', $term_raw);
-    $this->db->or_where('cnic', $term_raw);
-    if ($digits !== '' && $digits !== $term_raw)
-    {
-      $this->db->or_where('Phone', $digits);
-      $this->db->or_where('cnic', $digits);
-    }
-    $esc = $this->db->escape_like_str($term_raw);
-    $this->db->or_like('man_napno', $esc, 'after');
-    $this->db->or_like('Phone', $esc, 'after');
-    $this->db->or_like('cnic', $esc, 'after');
-    $this->db->or_like('name', $esc, 'both');
-    $this->db->group_end();
+    $this->_apply_phone_flexible_search($term_raw, '', TRUE);
   }
 
   /**
@@ -140,28 +124,7 @@ class Customer_query_model extends CI_Model
    */
   protected function _apply_joined_customer_search($term_raw)
   {
-    $term_raw = trim((string) $term_raw);
-    if ($term_raw === '')
-    {
-      return;
-    }
-    $digits = preg_replace('/\D+/', '', $term_raw);
-    $c = 'customer.';
-    $this->db->group_start();
-    $this->db->where($c.'man_napno', $term_raw);
-    $this->db->or_where($c.'Phone', $term_raw);
-    $this->db->or_where($c.'cnic', $term_raw);
-    if ($digits !== '' && $digits !== $term_raw)
-    {
-      $this->db->or_where($c.'Phone', $digits);
-      $this->db->or_where($c.'cnic', $digits);
-    }
-    $esc = $this->db->escape_like_str($term_raw);
-    $this->db->or_like($c.'man_napno', $esc, 'after');
-    $this->db->or_like($c.'Phone', $esc, 'after');
-    $this->db->or_like($c.'cnic', $esc, 'after');
-    $this->db->or_like($c.'name', $esc, 'both');
-    $this->db->group_end();
+    $this->_apply_phone_flexible_search($term_raw, 'customer.', FALSE);
   }
 
   /**
@@ -176,21 +139,115 @@ class Customer_query_model extends CI_Model
     }
     $digits = preg_replace('/\D+/', '', $term_raw);
     $this->db->group_start();
-    $this->db->where('man_napno', $term_raw);
-    $this->db->or_where('Phone', $term_raw);
-    if ($digits !== '' && $digits !== $term_raw)
-    {
-      $this->db->or_where('Phone', $digits);
-    }
+    $this->_apply_phone_flexible_search($term_raw, '', FALSE, FALSE);
     if ($digits !== '' && ctype_digit($digits))
     {
       $this->db->or_where('ORDERNO', $digits);
+      $this->db->or_like('ORDERNO', $this->db->escape_like_str($digits), 'both');
     }
-    $esc = $this->db->escape_like_str($term_raw);
-    $this->db->or_like('man_napno', $esc, 'after');
-    $this->db->or_like('Phone', $esc, 'after');
-    $this->db->or_like('name', $esc, 'both');
     $this->db->group_end();
+  }
+
+  /**
+   * Shared flexible match for customer / joined customer tables.
+   *
+   * @param string $term_raw
+   * @param string $prefix table prefix e.g. "customer."
+   * @param bool   $wrap_group wrap in group_start/group_end
+   * @param bool   $include_cnic
+   */
+  protected function _apply_phone_flexible_search($term_raw, $prefix = '', $wrap_group = TRUE, $include_cnic = TRUE)
+  {
+    $term_raw = trim((string) $term_raw);
+    if ($term_raw === '')
+    {
+      return;
+    }
+    $p = (string) $prefix;
+    $digits = preg_replace('/\D+/', '', $term_raw);
+    $esc = $this->db->escape_like_str($term_raw);
+
+    if ($wrap_group)
+    {
+      $this->db->group_start();
+    }
+
+    $this->db->or_where($p.'man_napno', $term_raw);
+    $this->db->or_where($p.'Phone', $term_raw);
+    if ($include_cnic)
+    {
+      $this->db->or_where($p.'cnic', $term_raw);
+    }
+
+    // Contains match on raw text (name + ids + phone as typed)
+    $this->db->or_like($p.'man_napno', $esc, 'both');
+    $this->db->or_like($p.'Phone', $esc, 'both');
+    $this->db->or_like($p.'name', $esc, 'both');
+    if ($include_cnic)
+    {
+      $this->db->or_like($p.'cnic', $esc, 'both');
+    }
+
+    if ($digits !== '')
+    {
+      $esc_d = $this->db->escape_like_str($digits);
+      $this->db->or_where($p.'Phone', $digits);
+      $this->db->or_where($p.'man_napno', $digits);
+      if ($include_cnic)
+      {
+        $this->db->or_where($p.'cnic', $digits);
+      }
+      $this->db->or_like($p.'Phone', $esc_d, 'both');
+      $this->db->or_like($p.'man_napno', $esc_d, 'both');
+      if ($include_cnic)
+      {
+        $this->db->or_like($p.'cnic', $esc_d, 'both');
+      }
+
+      // Digits-only phone: ignore spaces/dashes/+ and match partial (e.g. 0407042 → 03060407042)
+      if (strlen($digits) >= 4)
+      {
+        $phone_digits = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(".$p."Phone,''),'-',''),' ',''),'+',''),'.',''),'(','')";
+        $phone_digits = "REPLACE(".$phone_digits.",')','')";
+        $variants = array($digits);
+        // leading 0 dropped / added
+        if ($digits[0] === '0' && strlen($digits) > 4)
+        {
+          $variants[] = substr($digits, 1);
+        }
+        else
+        {
+          $variants[] = '0'.$digits;
+        }
+        // Pakistan country code 92
+        if (strpos($digits, '92') === 0 && strlen($digits) >= 11)
+        {
+          $rest = substr($digits, 2);
+          $variants[] = $rest;
+          $variants[] = '0'.$rest;
+        }
+        elseif (strlen($digits) >= 10)
+        {
+          $variants[] = '92'.$digits;
+          if ($digits[0] === '0')
+          {
+            $variants[] = '92'.substr($digits, 1);
+          }
+        }
+        $variants = array_unique(array_filter($variants, function ($v) {
+          return is_string($v) && $v !== '';
+        }));
+        foreach ($variants as $v)
+        {
+          $this->db->or_where($phone_digits.' LIKE '.$this->db->escape('%'.$v.'%'), NULL, FALSE);
+        }
+      }
+    }
+
+    if ($wrap_group)
+    {
+      $this->db->group_end();
+    }
   }
 
   function count_search_customers($term)

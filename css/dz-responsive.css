@@ -804,6 +804,20 @@ body.dz-nav-open {
 	.main-content .section__content .container-fluid {
 		max-width: var(--dz-content-max);
 	}
+
+	.erp-home .main-content > .section__content,
+	.erp-home .main-content .section__content .container-fluid,
+	.erp-home .dz-container,
+	.erp-home .dz-home {
+		width: 100% !important;
+		max-width: none !important;
+	}
+
+	.erp-home .dz-home__actions {
+		width: 100% !important;
+		max-width: 820px !important;
+		margin-inline: auto;
+	}
 }
 
 @media (min-width: 1400px) {

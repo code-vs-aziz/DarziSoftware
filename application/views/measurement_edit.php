@@ -32,6 +32,9 @@ $this->load->helper('ui');
 <body class="animsition erp-app erp-form-page measurement-form-page">
     <div class="page-wrapper">
       <form name="Form" action="<?php echo site_url('Measurement/process_edit/'.$measurement_row->MCODE.''); ?>" method="post" data-no-ajax="true">
+	  <?php if (!empty($return_order)) { ?>
+	  <input type="hidden" name="return_to" value="order">
+	  <?php } ?>
             <div class="main-content">
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">

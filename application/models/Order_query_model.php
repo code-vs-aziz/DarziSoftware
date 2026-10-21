@@ -554,6 +554,19 @@ class Order_query_model extends CI_Model
   }
 
   /**
+   * Prefer catalog suit.name; ignore latin1-corrupted snap values like "????".
+   */
+  function suit_name_select_sql($alias = 'suit_name')
+  {
+    return 'CASE'
+      .' WHEN order_dtl.snap_suit_name IS NULL OR TRIM(order_dtl.snap_suit_name) = \'\''
+      .' OR order_dtl.snap_suit_name REGEXP \'^[?[:space:]]+$\''
+      .' THEN suit.name'
+      .' ELSE COALESCE(NULLIF(TRIM(order_dtl.snap_suit_name), \'\'), suit.name)'
+      .' END AS '.$alias;
+  }
+
+  /**
    * Persist measurement row at booking (new orders only).
    */
   function insert_order_measurement_snap($order_trnno, $measurement_row)
@@ -613,7 +626,7 @@ class Order_query_model extends CI_Model
     return $this->db->insert('order_measurement_snap', $data);
   }
 
-    function measurement($where)
+    function measurement($where = NULL)
   {
     /* all the queries relating to the data we want to retrieve will go in here. */
  
@@ -621,7 +634,15 @@ class Order_query_model extends CI_Model
 	$this->db->select('measurement.*, measurement.remarks AS MREMARKS, measurement.code AS MCODE, customer.code AS Customerno, customer.man_napno AS MANNAAPNO, customer.name AS name, customer.name AS customer_name', FALSE);
     $this->db->from('measurement');
 	$this->db->join('customer', 'measurement.customer_code = customer.code');
-	$this->db->where($where);
+	if ($where !== NULL && $where !== '')
+	{
+		$this->db->where($where, NULL, FALSE);
+	}
+	else
+	{
+		$this->db->order_by('measurement.code', 'DESC');
+		$this->db->limit(200);
+	}
 	//$this->db->where('measurement.code = 1');
 	$q = $this->db->get();
 
@@ -773,8 +794,12 @@ class Order_query_model extends CI_Model
 		customer.Phone,
 		customer.name,
 		customer.man_napno,
+		order_dtl.type AS suit_type,
+		'.$this->suit_name_select_sql().',
 		transfer_mst.dept,
-		transfer_mst.status',
+		transfer_mst.status,
+		transfer_mst.empno,
+		employee.name AS karigar_name',
 		FALSE
 	);
 	$this->db->from('order_mst');
@@ -782,6 +807,8 @@ class Order_query_model extends CI_Model
 	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
 	$this->db->join('customer', 'customer.code = measurement.customer_code');
 	$this->db->join('transfer_mst', 'transfer_mst.order_id = order_dtl.order_trnno AND transfer_mst.sr = order_dtl.trnno');
+	$this->db->join('employee', 'employee.empno = transfer_mst.empno', 'left');
+	$this->db->join('suit', 'suit.SNO = order_dtl.SNO', 'left');
 	$this->db->where('order_mst.RDATE >=', $date);
 	$this->db->where('order_mst.RDATE <=', $date1);
 	$this->db->group_start();
@@ -861,7 +888,7 @@ class Order_query_model extends CI_Model
 		order_dtl.Shawlarpocket,
 		order_dtl.kolor_style,
 		order_dtl.order_remarks,
-		COALESCE(order_dtl.snap_suit_name, suit.name) AS suit_name,
+		'.$this->suit_name_select_sql().',
 		transfer_mst.trnno AS TRANSFERID,
 		transfer_mst.RDATE AS RETURNDATE,
 		transfer_mst.EDATE AS TRANSFEREDATE,
@@ -1665,7 +1692,7 @@ class Order_query_model extends CI_Model
 	$order_q = $this->db->get();
 	$order_header = $order_q->num_rows() > 0 ? $order_q->row() : NULL;
 
-	$this->db->select('order_dtl.trnno AS line_sr, order_dtl.type, order_dtl.order_remarks, COALESCE(order_dtl.snap_suit_name, suit.name) AS suit_name');
+	$this->db->select('order_dtl.trnno AS line_sr, order_dtl.type, order_dtl.order_remarks, '.$this->suit_name_select_sql(), FALSE);
 	$this->db->from('order_dtl');
 	$this->db->join('suit', 'suit.SNO = order_dtl.SNO', 'left');
 	$this->db->where('order_dtl.order_trnno', $order_id);
@@ -2101,6 +2128,48 @@ class Order_query_model extends CI_Model
 		return $data;
 	}
 	return array();
+  }
+
+  /**
+   * Open (non-cancelled) suit lines for a customer with latest transfer stage.
+   * Read-only helper for the customer record hub.
+   */
+  function get_customer_open_suits($customer_code, $limit = 25)
+  {
+	$customer_code = (int) $customer_code;
+	$limit = max(1, min(50, (int) $limit));
+	if ($customer_code <= 0)
+	{
+		return array();
+	}
+
+	$suit_sql = $this->suit_name_select_sql('suit_name');
+	$this->db->select(
+		'order_mst.trnno AS order_no, order_mst.EDATE AS order_date, order_mst.RDATE AS return_date,'
+		.' order_dtl.trnno AS line_no, order_dtl.type AS line_type, '.$suit_sql.','
+		.' (SELECT t.dept FROM transfer_mst t'
+		.' WHERE t.order_id = order_mst.trnno AND t.sr = order_dtl.trnno'
+		.' ORDER BY t.trnno DESC LIMIT 1) AS stage_dept,'
+		.' (SELECT t.status FROM transfer_mst t'
+		.' WHERE t.order_id = order_mst.trnno AND t.sr = order_dtl.trnno'
+		.' ORDER BY t.trnno DESC LIMIT 1) AS stage_status',
+		FALSE
+	);
+	$this->db->from('order_mst');
+	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->join('order_dtl', 'order_dtl.order_trnno = order_mst.trnno');
+	$this->db->join('suit', 'suit.SNO = order_dtl.SNO', 'left');
+	$this->db->where('measurement.customer_code', $customer_code);
+	$this->db->where('order_mst.ostatus !=', 1);
+	$this->db->order_by('order_mst.trnno', 'DESC');
+	$this->db->order_by('order_dtl.trnno', 'ASC');
+	$this->db->limit($limit);
+	$q = $this->db->get();
+	if ($q->num_rows() < 1)
+	{
+		return array();
+	}
+	return $q->result();
   }
       function transfer()
   {

@@ -7,6 +7,14 @@ class Login extends CI_Controller {
 	{
 		$this->load->helper('url');
 		$this->load->library('session');
+
+		// Drop expired lockouts so a refresh does not keep users stuck.
+		$locked_until = (int) $this->session->userdata('login_locked_until');
+		if ($locked_until > 0 && $locked_until <= time())
+		{
+			$this->session->unset_userdata(array('login_locked_until', 'login_attempts'));
+		}
+
 		$this->load->view('login');
 	}
 
