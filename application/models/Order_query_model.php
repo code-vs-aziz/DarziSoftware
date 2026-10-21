@@ -420,6 +420,7 @@ class Order_query_model extends CI_Model
       'CoatLambai', 'CoatBazoo', 'CoatTeera', 'CoatChaati', 'CoatHIP', 'CoatKamar', 'crossback',
       'wastLambai', 'wastTeera', 'wastChaati', 'wastHIP', 'wastKamar', 'pait', 'WASIT',
       'FRONT_Pocket_Size', 'CAKLAMBAI', 'KAAFCURAI', 'MODA_CURAI', 'CoatGaala', 'wastGaala',
+      'remarks_kurta', 'remarks_pajama', 'remarks_pent', 'remarks_shirt', 'remarks_coat', 'remarks_waistcoat',
     );
   }
 

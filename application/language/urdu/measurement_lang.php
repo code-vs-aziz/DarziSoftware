@@ -11,6 +11,7 @@ $lang['measurement_section_fields'] = 'تمام ناپ فیلڈز';
 $lang['measurement_section_fields_hint'] = 'ہر فیلڈ یہاں ہے — دائیں طرف values درج کریں۔';
 $lang['measurement_section_notes'] = 'نوٹ';
 $lang['measurement_note_line'] = 'نوٹ لائن';
+$lang['measurement_note_placeholder'] = 'صرف اسی لباس کا نوٹ';
 $lang['measurement_tab_kurta'] = 'قمیض شلوار';
 $lang['measurement_tab_pajama'] = 'پاجامہ';
 $lang['measurement_tab_pent'] = 'پینٹ';

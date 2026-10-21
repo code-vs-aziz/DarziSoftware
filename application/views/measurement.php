@@ -12,12 +12,21 @@ $this->load->helper('ui');
 		}
 	}
 ?>
-<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=7'); ?>" rel="stylesheet" media="all">
+<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=8'); ?>" rel="stylesheet" media="all">
 <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/notonastaliqurdudraft.css">
 <script>
-	$(function() {
-		$('#Remarks').setUrduInput();
-	});
+	function initMeasurementUrduNotes() {
+		if (!window.jQuery || !jQuery.fn.setUrduInput) return;
+		jQuery('.js-urdu-note').each(function () {
+			var $field = jQuery(this);
+			if (!$field.data('urduBound')) {
+				$field.setUrduInput();
+				$field.data('urduBound', 1);
+			}
+		});
+	}
+	jQuery(function () { initMeasurementUrduNotes(); });
+	jQuery(document).on('app:ajax-loaded', initMeasurementUrduNotes);
 </script>
 <body class="animsition erp-app erp-form-page measurement-form-page">
     <div class="page-wrapper">
@@ -273,7 +282,14 @@ $this->load->helper('ui');
 											
 						</div>
 					</div>						
-							</div>
+							
+<?php $this->load->view('partials/measurement_garment_note', array(
+	'note_key' => 'kurta',
+	'note_name' => 'RemarksKurta',
+	'note_id' => 'RemarksKurta',
+	'note_value' => '',
+)); ?>
+</div>
 												<div class="tab-pane fade" id="nav-Shalwar" role="tabpanel" aria-labelledby="nav-Shalwar-tab">
 			<div class="row">
 								 		<div class="col">		
@@ -338,7 +354,14 @@ $this->load->helper('ui');
 											
 						</div>
 					</div>	
-												</div>
+												
+<?php $this->load->view('partials/measurement_garment_note', array(
+	'note_key' => 'pajama',
+	'note_name' => 'RemarksPajama',
+	'note_id' => 'RemarksPajama',
+	'note_value' => '',
+)); ?>
+</div>
 												<div class="tab-pane fade" id="nav-Pent" role="tabpanel" aria-labelledby="nav-Pent-tab">
 															<div class="row">
 								 		<div class="col">		
@@ -377,7 +400,14 @@ $this->load->helper('ui');
 											
 						</div>
 					</div>	
-												</div>
+												
+<?php $this->load->view('partials/measurement_garment_note', array(
+	'note_key' => 'pent',
+	'note_name' => 'RemarksPent',
+	'note_id' => 'RemarksPent',
+	'note_value' => '',
+)); ?>
+</div>
 												<div class="tab-pane fade" id="nav-Shrit" role="tabpanel" aria-labelledby="nav-Shrit-tab">
 														<div class="row">
 								 		<div class="col">		
@@ -436,7 +466,14 @@ $this->load->helper('ui');
 											
 						</div>
 					</div>
-												</div>
+												
+<?php $this->load->view('partials/measurement_garment_note', array(
+	'note_key' => 'shirt',
+	'note_name' => 'RemarksShirt',
+	'note_id' => 'RemarksShirt',
+	'note_value' => '',
+)); ?>
+</div>
 																								<div class="tab-pane fade" id="nav-Coat" role="tabpanel" aria-labelledby="nav-Coat-tab">
 																									<div class="row">
 								 		<div class="col">		
@@ -499,7 +536,14 @@ $this->load->helper('ui');
 						</div>
 					</div>
 							
-												</div>
+												
+<?php $this->load->view('partials/measurement_garment_note', array(
+	'note_key' => 'coat',
+	'note_name' => 'RemarksCoat',
+	'note_id' => 'RemarksCoat',
+	'note_value' => '',
+)); ?>
+</div>
 																																<div class="tab-pane fade" id="nav-Waistcoat" role="tabpanel" aria-labelledby="nav-Waistcoat-tab">
 																																<div class="row">
 								 		<div class="col">		
@@ -552,22 +596,19 @@ $this->load->helper('ui');
 								 
 											
 						</div>
-					</div>
+					
+<?php $this->load->view('partials/measurement_garment_note', array(
+	'note_key' => 'waistcoat',
+	'note_name' => 'RemarksWaistcoat',
+	'note_id' => 'RemarksWaistcoat',
+	'note_value' => '',
+)); ?>
+</div>
 												</div>
 											</div>
 
 										</div>
 									</div>
-					</div>
-
-					<div class="measurement-section measurement-notes">
-						<div class="measurement-section__head">
-							<h3 class="measurement-section__title"><?php echo t('measurement_section_notes'); ?></h3>
-						</div>
-						<div class="form-group">
-							<label for="Remarks" class="control-label mb-1 urd"><?php echo t('measurement_note_line'); ?></label>
-							<input name="Remarks" id="Remarks" type="text" class="form-control txtbox" value="">
-						</div>
 					</div>
 
 					<div class="measurement-submit-sticky">

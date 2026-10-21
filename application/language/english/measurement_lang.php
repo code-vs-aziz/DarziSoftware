@@ -11,6 +11,7 @@ $lang['measurement_section_fields'] = 'All measurement fields';
 $lang['measurement_section_fields_hint'] = 'Every field is here — enter values on the right.';
 $lang['measurement_section_notes'] = 'Notes';
 $lang['measurement_note_line'] = 'Note line';
+$lang['measurement_note_placeholder'] = 'Note for this garment only';
 $lang['measurement_tab_kurta'] = 'Kameez Shalwar';
 $lang['measurement_tab_pajama'] = 'Pajama';
 $lang['measurement_tab_pent'] = 'Pent';

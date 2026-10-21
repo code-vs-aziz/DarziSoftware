@@ -11,6 +11,7 @@ $lang['measurement_section_fields'] = 'جميع حقول القياس';
 $lang['measurement_section_fields_hint'] = 'كل الحقول هنا — أدخل القيم على اليمين.';
 $lang['measurement_section_notes'] = 'ملاحظات';
 $lang['measurement_note_line'] = 'سطر الملاحظة';
+$lang['measurement_note_placeholder'] = 'ملاحظة لهذا اللباس فقط';
 $lang['measurement_tab_kurta'] = 'قميص + شلوار';
 $lang['measurement_tab_pajama'] = 'بيجاما';
 $lang['measurement_tab_pent'] = 'بنطلون';
