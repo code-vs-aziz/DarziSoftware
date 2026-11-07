@@ -393,38 +393,16 @@ var suit_id = '#suit0';
 						</div>
 
 						<div class="order-suit-line__body">
-							<div class="row">
-								<div class="col-md-6">
-									<div class="form-group mb-2">
-										<label class="control-label mb-1" for="Designtype<?php echo $i; ?>"><?php echo t('order_design_type'); ?></label>
-										<select id="Designtype<?php echo $i; ?>" name="desigtype[]" class="form-control" aria-required="true">
-											<option value=""><?php echo t('order_select_design_type'); ?></option>
-											<option value="Kurta"><?php echo t('design_type_kurta'); ?></option>
-											<option value="Pajama"><?php echo t('design_type_pajama'); ?></option>
-											<option value="Pent"><?php echo t('design_type_pent'); ?></option>
-											<option value="Shirt"><?php echo t('design_type_shirt'); ?></option>
-											<option value="Coat"><?php echo t('design_type_coat'); ?></option>
-											<option value="Waistcoat"><?php echo t('design_type_waistcoat'); ?></option>
-										</select>
-										<div class="order-price-row">
-											<input id="add<?php echo $i; ?>" name="add[]" type="text" class="form-control order-price-row__add" onchange="get_id11('add<?php echo $i; ?>','itotal<?php echo $i; ?>')" placeholder="+" value="">
-											<span class="order-price-row__plus" aria-hidden="true">+</span>
-											<input id="itotal<?php echo $i; ?>" name="itotal<?php echo $i; ?>" readonly="readonly" type="text" class="form-control order-price-row__total" value="">
-										</div>
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group mb-2">
-										<label class="control-label mb-1" for="suit<?php echo $i; ?>"><?php echo t('order_suit_type'); ?></label>
-										<select id="suit<?php echo $i; ?>" name="suit[]" class="form-control" onchange="get_id2('suit<?php echo $i; ?>','srate<?php echo $i; ?>')" aria-required="true">
-											<option value="0"><?php echo t('order_select_suit'); ?></option>
-											<?php foreach ($suit as $suits) { ?>
-											<option value="<?php echo (int) $suits->SNO; ?>"><?php echo esc_html($suits->name); ?></option>
-											<?php } ?>
-										</select>
-										<input id="srate<?php echo $i; ?>" name="ssrate[]" readonly="readonly" type="text" class="form-control order-suit-rate mt-1" value="">
-									</div>
-								</div>
+<?php
+	$remark_field = 'Remarks'.$i;
+	$this->load->view('partials/order_predefined_tags', array(
+		'remark_field' => $remark_field,
+		'order_predefined_by_row' => isset($order_predefined_by_row) ? $order_predefined_by_row : array(),
+	));
+?>
+							<div class="form-group order-remark-group mb-2">
+								<label for="Remarks<?php echo $i; ?>" class="control-label mb-1 urd"><?php echo t('order_note_line'); ?></label>
+								<input id="Remarks<?php echo $i; ?>" name="Remarks[]" type="text" class="form-control urd txtbox" dir="rtl" lang="ur" value="">
 							</div>
 
 							<div class="row">
@@ -465,17 +443,40 @@ var suit_id = '#suit0';
 								</div>
 							</div>
 
-<?php
-	$remark_field = 'Remarks'.$i;
-	$this->load->view('partials/order_predefined_tags', array(
-		'remark_field' => $remark_field,
-		'order_predefined_by_row' => isset($order_predefined_by_row) ? $order_predefined_by_row : array(),
-	));
-?>
-							<div class="form-group order-remark-group mb-2">
-								<label for="Remarks<?php echo $i; ?>" class="control-label mb-1 urd"><?php echo t('order_note_line'); ?></label>
-								<input id="Remarks<?php echo $i; ?>" name="Remarks[]" type="text" class="form-control urd txtbox" dir="rtl" lang="ur" value="">
+							<div class="row">
+								<div class="col-md-6">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="Designtype<?php echo $i; ?>"><?php echo t('order_design_type'); ?></label>
+										<select id="Designtype<?php echo $i; ?>" name="desigtype[]" class="form-control" aria-required="true">
+											<option value=""><?php echo t('order_select_design_type'); ?></option>
+											<option value="Kurta"><?php echo t('design_type_kurta'); ?></option>
+											<option value="Pajama"><?php echo t('design_type_pajama'); ?></option>
+											<option value="Pent"><?php echo t('design_type_pent'); ?></option>
+											<option value="Shirt"><?php echo t('design_type_shirt'); ?></option>
+											<option value="Coat"><?php echo t('design_type_coat'); ?></option>
+											<option value="Waistcoat"><?php echo t('design_type_waistcoat'); ?></option>
+										</select>
+										<div class="order-price-row">
+											<input id="add<?php echo $i; ?>" name="add[]" type="text" class="form-control order-price-row__add" onchange="get_id11('add<?php echo $i; ?>','itotal<?php echo $i; ?>')" placeholder="+" value="">
+											<span class="order-price-row__plus" aria-hidden="true">+</span>
+											<input id="itotal<?php echo $i; ?>" name="itotal<?php echo $i; ?>" readonly="readonly" type="text" class="form-control order-price-row__total" value="">
+										</div>
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group mb-2">
+										<label class="control-label mb-1" for="suit<?php echo $i; ?>"><?php echo t('order_suit_type'); ?></label>
+										<select id="suit<?php echo $i; ?>" name="suit[]" class="form-control" onchange="get_id2('suit<?php echo $i; ?>','srate<?php echo $i; ?>')" aria-required="true">
+											<option value="0"><?php echo t('order_select_suit'); ?></option>
+											<?php foreach ($suit as $suits) { ?>
+											<option value="<?php echo (int) $suits->SNO; ?>"><?php echo esc_html($suits->name); ?></option>
+											<?php } ?>
+										</select>
+										<input id="srate<?php echo $i; ?>" name="ssrate[]" readonly="readonly" type="text" class="form-control order-suit-rate mt-1" value="">
+									</div>
+								</div>
 							</div>
+
 
 							<div class="form-group order-kolar-picker-wrap mb-0">
 <?php $this->load->view('partials/order_kolar_picker', array('line_index' => $i)); ?>

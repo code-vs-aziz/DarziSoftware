@@ -1,0 +1,177 @@
+/* Darzi Baba date picker — display d-M-Y; Fridays highlighted */
+.dz-date-wrap {
+	position: relative;
+	display: block;
+	width: 100%;
+}
+
+.dz-date-wrap .dz-date-input,
+.dz-date-wrap input.form-control {
+	width: 100%;
+	padding-right: 2.4rem;
+}
+
+.dz-date-wrap__btn {
+	position: absolute;
+	top: 50%;
+	right: 0.45rem;
+	transform: translateY(-50%);
+	border: 0;
+	background: transparent;
+	color: #64748b;
+	padding: 0.2rem 0.35rem;
+	line-height: 1;
+	cursor: pointer;
+	z-index: 2;
+}
+
+.dz-date-wrap__btn:hover,
+.dz-date-wrap__btn:focus {
+	color: #0f766e;
+	outline: none;
+}
+
+.dz-date-wrap.is-readonly .dz-date-wrap__btn {
+	display: none;
+}
+
+.dz-date-wrap.is-readonly .dz-date-input {
+	padding-right: 0.75rem;
+	background-color: #e9ecef;
+	cursor: default;
+}
+
+.dz-date-popup {
+	position: absolute;
+	z-index: 1060;
+	top: calc(100% + 6px);
+	left: 0;
+	min-width: 280px;
+	padding: 0.75rem;
+	border: 1px solid #e2e8f0;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.dz-date-popup[hidden] {
+	display: none !important;
+}
+
+.dz-date-popup__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.55rem;
+}
+
+.dz-date-popup__title {
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0;
+}
+
+.dz-date-popup__nav {
+	border: 1px solid #e2e8f0;
+	background: #f8fafc;
+	border-radius: 8px;
+	width: 2rem;
+	height: 2rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #334155;
+}
+
+.dz-date-popup__nav:hover {
+	background: #ecfeff;
+	border-color: #99f6e4;
+	color: #0f766e;
+}
+
+.dz-date-popup__grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 0.2rem;
+}
+
+.dz-date-popup__dow {
+	text-align: center;
+	font-size: 0.7rem;
+	font-weight: 700;
+	color: #64748b;
+	padding: 0.25rem 0;
+}
+
+.dz-date-popup__dow.is-friday {
+	color: #dc2626;
+}
+
+.dz-date-popup__day {
+	border: 0;
+	background: transparent;
+	border-radius: 8px;
+	height: 2.1rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: #0f172a;
+	cursor: pointer;
+}
+
+.dz-date-popup__day:hover:not(:disabled) {
+	background: #ecfeff;
+	color: #0f766e;
+}
+
+.dz-date-popup__day.is-outside {
+	color: #94a3b8;
+	font-weight: 500;
+}
+
+.dz-date-popup__day.is-today {
+	box-shadow: inset 0 0 0 1px #14b8a6;
+}
+
+.dz-date-popup__day.is-selected {
+	background: #0f766e;
+	color: #fff;
+}
+
+.dz-date-popup__day.is-selected.is-friday {
+	background: #b91c1c;
+	color: #fff;
+}
+
+/* Friday highlight (instead of Sunday) */
+.dz-date-popup__day.is-friday:not(.is-selected) {
+	color: #dc2626;
+	font-weight: 800;
+}
+
+.dz-date-popup__day:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+.dz-date-popup__footer {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-top: 0.55rem;
+}
+
+.dz-date-popup__footer button {
+	border: 0;
+	background: #f1f5f9;
+	color: #334155;
+	border-radius: 8px;
+	padding: 0.35rem 0.65rem;
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.dz-date-popup__footer button:hover {
+	background: #e2e8f0;
+}

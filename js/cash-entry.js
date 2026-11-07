@@ -36,13 +36,25 @@
 		}
 
 		if ($.fn.select2) {
-			$('#Customer, #employee').each(function () {
-				var $el = $(this);
-				if ($el.data('select2')) {
-					$el.select2('destroy');
+			var $customer = $('#Customer');
+			var $employee = $('#employee');
+			if ($customer.length) {
+				if ($customer.data('select2')) {
+					$customer.select2('destroy');
 				}
-				$el.select2({ width: '100%' });
-			});
+				$customer.select2({ width: '100%' });
+			}
+			if ($employee.length) {
+				if ($employee.data('select2')) {
+					$employee.select2('destroy');
+				}
+				$employee.select2({
+					width: '100%',
+					placeholder: $employee.find('option[value=""]').text() || 'Select Employee',
+					allowClear: true,
+					dropdownCssClass: 'select2-dropdown--cash-employee'
+				});
+			}
 		}
 
 		if ($.fn.setUrduInput && $('#Remarks').length) {
@@ -69,6 +81,15 @@
 					showCashAlert($alert, 'alert-success', response.message || (window.APP_LANG && window.APP_LANG.saved_success) || 'Saved successfully');
 					$form.find('input[name="paid"], input[name="Remarks"], input[name="order_number"]').val('');
 					$('#order_window').hide();
+					$('#twages').val('');
+					// Force re-select employee for the next payment.
+					var $employee = $('#employee');
+					if ($employee.length) {
+						$employee.val('').trigger('change');
+						if ($employee.data('select2')) {
+							$employee.trigger('change.select2');
+						}
+					}
 				} else {
 					showCashAlert($alert, 'alert-danger', (response && response.message) || 'Unable to save entry');
 				}

@@ -137,7 +137,28 @@ function createWindow() {
 
   mainWindow.loadURL(START_URL);
 
+  // Desktop-only: same-origin target=_blank stays in THIS Electron window
+  // (avoids a second chrome-less BrowserWindow that looked like a popup).
+  // Browser users are unaffected — see js/dz-open-nav.js + manifest handle_links.
+  // External URLs still open in the system browser.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    let isLocal = false;
+    try {
+      const u = new URL(url);
+      const hostOk = u.hostname === HOST || u.hostname === 'localhost';
+      const portOk = String(u.port || (u.protocol === 'https:' ? '443' : '80')) === String(PORT);
+      isLocal = hostOk && portOk;
+    } catch (_) {
+      isLocal = typeof url === 'string' && url.indexOf(`http://${HOST}:${PORT}`) === 0;
+    }
+
+    if (isLocal) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(url);
+      }
+      return { action: 'deny' };
+    }
+
     shell.openExternal(url);
     return { action: 'deny' };
   });

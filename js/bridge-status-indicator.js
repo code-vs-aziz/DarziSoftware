@@ -48,11 +48,17 @@
 		var el = ensureBanner();
 		var link = el.querySelector('.dz-bridge-break-banner__link');
 		var text = el.querySelector('.dz-bridge-break-banner__text');
-		link.href = fixUrl;
+		var first = chips()[0];
+		var canManage = first && first.getAttribute('data-can-manage') === '1';
+		link.href = fixUrl || '#';
 		if (mode === 'wait') {
-			text.textContent = t('bridge_banner_scan', 'WhatsApp QR needed — open Customer Messages to scan.');
+			text.textContent = canManage
+				? t('bridge_banner_scan', 'WhatsApp QR needed — open Customer Messages to scan.')
+				: t('bridge_banner_scan_staff', 'WhatsApp QR needed — ask admin to scan once (shared for all users).');
 		} else {
-			text.textContent = t('bridge_banner_down', 'WhatsApp bridge down — open Customer Messages to restart & scan QR.');
+			text.textContent = canManage
+				? t('bridge_banner_down', 'WhatsApp bridge down — open Customer Messages to restart & scan QR.')
+				: t('bridge_banner_down_staff', 'WhatsApp bridge down — ask admin to restart / scan QR (shared for all users).');
 		}
 		if (!bannerShownForBreak) {
 			el.hidden = false;

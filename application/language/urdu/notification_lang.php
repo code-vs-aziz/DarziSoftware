@@ -45,6 +45,7 @@ $lang['notify_bridge_resetting'] = 'Session صاف ہو رہی ہے… نیا QR
 $lang['notify_bridge_starting'] = 'Bridge شروع ہو رہی ہے…';
 $lang['notify_bridge_use_panel'] = 'لائیو اسٹیٹس اور QR اوپر والے WhatsApp bridge پینل میں۔';
 $lang['notify_bridge_chip_title'] = 'WhatsApp bridge status — کسٹمر میسجز کھولیں';
+$lang['notify_bridge_chip_title_shared'] = 'WhatsApp bridge (shared) — admin ایک بار QR اسکین کرے، سب اکاؤنٹس پر چلے گا';
 $lang['notify_bridge_chip_checking'] = 'چیک…';
 $lang['notify_bridge_chip_ok'] = 'WhatsApp OK';
 $lang['notify_bridge_chip_wait'] = 'QR اسکین';

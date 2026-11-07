@@ -107,7 +107,7 @@
 						</tr>
 						<tr>
 							<td class="print-blank-info-table__value ur urd"><?php echo esc_html($rdate_fmt); ?></td>
-							<th class="print-blank-info-table__label ur urd">تاریخ واپسی <small>رات 00۔08 بجے</small></th>
+							<th class="print-blank-info-table__label ur urd">تاریخ واپسی</th>
 							<td class="print-blank-info-table__value ur urd"><?php echo esc_html($odate_fmt); ?></td>
 							<th class="print-blank-info-table__label ur urd">تاریخ</th>
 						</tr>

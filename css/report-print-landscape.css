@@ -1,23 +1,127 @@
+/* Reports print as A4 portrait (browser Print dialog Layout → Portrait). */
 @page {
-	size: A4 landscape;
-	margin: 10mm;
+	size: A4 portrait;
+	margin: 8mm 6mm;
 }
 
 @media print {
+	html, body {
+		width: 210mm;
+		background: #fff !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
 	body.report-body {
-		background: #fff;
+		background: #fff !important;
 	}
 	.print-hide {
 		display: none !important;
 	}
 	.report-shell {
-		max-width: none;
-		margin: 0;
-		padding: 0;
+		max-width: none !important;
+		width: 100% !important;
+		margin: 0 !important;
+		padding: 0 !important;
 	}
 	.report-card {
-		border: 0;
-		box-shadow: none;
-		border-radius: 0;
+		border: 0 !important;
+		box-shadow: none !important;
+		border-radius: 0 !important;
+		overflow: visible !important;
+	}
+	.report-header {
+		padding: 6px 0 8px !important;
+		gap: 8px !important;
+		grid-template-columns: 90px 1fr 90px !important;
+	}
+	.report-logo-small {
+		max-height: 56px !important;
+		max-width: 80px !important;
+	}
+	.report-logo-main {
+		max-height: 56px !important;
+		max-width: 220px !important;
+	}
+	.report-brand p {
+		margin: 2px 0 !important;
+		font-size: 11px !important;
+	}
+	.report-title {
+		padding: 8px 0 !important;
+	}
+	.report-title h2 {
+		font-size: 16px !important;
+	}
+	.report-meta {
+		font-size: 11px !important;
+		line-height: 1.4 !important;
+	}
+	.report-table-wrap {
+		padding: 8px 0 0 !important;
+		overflow: visible !important;
+	}
+	.report-summary {
+		grid-template-columns: repeat(3, 1fr) !important;
+		gap: 6px !important;
+		margin: 0 0 8px !important;
+	}
+	.report-summary div {
+		padding: 6px 8px !important;
+		border-radius: 4px !important;
+	}
+	.report-summary span {
+		font-size: 10px !important;
+	}
+	.report-summary strong {
+		font-size: 13px !important;
+	}
+	/* auto layout so Return Date / Phone keep separate columns (no collapse). */
+	.report-table {
+		width: 100% !important;
+		table-layout: auto !important;
+		font-size: 8.5px !important;
+		border-collapse: collapse !important;
+	}
+	.report-table th,
+	.report-table td {
+		padding: 3px 4px !important;
+		vertical-align: middle !important;
+		border: 1px solid #128995 !important;
+		overflow: hidden;
+		word-break: normal;
+		overflow-wrap: break-word;
+		white-space: normal;
+	}
+	.report-table th {
+		font-size: 8px !important;
+		line-height: 1.2 !important;
+		white-space: normal !important;
+	}
+	.report-table .col-date,
+	.report-table .col-phone,
+	.report-table .col-order {
+		white-space: nowrap !important;
+		width: 1% !important;
+		min-width: 64px !important;
+		max-width: none !important;
+		overflow: visible !important;
+		overflow-wrap: normal !important;
+		word-break: keep-all !important;
+	}
+	.report-table .col-phone {
+		min-width: 78px !important;
+	}
+	.report-table .col-date {
+		min-width: 70px !important;
+	}
+	.report-footer-note {
+		padding: 4px 8px !important;
+		font-size: 9px !important;
+		flex-wrap: wrap;
+	}
+	.signature-line {
+		margin: 24px 0 12px !important;
+		width: 200px !important;
+		font-size: 11px !important;
 	}
 }

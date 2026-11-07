@@ -18,7 +18,7 @@ $current_category = '';
 							<div class="erp-card-head"><h2 class="erp-module-title mb-0"><?php echo t('rbac_permissions'); ?><?php echo $role ? ': '.esc_html($role->role_name) : ''; ?></h2></div>
 							<div class="card-body erp-card-body">
 								<?php $this->load->view('rbac_nav'); ?>
-								<?php if($this->session->flashdata('suss') == 'yes') { ?><div class="alert alert-success"><?php echo t('app_saved_success'); ?></div><?php } ?>
+								<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
 								<?php if (!$role) { ?>
 									<div class="alert alert-warning">Role not found.</div>
 								<?php } else { ?>

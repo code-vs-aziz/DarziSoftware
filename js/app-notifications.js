@@ -10,7 +10,12 @@
 		if (!url) {
 			return;
 		}
-		window.open(url, '_blank', 'noopener');
+		if (window.DZ && typeof window.DZ.openInNewContext === 'function') {
+			window.DZ.openInNewContext(url);
+			return;
+		}
+		var w = window.open(url, '_blank');
+		if (w) w.opener = null;
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {

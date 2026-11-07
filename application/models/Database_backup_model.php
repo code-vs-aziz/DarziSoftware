@@ -193,7 +193,7 @@ class Database_backup_model extends CI_Model
 			return array('ok' => FALSE, 'error' => 'Could not create export job.');
 		}
 
-		$php = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+		$php = $this->resolve_php_cli();
 		$script = rtrim(FCPATH, '/\\').DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'run_db_export_job.php';
 		if ( ! is_file($script))
 		{
@@ -207,13 +207,169 @@ class Database_backup_model extends CI_Model
 			return array('ok' => FALSE, 'error' => 'Export worker script missing.');
 		}
 
-		$cmd = escapeshellarg($php)
+		// Under PHP-FPM, PHP_BINARY is php-fpm and cannot run CLI workers.
+		// Detach with nohup so the dump continues after the web request ends.
+		$cmd = 'nohup '.escapeshellarg($php)
 			.' '.escapeshellarg($script)
 			.' '.escapeshellarg($job_id)
 			.' > /dev/null 2>&1 &';
 		@exec($cmd);
 
 		return array('ok' => TRUE, 'job_id' => $job_id);
+	}
+
+	/**
+	 * Resolve a real PHP CLI binary (never php-fpm).
+	 *
+	 * @return string
+	 */
+	protected function resolve_php_cli()
+	{
+		$candidates = array(
+			'/usr/bin/php8.5',
+			'/usr/bin/php8.4',
+			'/usr/bin/php8.3',
+			'/usr/bin/php8.2',
+			'/usr/bin/php',
+		);
+		if (defined('PHP_BINARY') && PHP_BINARY)
+		{
+			$candidates[] = PHP_BINARY;
+		}
+
+		foreach ($candidates as $bin)
+		{
+			$bin = trim((string) $bin);
+			if ($bin === '' || ! is_executable($bin))
+			{
+				continue;
+			}
+			$base = strtolower(basename($bin));
+			if (strpos($base, 'php-fpm') !== FALSE || strpos($base, 'fpm') === 0)
+			{
+				continue;
+			}
+			return $bin;
+		}
+
+		return 'php';
+	}
+
+	/**
+	 * Tables that must survive a "Clear database" wipe (login + WhatsApp config).
+	 *
+	 * @return string[]
+	 */
+	public function clear_preserved_tables()
+	{
+		return array(
+			'rbac_permissions',
+			'rbac_roles',
+			'rbac_role_permissions',
+			'rbac_user_roles',
+			'users',
+			'rights',
+			'rightsdtl',
+			'rightss',
+			'apprights',
+			'business_configuration',
+			'notification_settings',
+			'config',
+			'web_settings',
+		);
+	}
+
+	/**
+	 * Truncate all base tables except preserved auth/config tables.
+	 * Creates a safety dump first.
+	 *
+	 * @return array{ok:bool,error?:string,cleared?:int,safety_filename?:string}
+	 */
+	public function clear_all_data()
+	{
+		$this->last_error = '';
+		@set_time_limit(0);
+
+		$safety = $this->create_dump('safety_clear');
+		if (empty($safety['ok']))
+		{
+			return array(
+				'ok' => FALSE,
+				'error' => isset($safety['error']) ? $safety['error'] : 'Could not create safety backup before clear.',
+			);
+		}
+
+		$preserve = array();
+		foreach ($this->clear_preserved_tables() as $name)
+		{
+			$preserve[strtolower($name)] = TRUE;
+		}
+
+		$db_name = (string) $this->db->database;
+		$escaped_db = $this->db->escape_str($db_name);
+		$query = $this->db->query(
+			"SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{$escaped_db}'"
+		);
+		if ( ! $query)
+		{
+			return array('ok' => FALSE, 'error' => 'Could not list database tables.');
+		}
+
+		$tables = array();
+		foreach ($query->result_array() as $row)
+		{
+			$type = isset($row['TABLE_TYPE']) ? strtoupper((string) $row['TABLE_TYPE']) : '';
+			$name = isset($row['TABLE_NAME']) ? (string) $row['TABLE_NAME'] : '';
+			if ($name === '' || $type === 'VIEW')
+			{
+				continue;
+			}
+			if (isset($preserve[strtolower($name)]))
+			{
+				continue;
+			}
+			$tables[] = $name;
+		}
+
+		$this->db->query('SET FOREIGN_KEY_CHECKS = 0');
+		$cleared = 0;
+		$failed = '';
+		foreach ($tables as $table)
+		{
+			$safe = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+			if ($safe === '' || $safe !== $table)
+			{
+				continue;
+			}
+			$ok = $this->db->query('TRUNCATE TABLE `'.$safe.'`');
+			if ($ok)
+			{
+				$cleared++;
+			}
+			else
+			{
+				$failed = $table;
+				break;
+			}
+		}
+		$this->db->query('SET FOREIGN_KEY_CHECKS = 1');
+
+		if ($failed !== '')
+		{
+			return array(
+				'ok' => FALSE,
+				'error' => 'Failed truncating table: '.$failed.'. Safety backup: '.(isset($safety['filename']) ? $safety['filename'] : ''),
+				'safety_filename' => isset($safety['filename']) ? $safety['filename'] : '',
+			);
+		}
+
+		$this->prune_old_safety_files();
+
+		return array(
+			'ok' => TRUE,
+			'cleared' => $cleared,
+			'safety_filename' => isset($safety['filename']) ? $safety['filename'] : '',
+		);
 	}
 
 	/**
@@ -374,17 +530,265 @@ class Database_backup_model extends CI_Model
 	}
 
 	/**
+	 * Stage an uploaded backup and start a background import job (UI polls progress).
+	 *
+	 * @param string $tmp_path
+	 * @param string $original_name
+	 * @return array{ok:bool,job_id?:string,error?:string}
+	 */
+	public function start_import_job($tmp_path, $original_name)
+	{
+		$dir = $this->backup_directory();
+		if ($dir === FALSE)
+		{
+			return array('ok' => FALSE, 'error' => $this->last_error);
+		}
+
+		$validation = $this->validate_upload($tmp_path, $original_name);
+		if ( ! $validation['ok'])
+		{
+			return $validation;
+		}
+
+		$job_id = bin2hex(function_exists('random_bytes') ? random_bytes(16) : openssl_random_pseudo_bytes(16));
+		$ext = ! empty($validation['gzip']) ? '.sql.gz' : '.sql';
+		$staged = $dir.DIRECTORY_SEPARATOR.'import_upload_'.$job_id.$ext;
+		if ( ! @copy($tmp_path, $staged))
+		{
+			return array('ok' => FALSE, 'error' => 'Could not stage uploaded backup file.');
+		}
+
+		$now = time();
+		$job = array(
+			'id' => $job_id,
+			'type' => 'import',
+			'status' => 'queued',
+			'percent' => 0,
+			'phase' => 'queued',
+			'message' => 'Import queued…',
+			'original_name' => (string) $original_name,
+			'staged_path' => $staged,
+			'bytes' => (int) filesize($staged),
+			'safety_filename' => '',
+			'method' => '',
+			'table_count' => 0,
+			'error' => '',
+			'created_at' => $now,
+			'updated_at' => $now,
+		);
+		if ( ! $this->write_import_job($job_id, $job))
+		{
+			@unlink($staged);
+			return array('ok' => FALSE, 'error' => 'Could not create import job.');
+		}
+
+		$php = $this->resolve_php_cli();
+		$script = rtrim(FCPATH, '/\\').DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'run_db_import_job.php';
+		if ( ! is_file($script))
+		{
+			$this->update_import_job($job_id, array(
+				'status' => 'error',
+				'phase' => 'error',
+				'percent' => 0,
+				'error' => 'Import worker script missing.',
+				'message' => 'Import worker script missing.',
+			));
+			return array('ok' => FALSE, 'error' => 'Import worker script missing.');
+		}
+
+		$cmd = 'nohup '.escapeshellarg($php)
+			.' '.escapeshellarg($script)
+			.' '.escapeshellarg($job_id)
+			.' > /dev/null 2>&1 &';
+		@exec($cmd);
+
+		return array('ok' => TRUE, 'job_id' => $job_id);
+	}
+
+	/**
+	 * @param string $job_id
+	 * @return array|null
+	 */
+	public function get_import_job($job_id)
+	{
+		$job_id = preg_replace('/[^a-f0-9]/', '', strtolower((string) $job_id));
+		if (strlen($job_id) < 16)
+		{
+			return NULL;
+		}
+		$path = $this->import_job_path($job_id);
+		if ($path === FALSE || ! is_file($path))
+		{
+			return NULL;
+		}
+		$raw = @file_get_contents($path);
+		$data = json_decode((string) $raw, TRUE);
+		return is_array($data) ? $data : NULL;
+	}
+
+	/**
+	 * Public status payload for AJAX (no filesystem paths).
+	 *
+	 * @param string $job_id
+	 * @return array
+	 */
+	public function import_job_status($job_id)
+	{
+		$job = $this->get_import_job($job_id);
+		if ( ! $job)
+		{
+			return array('ok' => FALSE, 'error' => 'Import job not found.');
+		}
+
+		return array(
+			'ok' => TRUE,
+			'job_id' => isset($job['id']) ? $job['id'] : $job_id,
+			'status' => isset($job['status']) ? $job['status'] : 'unknown',
+			'percent' => isset($job['percent']) ? (int) $job['percent'] : 0,
+			'phase' => isset($job['phase']) ? $job['phase'] : '',
+			'message' => isset($job['message']) ? $job['message'] : '',
+			'bytes' => isset($job['bytes']) ? (int) $job['bytes'] : 0,
+			'bytes_label' => $this->format_bytes(isset($job['bytes']) ? (int) $job['bytes'] : 0),
+			'safety_filename' => isset($job['safety_filename']) ? $job['safety_filename'] : '',
+			'method' => isset($job['method']) ? $job['method'] : '',
+			'table_count' => isset($job['table_count']) ? (int) $job['table_count'] : 0,
+			'error' => isset($job['error']) ? $job['error'] : '',
+		);
+	}
+
+	/**
+	 * CLI worker entry for import jobs.
+	 *
+	 * @param string $job_id
+	 * @return bool
+	 */
+	public function run_import_job($job_id)
+	{
+		@set_time_limit(0);
+		$job = $this->get_import_job($job_id);
+		if ( ! $job || empty($job['staged_path']))
+		{
+			return FALSE;
+		}
+
+		$staged = (string) $job['staged_path'];
+		$original = isset($job['original_name']) ? (string) $job['original_name'] : basename($staged);
+
+		$this->update_import_job($job_id, array(
+			'status' => 'running',
+			'phase' => 'preparing',
+			'percent' => 2,
+			'message' => 'Preparing import…',
+			'error' => '',
+		));
+
+		$self = $this;
+		$result = $this->import_uploaded_file($staged, $original, function ($percent, $phase, $message) use ($self, $job_id) {
+			$self->update_import_job($job_id, array(
+				'status' => 'running',
+				'percent' => (int) $percent,
+				'phase' => (string) $phase,
+				'message' => (string) $message,
+			));
+		});
+
+		@unlink($staged);
+
+		if (empty($result['ok']))
+		{
+			$this->update_import_job($job_id, array(
+				'status' => 'error',
+				'phase' => 'error',
+				'percent' => 0,
+				'message' => isset($result['error']) ? $result['error'] : 'Import failed.',
+				'error' => isset($result['error']) ? $result['error'] : 'Import failed.',
+				'safety_filename' => isset($result['safety_filename']) ? $result['safety_filename'] : '',
+				'staged_path' => '',
+			));
+			return FALSE;
+		}
+
+		$this->update_import_job($job_id, array(
+			'status' => 'done',
+			'phase' => 'done',
+			'percent' => 100,
+			'message' => isset($result['summary']) ? $result['summary'] : 'Import completed successfully.',
+			'error' => '',
+			'method' => isset($result['method']) ? $result['method'] : '',
+			'safety_filename' => isset($result['safety_filename']) ? $result['safety_filename'] : '',
+			'table_count' => isset($result['table_count']) ? (int) $result['table_count'] : 0,
+			'staged_path' => '',
+		));
+		return TRUE;
+	}
+
+	/**
+	 * @param string $job_id
+	 * @return string|false
+	 */
+	protected function import_job_path($job_id)
+	{
+		$dir = $this->backup_directory();
+		if ($dir === FALSE)
+		{
+			return FALSE;
+		}
+		$job_id = preg_replace('/[^a-f0-9]/', '', strtolower((string) $job_id));
+		return $dir.DIRECTORY_SEPARATOR.'import_job_'.$job_id.'.json';
+	}
+
+	/**
+	 * @param string $job_id
+	 * @param array  $job
+	 * @return bool
+	 */
+	protected function write_import_job($job_id, array $job)
+	{
+		$path = $this->import_job_path($job_id);
+		if ($path === FALSE)
+		{
+			return FALSE;
+		}
+		$job['updated_at'] = time();
+		$json = json_encode($job);
+		return $json !== FALSE && @file_put_contents($path, $json, LOCK_EX) !== FALSE;
+	}
+
+	/**
+	 * @param string $job_id
+	 * @param array  $patch
+	 * @return bool
+	 */
+	public function update_import_job($job_id, array $patch)
+	{
+		$job = $this->get_import_job($job_id);
+		if ( ! $job)
+		{
+			return FALSE;
+		}
+		foreach ($patch as $key => $value)
+		{
+			$job[$key] = $value;
+		}
+		return $this->write_import_job($job_id, $job);
+	}
+
+	/**
 	 * Restore database from an uploaded .sql or .sql.gz file.
 	 * Creates a safety dump first; rolls back to it if restore fails.
 	 *
-	 * @param string $tmp_path Uploaded temp path
-	 * @param string $original_name Client filename
-	 * @return array{ok:bool,error?:string,safety_filename?:string,method?:string}
+	 * @param string        $tmp_path      Uploaded temp path
+	 * @param string        $original_name Client filename
+	 * @param callable|null $on_progress   function ($percent, $phase, $message)
+	 * @return array{ok:bool,error?:string,safety_filename?:string,method?:string,table_count?:int,summary?:string}
 	 */
-	public function import_uploaded_file($tmp_path, $original_name)
+	public function import_uploaded_file($tmp_path, $original_name, $on_progress = NULL)
 	{
 		$this->last_error = '';
 		@set_time_limit(0);
+		$started = time();
+
+		$this->report_progress($on_progress, 3, 'validating', 'Validating backup file…');
 
 		$validation = $this->validate_upload($tmp_path, $original_name);
 		if ( ! $validation['ok'])
@@ -410,6 +814,7 @@ class Database_backup_model extends CI_Model
 
 		if ($validation['gzip'])
 		{
+			$this->report_progress($on_progress, 8, 'decompressing', 'Decompressing backup…');
 			$ungz = $staging.'.sql';
 			if ( ! $this->gunzip_file($staging, $ungz))
 			{
@@ -420,6 +825,7 @@ class Database_backup_model extends CI_Model
 			$cleanup[] = $ungz;
 		}
 
+		$this->report_progress($on_progress, 12, 'probing', 'Checking SQL backup…');
 		$probe = $this->probe_sql_file($sql_path);
 		if ( ! $probe['ok'])
 		{
@@ -427,7 +833,12 @@ class Database_backup_model extends CI_Model
 			return $probe;
 		}
 
-		$safety = $this->create_dump('safety');
+		$this->report_progress($on_progress, 18, 'safety', 'Creating safety backup before import…');
+		$safety = $this->create_dump('safety', function ($percent, $phase, $message) use ($on_progress) {
+			// Map safety dump 0–100 into import progress 18–42.
+			$mapped = 18 + (int) round(max(0, min(100, (int) $percent)) * 0.24);
+			$this->report_progress($on_progress, $mapped, 'safety', 'Safety backup: '.$message);
+		});
 		if (empty($safety['ok']))
 		{
 			$this->cleanup_paths($cleanup);
@@ -438,6 +849,7 @@ class Database_backup_model extends CI_Model
 			);
 		}
 
+		$this->report_progress($on_progress, 48, 'wiping', 'Clearing current database objects…');
 		if ( ! $this->wipe_database_objects())
 		{
 			$rollback_error = $this->last_error !== '' ? $this->last_error : 'Could not clear database before import.';
@@ -456,17 +868,20 @@ class Database_backup_model extends CI_Model
 			);
 		}
 
+		$this->report_progress($on_progress, 55, 'restoring', 'Restoring tables from backup…');
 		$method = 'mysql';
 		$restored = $this->restore_via_mysql($sql_path);
 		if ( ! $restored)
 		{
 			$method = 'mysqli';
+			$this->report_progress($on_progress, 58, 'restoring', 'Restoring via PHP fallback…');
 			$restored = $this->restore_via_mysqli($sql_path);
 		}
 
 		if ( ! $restored)
 		{
 			$rollback_error = $this->last_error;
+			$this->report_progress($on_progress, 70, 'rollback', 'Restore failed — rolling back…');
 			$rolled = $this->rollback_from_safety(isset($safety['path']) ? $safety['path'] : '');
 			$this->cleanup_paths($cleanup);
 			$this->prune_old_safety_files();
@@ -490,14 +905,29 @@ class Database_backup_model extends CI_Model
 			);
 		}
 
+		$this->report_progress($on_progress, 92, 'finishing', 'Cleaning up and refreshing caches…');
 		$this->cleanup_paths($cleanup);
 		$this->prune_old_safety_files();
 		$this->clear_app_caches();
+
+		$table_count = 0;
+		$tables = $this->db->list_tables();
+		if (is_array($tables))
+		{
+			$table_count = count($tables);
+		}
+		$elapsed = max(1, time() - $started);
+		$summary = 'Import completed in '.$elapsed.'s — '.$table_count.' tables restored'
+			.(! empty($safety['filename']) ? '. Safety backup: '.$safety['filename'] : '.');
+
+		$this->report_progress($on_progress, 100, 'done', $summary);
 
 		return array(
 			'ok' => TRUE,
 			'method' => $method,
 			'safety_filename' => isset($safety['filename']) ? $safety['filename'] : '',
+			'table_count' => $table_count,
+			'summary' => $summary,
 		);
 	}
 

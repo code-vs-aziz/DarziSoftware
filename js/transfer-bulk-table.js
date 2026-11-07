@@ -56,6 +56,9 @@
 		}
 
 		var colCount = $table.find('thead th').length;
+		var actionColStart = colCount - 3; // View / Transfer / Return
+		var firstDataCol = bulkEnabled ? 1 : 0;
+		var empCol = bulkEnabled ? 2 : 1;
 		var dtOptions = {
 			pagingType: 'full_numbers',
 			pageLength: 25,
@@ -63,7 +66,8 @@
 			lengthChange: true,
 			searching: true,
 			info: true,
-			order: []
+			ordering: true,
+			order: [] // no default sort until user clicks a column (e.g. Employee)
 		};
 
 		if (useSsp) {
@@ -82,7 +86,8 @@
 			};
 			dtOptions.columns = [];
 			for (var i = 0; i < colCount; i++) {
-				dtOptions.columns.push({ data: i, orderable: i > (bulkEnabled ? 0 : -1) && i < colCount - 3 });
+				var canOrder = i >= firstDataCol && i < actionColStart;
+				dtOptions.columns.push({ data: i, orderable: canOrder });
 			}
 		}
 
@@ -90,7 +95,11 @@
 			dtOptions.columnDefs = [{ orderable: false, targets: 0 }];
 		}
 
-		$table.DataTable(dtOptions);
+		var dt = $table.DataTable(dtOptions);
+		/* Make Employee header clearly clickable for sort (old ERP behaviour). */
+		try {
+			$(dt.column(empCol).header()).attr('title', 'Sort by employee');
+		} catch (e) { /* ignore */ }
 	};
 
 	function bindTransferBulkHandlers() {
@@ -123,7 +132,15 @@
 				window.alert(config.noneMsg);
 				return;
 			}
-			if (config.confirmMsg && !window.confirm(config.confirmMsg)) {
+			var confirmText = String(config.confirmMsg || '');
+			if (confirmText.indexOf('%d') !== -1) {
+				confirmText = confirmText.replace(/%d/g, String(items.length));
+			} else if (confirmText) {
+				confirmText = confirmText + ' (' + items.length + ')';
+			} else {
+				confirmText = 'You are about to transfer ' + items.length + ' order(s).';
+			}
+			if (!window.confirm(confirmText)) {
 				return;
 			}
 			$('#transfer_items_json').val(JSON.stringify(items));

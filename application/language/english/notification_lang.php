@@ -45,6 +45,7 @@ $lang['notify_bridge_resetting'] = 'Clearing session… generating fresh QR';
 $lang['notify_bridge_starting'] = 'Starting bridge…';
 $lang['notify_bridge_use_panel'] = 'Live status and QR: use the WhatsApp bridge panel above.';
 $lang['notify_bridge_chip_title'] = 'WhatsApp bridge status — open Customer Messages';
+$lang['notify_bridge_chip_title_shared'] = 'WhatsApp bridge (shared) — admin scans QR once for the whole shop';
 $lang['notify_bridge_chip_checking'] = 'Checking…';
 $lang['notify_bridge_chip_ok'] = 'WhatsApp OK';
 $lang['notify_bridge_chip_wait'] = 'Scan QR';

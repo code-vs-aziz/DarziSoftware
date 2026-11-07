@@ -9,6 +9,8 @@
   "background_color": "#f1f5f9",
   "theme_color": "#0ea5e9",
   "lang": "en",
+  "handle_links": "not-preferred",
+  "capture_links": "none",
   "icons": [
     {
       "src": "images/favicon-32.png",

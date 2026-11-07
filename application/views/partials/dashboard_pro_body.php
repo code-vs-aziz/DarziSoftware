@@ -27,7 +27,7 @@ $user_name = (string) $this->session->userdata('user');
 	</header>
 
 	<section class="dz-search-panel" aria-label="<?php echo esc_html(t('dash_search_placeholder')); ?>">
-		<form id="dashboard-home-search-form" class="dz-search-panel__row dz-search-panel__row--home" onsubmit="return dashboardHomeSearchSubmit(event);">
+		<form id="dashboard-home-search-form" class="dz-search-panel__row dz-search-panel__row--home" action="#" method="get" data-no-ajax="true" onsubmit="return dashboardHomeSearchSubmit(event);">
 			<input
 				class="dz-input form-control dz-search-panel__input"
 				type="search"

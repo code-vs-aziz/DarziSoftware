@@ -43,7 +43,7 @@ class Dashboard_data_model extends CI_Model
         AND transfer_mst.sr = order_dtl.trnno
         AND transfer_mst.dept IN ('.$dept_list.')
         AND transfer_mst.status = "Active"
-      WHERE (order_mst.ostatus IS NULL OR order_mst.ostatus != 1)
+      WHERE (order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')
       GROUP BY transfer_mst.dept
     ';
     $q = $this->db->query($sql);
@@ -59,7 +59,7 @@ class Dashboard_data_model extends CI_Model
   }
 
   /**
-   * Ready for delivery lines (matches Order/order_issue list).
+   * Ready for delivery orders (matches Order Status READY / Order/order_issue).
    */
   function count_ready_to_deliver_lines()
   {
@@ -67,13 +67,11 @@ class Dashboard_data_model extends CI_Model
     $this->db->from('transfer_mst');
     $this->db->join('order_mst', 'transfer_mst.order_id = order_mst.trnno');
     $this->db->join('order_dtl', 'order_dtl.order_trnno = transfer_mst.order_id AND order_dtl.trnno = transfer_mst.sr', 'inner');
-    $this->db->join('measurement', 'measurement.code = order_mst.naap_no');
-    $this->db->join('customer', 'customer.code = measurement.customer_code');
     $this->db->where('transfer_mst.dept', 'STIT');
     $this->db->where('transfer_mst.status', 'Deactive');
-    $this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus != 1)', NULL, FALSE);
+    $this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')', NULL, FALSE);
     $this->db->where(
-      'transfer_mst.trnno = (SELECT MAX(t2.trnno) FROM transfer_mst t2 WHERE t2.order_id = transfer_mst.order_id AND t2.sr = transfer_mst.sr AND t2.dept = \'STIT\' AND t2.status = \'Deactive\')',
+      'transfer_mst.trnno = (SELECT MAX(t2.trnno) FROM transfer_mst t2 WHERE t2.order_id = transfer_mst.order_id AND t2.sr = transfer_mst.sr)',
       NULL,
       FALSE
     );
@@ -120,15 +118,15 @@ class Dashboard_data_model extends CI_Model
 
     $today_sql = $this->db->escape($today);
     $this->db->select('
-      SUM(CASE WHEN RDATE = '.$today_sql.' AND ostatus != 1 THEN 1 ELSE 0 END) AS today_return,
-      SUM(CASE WHEN EDATE = '.$today_sql.' AND ostatus != 1 THEN 1 ELSE 0 END) AS today_bookings
+      SUM(CASE WHEN RDATE = '.$today_sql.' AND (ostatus IS NULL OR ostatus = 0 OR ostatus = \'0\') THEN 1 ELSE 0 END) AS today_return,
+      SUM(CASE WHEN EDATE = '.$today_sql.' AND (ostatus IS NULL OR ostatus = 0 OR ostatus = \'0\') THEN 1 ELSE 0 END) AS today_bookings
     ', FALSE);
     $this->db->from('order_mst');
     $this->db->group_start();
     $this->db->where('RDATE', $today);
     $this->db->or_where('EDATE', $today);
     $this->db->group_end();
-    $this->db->where('ostatus !=', 1);
+    $this->db->where('(ostatus IS NULL OR ostatus = 0 OR ostatus = \'0\')', NULL, FALSE);
     $row = $this->db->get()->row();
     if ($row)
     {

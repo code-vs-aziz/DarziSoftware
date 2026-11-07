@@ -119,13 +119,46 @@ class employee_rep extends MY_Controller {
 		 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
 		$date = $this->uri->segment(3);
 		$date1 = $this->uri->segment(4);
+		$stage = rawurldecode(trim((string) $this->uri->segment(5)));
+		if ($stage === '' && $this->input->get('stage', TRUE) !== NULL)
+		{
+			$stage = trim((string) $this->input->get('stage', TRUE));
+		}
+		// URL-safe codes (no spaces) → display labels used in the report.
+		$stage_map = array(
+			'Booking' => 'Booking',
+			'Cutting' => 'Cutting',
+			'HO2' => 'HO2',
+			'Stitching' => 'Stitching',
+			'Ready4Del' => 'Ready 4 Del',
+			'Ready_4_Del' => 'Ready 4 Del',
+			'Ready 4 Del' => 'Ready 4 Del',
+			'READY' => 'Ready 4 Del',
+			'Pending' => 'Pending',
+			'Delivered' => 'Delivered',
+		);
+		if ($stage === 'all' || $stage === 'All' || $stage === '')
+		{
+			$stage = '';
+		}
+		elseif (isset($stage_map[$stage]))
+		{
+			$stage = $stage_map[$stage];
+		}
+		else
+		{
+			$stage = '';
+		}
+		$data['stage_filter'] = $stage;
 		$data['payment'] = ($date !== '' && $date1 !== '') ? $this->order_query->get_booking_status_report($date, $date1) : array();
- 	$this->load->view('rep_booking',$data);
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
+		$this->load->view('rep_booking', $data);
 	}
 	
 	
@@ -137,7 +170,15 @@ class employee_rep extends MY_Controller {
 		$this->load->library('session');
 		$date = $this->uri->segment(3);
 		$date1 = $this->uri->segment(4);
-		$data['payment'] = ($date !== '' && $date1 !== '') ? $this->cash_ledger->get_data_employee_summary($date, $date1) : array();
+		$emp_type = trim((string) $this->uri->segment(5));
+		if ( ! in_array($emp_type, array('Cutting', 'Stitching', 'Staff'), TRUE))
+		{
+			$emp_type = '';
+		}
+		$data['emp_type_filter'] = $emp_type;
+		$data['payment'] = ($date !== '' && $date1 !== '')
+			? $this->cash_ledger->get_data_employee_summary($date, $date1, $emp_type)
+			: array();
  	$this->load->view('employee_report',$data);
 	if(!$this->session->userdata('user')){
 		redirect('Login'); 
@@ -211,12 +252,18 @@ class employee_rep extends MY_Controller {
 	 
 	  //$data["opening"]= $this->cash_ledger->get_opeing('2019-03-01','4');
 	  $data["employee"]= $this->employee_report_MD->get_dat(array('employee'));
-		 $fromdate = $this->input->post('fromdate');
-		 $emp = $this->input->post('employee');
-	 	  
-	// $data["employee"]= $this->master_data->get_dat(array('employee'));
- //	$this->load->view('customer_ledger',$data);todate
-	redirect('employee_rep/employee_ledreport/'.$this->input->post('fromdate').'/'.$this->input->post('todate').'/'.$this->input->post('employee').'');
+		$fromdate = trim((string) $this->input->post('fromdate', TRUE));
+		$todate = trim((string) $this->input->post('todate', TRUE));
+		$emp_type = trim((string) $this->input->post('emp_type', TRUE));
+		if ($emp_type === '' || $emp_type === 'all')
+		{
+			$emp_type = 'all';
+		}
+		elseif ( ! in_array($emp_type, array('Cutting', 'Stitching', 'Staff'), TRUE))
+		{
+			$emp_type = 'all';
+		}
+	redirect('employee_rep/employee_ledreport/'.$fromdate.'/'.$todate.'/'.$emp_type);
 	if(!$this->session->userdata('user')){
 		redirect('Login'); 
 	}	
@@ -254,25 +301,21 @@ class employee_rep extends MY_Controller {
 		 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-		
-	   
-	  $this->load->model("employee_report_MD");	
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
-	 
-	  //$data["opening"]= $this->cash_ledger->get_opeing('2019-03-01','4');
-	  $data["employee"]= $this->employee_report_MD->get_dat(array('employee'));
-		 $fromdate = $this->input->post('fromdate');
-		 $emp = $this->input->post('employee');
-	  
-	// $data["employee"]= $this->master_data->get_dat(array('employee'));
- //	$this->load->view('customer_ledger',$data);todate
-	redirect('employee_rep/booking_ledreport/'.$this->input->post('fromdate').'/'.$this->input->post('todate').'/'.$this->input->post('employee').'');
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
-
-		
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
+		$fromdate = trim((string) $this->input->post('fromdate'));
+		$todate = trim((string) $this->input->post('todate'));
+		$stage = trim((string) $this->input->post('stage'));
+		if ($stage === '' || strtolower($stage) === 'all')
+		{
+			$stage = 'all';
+		}
+		// Keep URL segment space-free (e.g. Ready4Del).
+		$stage = str_replace(array(' ', '+'), '', $stage);
+		redirect('employee_rep/booking_ledreport/'.$fromdate.'/'.$todate.'/'.$stage);
 	}
 	
 public function all_del_ord_pro()

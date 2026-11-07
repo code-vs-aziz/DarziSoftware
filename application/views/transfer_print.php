@@ -422,6 +422,16 @@ $(document).ready(function() {
 				<td> </td> 
 			  </tr>
 		</table>
+		<?php
+		$geera_parts = measurement_split_triple(isset($orders->geera) ? $orders->geera : '');
+		$geera_upar = $geera_parts[0];
+		$geera_darmiyan = $geera_parts[1];
+		$geera_neeche = $geera_parts[2];
+		$sgeera_parts = measurement_split_triple(isset($orders->SGeera) ? $orders->SGeera : '');
+		$sgeera_upar = $sgeera_parts[0];
+		$sgeera_darmiyan = $sgeera_parts[1];
+		$sgeera_neeche = $sgeera_parts[2];
+		?>
 		<table   style="font-size:18px; "  >
 										<tr>
 							<td style="border-bottom: 1px solid black;" width="70" align="right" class="font18"><?php  echo $orders->KL; ?></td>
@@ -447,9 +457,27 @@ $(document).ready(function() {
 						</tr>	
 								<tr>
 		 
-						 <td style="border-bottom: 1px solid black;" align="right" class="font18"><?php  echo $orders->geera; ?></td>
+						 <td style="border-bottom: 1px solid black;" align="right" class="font18"><?php echo esc_html($geera_neeche); ?></td>
 						<td align="right" width="120" style="border-bottom: 1px solid black;" class="font18">
-							   &nbsp; &nbsp; <b>گیرا   : </b>  
+							   &nbsp; &nbsp; <b>گیرا نیچے : </b>
+							 
+							</td>
+						 
+					</tr>
+								<tr>
+		 
+						 <td style="border-bottom: 1px solid black;" align="right" class="font18"><?php echo esc_html($geera_darmiyan); ?></td>
+						<td align="right" width="120" style="border-bottom: 1px solid black;" class="font18">
+							   &nbsp; &nbsp; <b>گیرا درمیان : </b>
+							 
+							</td>
+						 
+					</tr>
+								<tr>
+		 
+						 <td style="border-bottom: 1px solid black;" align="right" class="font18"><?php echo esc_html($geera_upar); ?></td>
+						<td align="right" width="120" style="border-bottom: 1px solid black;" class="font18">
+							   &nbsp; &nbsp; <b>گیرا اوپر : </b>
 							 
 							</td>
 						 
@@ -543,51 +571,36 @@ $(document).ready(function() {
 			  
 			  <?php  }elseif($type == 'Pent')
 			  {
+				$tpick = function () use ($orders) {
+					$keys = func_get_args();
+					$fallback = '';
+					foreach ($keys as $key)
+					{
+						$val = isset($orders->$key) ? trim((string) $orders->$key) : '';
+						if ($fallback === '') { $fallback = $val; }
+						if ($val !== '') { return $val; }
+					}
+					return $fallback;
+				};
+				$pent_rows = array(
+					array($tpick('PentLambai'), 'لمبائی'),
+					array($tpick('pentWaiste'), 'کمر'),
+					array($tpick('HIP'), 'ہپ'),
+					array($tpick('PentPat', 'PentThai'), 'پٹ'),
+					array($tpick('PentGhutna'), 'گھٹنہ'),
+					array($tpick('PentPonchaMori', 'PentPoncha'), 'پانچہ موری'),
+				);
 			  ?>
 			  <table   style="font-size:18px;"  >
+			  <?php foreach ($pent_rows as $pr) { ?>
 			  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" align="right" class="font18"><?php  echo $orders->PentLambai; ?></td>
+						 <td style="border-bottom: 1px solid black;" width="35" align="right" class="font18"><?php echo esc_html($pr[0]); ?></td>
 						<td align="right" width="120"  class="font18">
-							   &nbsp; &nbsp; <b>لمبائی  : </b>  
-							 
+							   &nbsp; &nbsp; <b><?php echo esc_html($pr[1]); ?>  : </b>
 							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" width="35" align="right" class="font18"><?php  echo $orders->pentWaiste; ?></td>
-									<td align="right" width="100" class="font18">
-							   &nbsp; &nbsp; <b>کمر : </b> 
-							 
-							</td>
+							<td colspan="3">&nbsp;</td>
 						</tr>
-						  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->HIP; ?></td>
-						<td align="right" width="120"  class="font18">
-							   &nbsp; &nbsp; <b>HIP  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;"  class="font18" width="35" align="right"><?php  echo $orders->PentPoncha; ?></td>
-									<td align="right" width="100" class="font18">
-							   &nbsp; &nbsp; <b> پانچہ : </b> 
-							 
-							</td>
-						</tr>		
-					  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->PentThai; ?></td>
-						<td align="right" width="120"  class="font18">
-							   &nbsp; &nbsp; <b>Thai
-  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"> </td>
-									<td align="right" width="100" class="font18">
-							   
-							 
-							</td>
-						</tr>
+			  <?php } ?>
 			 <?php  }elseif($type == 'Shirt')
 			  {
 			  ?>
@@ -614,12 +627,26 @@ $(document).ready(function() {
 							 
 							</td>
 							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->SGeera; ?></td>
+							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php echo esc_html($sgeera_neeche); ?></td>
 									<td align="right" width="100" class="font18">
-							   &nbsp; &nbsp; <b> گیرا : </b> 
+							   &nbsp; &nbsp; <b>گیرا نیچے : </b>
 							 
 							</td>
-						</tr>		
+						</tr>
+						  <tr>
+		 
+						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php echo esc_html($sgeera_darmiyan); ?></td>
+						<td align="right" width="120" class="font18" >
+							   &nbsp; &nbsp; <b>گیرا درمیان : </b>
+							 
+							</td>
+							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php echo esc_html($sgeera_upar); ?></td>
+									<td align="right" width="100" class="font18">
+							   &nbsp; &nbsp; <b>گیرا اوپر : </b>
+							 
+							</td>
+						</tr>
 		 								  <tr>
 		 
 						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->SChaati; ?></td>
@@ -650,127 +677,66 @@ $(document).ready(function() {
 						</tr>	
 						 <?php  }elseif($type == 'Coat')
 			  {
+				$tpick = function () use ($orders) {
+					$keys = func_get_args();
+					$fallback = '';
+					foreach ($keys as $key)
+					{
+						$val = isset($orders->$key) ? trim((string) $orders->$key) : '';
+						if ($fallback === '') { $fallback = $val; }
+						if ($val !== '') { return $val; }
+					}
+					return $fallback;
+				};
+				$coat_rows = array(
+					array($tpick('CoatLambai'), 'لمبائی'),
+					array($tpick('CoatChaati'), 'چھاتی'),
+					array($tpick('CoatKamar'), 'کمر'),
+					array($tpick('CoatTeera'), 'تیرا'),
+					array($tpick('CoatBazoo'), 'بازو'),
+					array($tpick('CoatGaala'), 'گلا'),
+					array($tpick('CoatHIP', 'SherwaniHIP'), 'ہپ'),
+					array($tpick('CoatDola', 'SherwaniDola'), 'ڈولا'),
+					array($tpick('CoatBazooMori', 'SherwaniBazooMori'), 'بازو موری'),
+					array($tpick('crossback', 'SherwaniCrossback'), 'کراس بیک'),
+					array($tpick('CoatLambaiBack', 'SherwaniLambaiBack'), 'لمبائی بیک'),
+				);
 			  ?>
 			  <table   style="font-size:18px;"  >
+			  <?php foreach ($coat_rows as $cr) { ?>
 			  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->CoatLambai; ?></td>
+						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php echo esc_html($cr[0]); ?></td>
 						<td align="right" width="120"  class="font18">
-							   &nbsp; &nbsp; <b>لمبائی  : </b>  
-							 
+							   &nbsp; &nbsp; <b><?php echo esc_html($cr[1]); ?>  : </b>
 							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->CoatBazoo; ?></td>
-									<td align="right" width="100" class="font18" >
-							   &nbsp; &nbsp; <b>باذو : </b> 
-							 
-							</td>
+							<td colspan="3">&nbsp;</td>
 						</tr>
-						  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->CoatTeera; ?></td>
-						<td align="right" width="120" class="font18" >
-							   &nbsp; &nbsp; <b>تیرا  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->CoatChaati; ?></td>
-									<td align="right" width="100" class="font18">
-							   &nbsp; &nbsp; <b> چھاتی : </b> 
-							 
-							</td>
-						</tr>		
-		 								  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->CoatHIP; ?></td>
-						<td align="right" width="120" class="font18" >
-							   &nbsp; &nbsp; <b>HIP  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->CoatKamar; ?></td>
-									<td align="right" width="100" class="font18">
-							   &nbsp; &nbsp; <b> کمر : </b> 
-							 
-							</td>
-						</tr>		
-						<tr>
-		 
-						<td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->crossback; ?></td>
-						<td align="right" width="120" class="font18" >
-							   &nbsp; &nbsp; <b>Cross Back
-  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->CoatGaala; ?></td>
-									<td align="right" width="100"class="font18" >
-							   &nbsp; &nbsp; <b> گلا : </b> 
-							 
-							</td>
-						</tr>		
+			  <?php } ?>
 						 <?php  }elseif($type == 'Waistcoat')
 			  {
-				  
+				$wast_rows = array(
+					array('wastLambai', 'لمبائی'),
+					array('wastChaati', 'چھاتی'),
+					array('wastKamar', 'کمر'),
+					array('wastTeera', 'تیرا'),
+					array('wastGaala', 'گلا'),
+					array('wastHIP', 'ہپ'),
+				);
 			  ?>
 			  <table   style="font-size:18px;"  >
+			  <?php foreach ($wast_rows as $wr) {
+				$wk = $wr[0];
+				$wl = $wr[1];
+				$wv = isset($orders->$wk) ? $orders->$wk : '';
+			  ?>
 			  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->wastLambai; ?></td>
+						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php echo esc_html($wv); ?></td>
 						<td align="right" width="120"  class="font18">
-							   &nbsp; &nbsp; <b>لمبائی  : </b>  
-							 
+							   &nbsp; &nbsp; <b><?php echo esc_html($wl); ?>  : </b>
 							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->wastTeera; ?></td>
-									<td align="right" width="100" class="font18">
-							   &nbsp; &nbsp; <b>تیرا : </b> 
-							 
-							</td>
+							<td colspan="3">&nbsp;</td>
 						</tr>
-						  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->wastHIP; ?></td>
-						<td align="right" width="120" class="font18" >
-							   &nbsp; &nbsp; <b>HIP 
-  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->wastChaati; ?></td>
-									<td align="right" width="100"class="font18" >
-							   &nbsp; &nbsp; <b> چھاتی : </b> 
-							 
-							</td>
-						</tr>		
-		 								  <tr>
-		 
-						 <td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"><?php  echo $orders->CoatHIP; ?></td>
-						<td align="right" width="120" class="font18" >
-							   &nbsp; &nbsp; <b>HIP  : </b>  
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;" class="font18" width="35" align="right"><?php  echo $orders->wastKamar; ?></td>
-									<td align="right" width="100" class="font18" >
-							   &nbsp; &nbsp; <b> کمر : </b> 
-							 
-							</td>
-						</tr>		
-						<tr>
-		 
-						<td style="border-bottom: 1px solid black;" width="35" class="font18" align="right"> </td>
-						<td align="right" width="120"  class="font18" >
-							   
-							 
-							</td>
-							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-							<td style="border-bottom: 1px solid black;"  class="font18"width="35" align="right"><?php  echo $orders->wastGaala; ?></td>
-									<td align="right" width="100" class="font18" >
-							   &nbsp; &nbsp; <b> گلا : </b> 
-							 
-							</td>
-						</tr>	
+			  <?php } ?>
 						
 			  <?php }  ?>
 			  
@@ -785,7 +751,7 @@ $(document).ready(function() {
 							 
 							<td style="border-bottom: 1px solid black;"  class="font18"  align="right"><?php  echo $orders->MREMARKS; ?></td>
 								<td align="right"   class="font18" style="border-bottom: 1px solid black; width: 94px;">
-							   &nbsp; &nbsp; <b> نوٹ لائن : </b> 
+							   &nbsp; &nbsp; <b> (نوٹ لائن) : </b> 
 							 
 							</td>	
 						</tr>			

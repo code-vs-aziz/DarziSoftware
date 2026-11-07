@@ -133,6 +133,25 @@ class Cash_ledger_model extends CI_Model
 	return $balance;
   }
   
+	/**
+	 * Statuses that count as earned employee wages.
+	 * Only Deactive / DELIVER — CANCEL / CANCEL_READY are real cancellations
+	 * (e.g. deactivated orders) and must not inflate payable.
+	 */
+	protected function employee_wage_status_sql($alias = 'transfer_mst')
+	{
+		$a = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $alias);
+		if ($a === '')
+		{
+			$a = 'transfer_mst';
+		}
+		return '('
+			.'('.$a.'.dept = "CUT" AND '.$a.'.status IN ("Deactive", "DELIVER"))'
+			.' OR '
+			.'('.$a.'.dept = "STIT" AND '.$a.'.status IN ("Deactive", "DELIVER"))'
+			.')';
+	}
+
    function get_opeing_emp($date,$emplyee)
   {
 	$date = trim((string) $date);
@@ -142,6 +161,7 @@ class Cash_ledger_model extends CI_Model
 		return 0;
 	}
 
+	$wage_status = $this->employee_wage_status_sql('transfer_mst');
 	$sql = '
 		SELECT
 			COALESCE((
@@ -150,10 +170,7 @@ class Cash_ledger_model extends CI_Model
 				INNER JOIN order_dtl ON order_dtl.trnno = transfer_mst.sr AND order_dtl.order_trnno = transfer_mst.order_id
 				WHERE transfer_mst.empno = ?
 				  AND transfer_mst.EDATE < ?
-				  AND (
-					(transfer_mst.dept = "CUT" AND (transfer_mst.status = "Deactive" OR transfer_mst.status = "DELIVER"))
-					OR (transfer_mst.dept = "STIT" AND (transfer_mst.status = "Deactive" OR transfer_mst.status = "DELIVER"))
-				  )
+				  AND '.$wage_status.'
 			), 0)
 			- COALESCE((
 				SELECT SUM(cash.amount)
@@ -314,10 +331,7 @@ class Cash_ledger_model extends CI_Model
 			INNER JOIN customer ON customer.code = measurement.customer_code
 			WHERE transfer_mst.empno = ?
 			  AND transfer_mst.EDATE BETWEEN ? AND ?
-			  AND (
-				(transfer_mst.dept = "CUT" AND (transfer_mst.status = "Deactive" OR transfer_mst.status = "DELIVER"))
-				OR (transfer_mst.dept = "STIT" AND (transfer_mst.status = "Deactive" OR transfer_mst.status = "DELIVER"))
-			  )
+			  AND '.$this->employee_wage_status_sql('transfer_mst').'
 			UNION ALL
 			SELECT
 				cash.EDATE AS ENDATE,
@@ -347,7 +361,7 @@ class Cash_ledger_model extends CI_Model
    * Employee summary report — one row per employee with aggregated suit/salary/payment.
    * Replaces correlated subqueries in employee_report_MD.
    */
-  function get_data_employee_summary($date, $date1)
+  function get_data_employee_summary($date, $date1, $emp_type = '')
   {
 	$date = trim((string) $date);
 	$date1 = trim((string) $date1);
@@ -355,11 +369,21 @@ class Cash_ledger_model extends CI_Model
 	{
 		return array();
 	}
+	$emp_type = trim((string) $emp_type);
+	$allowed_types = array('Cutting', 'Stitching', 'Staff');
+	$type_filter_sql = '';
+	$params = array($date, $date1, $date, $date1, $date, $date1);
+	if (in_array($emp_type, $allowed_types, TRUE))
+	{
+		$type_filter_sql = ' WHERE e.type = ? ';
+		$params[] = $emp_type;
+	}
 
 	$sql = '
 		SELECT
 			e.empno,
 			e.name,
+			e.type AS emp_type,
 			COALESCE(paid.paid_amt, 0) AS Paid,
 			CASE
 				WHEN e.empno = 10 THEN COALESCE(sal_cash.sal_amt, 0)
@@ -387,15 +411,20 @@ class Cash_ledger_model extends CI_Model
 			FROM transfer_mst t
 			INNER JOIN order_dtl d ON d.trnno = t.sr AND d.order_trnno = t.order_id
 			WHERE t.EDATE BETWEEN ? AND ?
-			  AND (
-				(t.dept = "CUT" AND t.status IN ("Deactive", "DELIVER"))
-				OR (t.dept = "STIT" AND t.status IN ("Deactive", "DELIVER"))
-			  )
+			  AND '.$this->employee_wage_status_sql('t').'
 			GROUP BY t.empno
 		) tm ON tm.empno = e.empno
-		ORDER BY e.name ASC
+		'.$type_filter_sql.'
+		ORDER BY
+			CASE e.type
+				WHEN \'Cutting\' THEN 1
+				WHEN \'Stitching\' THEN 2
+				WHEN \'Staff\' THEN 3
+				ELSE 4
+			END ASC,
+			e.name ASC
 	';
-	$q = $this->db->query($sql, array($date, $date1, $date, $date1, $date, $date1));
+	$q = $this->db->query($sql, $params);
 	return $q->num_rows() > 0 ? $q->result() : array();
   }
   

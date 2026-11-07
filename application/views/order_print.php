@@ -51,15 +51,9 @@
     <!-- Fontfaces CSS-->
 <?php } ?>
    <style media="print">
-   .top{
-		margin-top:50px;
-   }
-	.print{
-			display:none;
-	}
-   @page {
-  size: landscape;
-}
+   .top{ margin-top: 0; }
+	.print{ display: none; }
+   /* Page size comes from print_size_selector (small 160×148 / a4 210×148). Do not force landscape. */
    </style>
    <style>
    <?php if ($pdf_mode) { ?>
@@ -101,31 +95,32 @@
    }
    .pdf-meas-note-table .m-note-lbl { width: 22%; white-space: nowrap; }
    .pdf-meas-note-table .m-note-val { width: 78%; direction: rtl; text-align: right; }
-   .print-suit-card { border-bottom: 1.5px solid #94a3b8; padding: 6px 2px 8px; margin: 0; page-break-inside: avoid; }
-   .print-suit-card__table { width: 100%; border-collapse: collapse; }
-   .print-suit-card__price { font-weight: bold; font-size: 18pt; text-align: left; white-space: nowrap; vertical-align: top; }
-   .print-suit-card__fabric img { height: 44px; width: 56px; border: 1px solid #94a3b8; }
-   .print-suit-card__titles { text-align: right; direction: rtl; vertical-align: top; }
-   .print-suit-card__name { font-weight: bold; font-size: 17pt; display: block; margin-bottom: 3px; }
-   .print-suit-card__pockets { font-size: 14pt; display: block; margin-bottom: 2px; font-weight: bold; }
-   .print-suit-card__extra { font-size: 13pt; color: #1e293b; display: block; font-weight: bold; }
-   .print-suit-card__badge {
-     display: inline-block; min-width: 24px; padding: 3px 8px; border-radius: 999px;
-     background: #0f172a; color: #fff; font-weight: bold; font-size: 14pt; text-align: center;
-   }
+   .pdf-meas-note-table .m-note-inline { direction: rtl; text-align: right; font-size: 19pt; font-weight: bold; }
+   .print-slip-meas__note-inline { font-size: 1.05rem !important; }
+   .print-suit-card { padding: 3px 0 5px; margin: 0 0 2px; page-break-inside: avoid; overflow: visible; }
+   .print-suit-classic__detail { direction: rtl; text-align: right; font-size: 13pt; font-weight: bold; line-height: 2.2; padding: 4px 0 8px; margin: 0; overflow: visible; }
+   .print-suit-classic__note-brack { font-weight: 900; font-size: 1.4em; color: #000; }
+   .print-suit-classic__rule { border-bottom: 1px dotted #111; height: 0; margin: 0; padding: 0; }
+   .print-suit-classic__meta { width: 100%; margin-top: 5px; padding-bottom: 3px; overflow: visible; }
+   .print-suit-classic__price { display: inline-block; font-weight: bold; font-size: 14pt; text-align: left; border-bottom: 1px dotted #c4c4c4; padding: 0 4px 2px 0; min-width: 18mm; white-space: nowrap; vertical-align: middle; line-height: 1.45; }
+   .print-suit-classic__fabric { display: inline-block; vertical-align: middle; margin: 0 4px; }
+   .print-suit-classic__fabric img { height: 22px; width: 30px; border: 1px solid #777; vertical-align: middle; }
+   .print-suit-classic__pockets { display: inline-block; direction: rtl; text-align: right; font-size: 12pt; font-weight: bold; vertical-align: middle; line-height: 1.55; padding: 2px 0 3px; overflow: visible; color: #111; }
+   .print-suit-classic__note { direction: rtl; text-align: right; font-size: 12pt; font-weight: bold; padding-top: 3px; line-height: 1.5; overflow: visible; }
+   .print-suit-card__color { font-weight: bold; }
+   .print-suit-card__suit-end { font-weight: bold; }
+   .print-suit-no { font-weight: bold; }
    .pdf-brand-badge {
      background: #0f172a; color: #fff; font-weight: bold; font-size: 14pt;
      padding: 8px 12px; display: inline-block; border-radius: 6px; line-height: 1.4;
      font-family: lateef, xbriyaz, sans-serif;
    }
    .pdf-footer-holiday { font-size: 18pt; font-weight: bold; background: #cbd5e1; padding: 8px; text-align: center; }
-   .pdf-footer-terms { font-size: 14pt; font-weight: bold; text-align: right; direction: rtl; }
+   .pdf-footer-terms { font-size: 12pt; font-weight: bold; text-align: right; direction: rtl; white-space: nowrap; }
    <?php } else { ?>
   @media print {
-	.page-break	{ display: block; page-break-before: always; }
-	
-	 @page { margin: 0; }
-  body { margin: 5.6cm; }
+	.page-break { display: block; page-break-before: always; }
+	body { margin: 0; }
 }
    <?php } ?>
   
@@ -195,7 +190,9 @@ $(document).ready(function() {
 			 $orders = reset($order);
 			 $order_number = isset($orders->TRNNO) ? $orders->TRNNO : 0;
 			 $notify_auto_dispatch = 0;
-			 $order_whatsapp_prompt = (int) $this->session->flashdata('order_whatsapp_prompt');
+			 // WhatsApp dialog opens only on button click — never auto-prompt on print page load.
+			 $order_whatsapp_prompt = 0;
+			 $this->session->flashdata('order_whatsapp_prompt'); // consume leftover flash if any
 			 $customer_phone = isset($orders->Phone) ? trim((string) $orders->Phone) : '';
 			 $has_whatsapp_phone = ($customer_phone !== '');
 			 $wa_phone = '';
@@ -229,7 +226,7 @@ $(document).ready(function() {
 										</div>
                                    </div>
                      	<?php } ?>
-                     	<div class="<?php echo $pdf_mode ? 'col-md-14' : 'print-slip-sheet'; ?>" style="<?php echo $pdf_mode ? 'width:100%;' : ''; ?>">
+                     	<div class="<?php echo $pdf_mode ? 'col-md-14' : 'print-slip-sheet'; ?>"<?php echo $pdf_mode ? ' style="width:100%;"' : ' data-print-sheet data-print-size="small"'; ?>>
                                 	  	<?php if ( ! $pdf_mode) { ?>
 			<img src="<?php echo $pdf_img('images/darzi-baba-logo.png'); ?>" alt="" class="print-slip-watermark" aria-hidden="true">
 			<?php } ?>
@@ -269,46 +266,78 @@ $(document).ready(function() {
 			$has_customer_photo = ($customer_photo !== '');
 			$rdate_fmt = !empty($orders->RDATE) ? date('d-m-Y', strtotime($orders->RDATE)) : '';
 			$odate_fmt = !empty($orders->ORDERDATE) ? date('d-m-Y', strtotime($orders->ORDERDATE)) : '';
-			$balance_amt = (float) $orders->total - (float) $orders->advance - (float) $orders->discount;
-			$prev_balance = isset($orders->prev_balance) ? (float) $orders->prev_balance : 0;
+			$balance_amt = (float) $orders->total - (float) $orders->advance - (float) (isset($orders->discount) ? $orders->discount : 0);
+			if ($balance_amt < 0)
+			{
+				$balance_amt = 0;
+			}
+			// Prefer controller-computed سابقه بقایا (set on slip data).
+			if (isset($prev_balance) && $prev_balance !== '' && $prev_balance !== NULL)
+			{
+				$prev_balance = (float) $prev_balance;
+			}
+			elseif (isset($orders->prev_balance))
+			{
+				$prev_balance = (float) $orders->prev_balance;
+			}
+			else
+			{
+				$prev_balance = 0.0;
+			}
+			// Whole rupees only — trailing .00 confuses shop staff.
 			$fmt_money = function ($n) {
-				return number_format((float) $n, 2, '.', ',');
+				return number_format(round((float) $n), 0, '.', ',');
 			};
 			?>
 			<?php if ($pdf_mode) { ?>
 			<table class="pdf-struct pdf-info-table" width="100%" cellpadding="5" cellspacing="0" style="width:100%;margin:4px 0 10px;border-bottom:2px solid #111;font-size:16pt;" dir="rtl">
 				<tr>
 					<?php if ($has_customer_photo) { ?>
-					<td width="14%" rowspan="3" valign="top" align="center" style="padding:2px 0 6px 8px;">
+					<td width="12%" rowspan="3" valign="top" align="center" style="padding:2px 0 6px 8px;">
 						<img src="<?php echo esc_html($customer_photo); ?>" style="height:90px;width:90px;object-fit:cover;border:1px solid #111;" alt="">
 					</td>
 					<?php } ?>
-					<td width="43%" style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
+					<td colspan="2" width="<?php echo $has_customer_photo ? '55%' : '62%'; ?>" style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
 						<span class="ur urd" style="white-space:nowrap;font-weight:bold;font-size:16pt;">نام</span>
-						<span class="ur urd" style="display:inline-block;min-width:55%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:18pt;"><?php echo esc_html($orders->name); ?></span>
+						<span class="ur urd" style="display:inline-block;min-width:70%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:18pt;"><?php echo esc_html($orders->name); ?></span>
 					</td>
-					<td width="43%" style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
+					<td width="<?php echo $has_customer_photo ? '33%' : '38%'; ?>" style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
 						<span class="ur urd" style="white-space:nowrap;font-weight:bold;font-size:16pt;">ناپ نمبر</span>
-						<span class="ur urd" style="display:inline-block;min-width:45%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:18pt;"><?php echo esc_html($orders->man_napno); ?></span>
+						<span class="ur urd" style="display:inline-block;min-width:50%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:18pt;"><?php echo esc_html($orders->man_napno); ?></span>
 					</td>
 				</tr>
 				<tr>
-					<td style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
+					<td colspan="2" width="50%" style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
 						<span class="ur urd" style="white-space:nowrap;font-weight:bold;font-size:16pt;">تاریخ</span>
-						<span class="ur urd" style="display:inline-block;min-width:50%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:16pt;"><?php echo $odate_fmt; ?></span>
+						<span class="ur urd" style="display:inline-block;min-width:55%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:16pt;"><?php echo $odate_fmt; ?></span>
 					</td>
-					<td style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
+					<td width="50%" style="padding:5px 6px;vertical-align:bottom;font-size:16pt;">
 						<span class="ur urd" style="white-space:nowrap;font-weight:bold;font-size:16pt;">تاریخ واپسی</span>
-						<span class="ur urd" style="display:inline-block;min-width:35%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:16pt;"><?php echo $rdate_fmt; ?></span>
-						<span class="ur urd" style="white-space:nowrap;margin-right:8px;font-weight:bold;font-size:15pt;">رات 08:00 بجے</span>
+						<span class="ur urd" style="display:inline-block;min-width:50%;border-bottom:1px dotted #111;margin-right:6px;padding:0 4px;font-weight:bold;font-size:16pt;"><?php echo $rdate_fmt; ?></span>
 					</td>
 				</tr>
 				<tr>
-					<td colspan="2" align="center" class="ur urd" style="padding:10px 4px 6px;font-size:16pt;">
-						<span style="display:inline-block;margin:0 10px;white-space:nowrap;"><b>سوٹ تعداد</b> <?php echo $fmt_money($orders->qty); ?></span>
-						<span style="display:inline-block;margin:0 10px;white-space:nowrap;"><b>ایڈوانس</b> <?php echo $fmt_money($orders->advance); ?></span>
-						<span style="display:inline-block;margin:0 10px;white-space:nowrap;"><b>بقایا</b> <?php echo $fmt_money($balance_amt); ?></span>
-						<span style="display:inline-block;margin:0 10px;white-space:nowrap;"><b>سابقہ بقایا</b> <?php echo $fmt_money($prev_balance); ?></span>
+					<td colspan="3" style="padding:8px 2px 4px;">
+						<table width="100%" cellpadding="0" cellspacing="0" dir="rtl" style="width:100%;">
+							<tr>
+								<td width="25%" style="padding:4px 6px;vertical-align:bottom;font-size:15pt;" class="ur urd">
+									<span style="white-space:nowrap;font-weight:bold;">سوٹ تعداد</span>
+									<span style="display:inline-block;min-width:40%;border-bottom:1px dotted #111;margin-right:4px;padding:0 3px;font-weight:bold;"><?php echo $fmt_money($orders->qty); ?></span>
+								</td>
+								<td width="25%" style="padding:4px 6px;vertical-align:bottom;font-size:15pt;" class="ur urd">
+									<span style="white-space:nowrap;font-weight:bold;">ایڈوانس</span>
+									<span style="display:inline-block;min-width:40%;border-bottom:1px dotted #111;margin-right:4px;padding:0 3px;font-weight:bold;"><?php echo $fmt_money($orders->advance); ?></span>
+								</td>
+								<td width="25%" style="padding:4px 6px;vertical-align:bottom;font-size:15pt;" class="ur urd">
+									<span style="white-space:nowrap;font-weight:bold;">بقایا</span>
+									<span style="display:inline-block;min-width:45%;border-bottom:1px dotted #111;margin-right:4px;padding:0 3px;font-weight:bold;"><?php echo $fmt_money($balance_amt); ?></span>
+								</td>
+								<td width="25%" style="padding:4px 6px;vertical-align:bottom;font-size:15pt;" class="ur urd">
+									<span style="white-space:nowrap;font-weight:bold;">سابقہ بقایا</span>
+									<span style="display:inline-block;min-width:35%;border-bottom:1px dotted #111;margin-right:4px;padding:0 3px;font-weight:bold;"><?php echo $fmt_money($prev_balance); ?></span>
+								</td>
+							</tr>
+						</table>
 					</td>
 				</tr>
 			</table>
@@ -327,34 +356,50 @@ $(document).ready(function() {
 				}
 			?>
 			<?php } else { ?>
-			<div class="print-slip-info<?php echo $has_customer_photo ? ' has-photo' : ''; ?>">
+			<div class="print-slip-info print-slip-info--classic<?php echo $has_customer_photo ? ' has-photo' : ''; ?>">
 				<?php if ($has_customer_photo) { ?>
 				<div class="print-slip-info__photo">
 					<img src="<?php echo esc_html($customer_photo); ?>" alt="Customer photo">
 				</div>
 				<?php } ?>
-				<div class="print-slip-info-grid" dir="rtl">
-					<div class="print-slip-pair">
-						<span class="print-slip-pair__label ur urd">نام</span>
-						<span class="print-slip-pair__value ur urd"><?php echo esc_html($orders->name); ?></span>
+				<div class="print-slip-info-grid print-slip-info-grid--classic" dir="rtl">
+					<div class="print-slip-info-row print-slip-info-row--name">
+						<div class="print-slip-pair print-slip-pair--name">
+							<span class="print-slip-pair__label ur urd">نام</span>
+							<span class="print-slip-pair__value ur urd"><?php echo esc_html($orders->name); ?></span>
+						</div>
+						<div class="print-slip-pair print-slip-pair--nap">
+							<span class="print-slip-pair__label ur urd">ناپ نمبر</span>
+							<span class="print-slip-pair__value ur urd"><?php echo esc_html($orders->man_napno); ?></span>
+						</div>
 					</div>
-					<div class="print-slip-pair">
-						<span class="print-slip-pair__label ur urd">ناپ نمبر</span>
-						<span class="print-slip-pair__value ur urd"><?php echo esc_html($orders->man_napno); ?></span>
+					<div class="print-slip-info-row print-slip-info-row--dates">
+						<div class="print-slip-pair">
+							<span class="print-slip-pair__label ur urd">تاریخ</span>
+							<span class="print-slip-pair__value ur urd"><?php echo $odate_fmt; ?></span>
+						</div>
+						<div class="print-slip-pair">
+							<span class="print-slip-pair__label ur urd">تاریخ واپسی</span>
+							<span class="print-slip-pair__value ur urd"><?php echo $rdate_fmt; ?></span>
+						</div>
 					</div>
-					<div class="print-slip-pair">
-						<span class="print-slip-pair__label ur urd">تاریخ</span>
-						<span class="print-slip-pair__value ur urd"><?php echo $odate_fmt; ?></span>
-					</div>
-					<div class="print-slip-pair">
-						<span class="print-slip-pair__label ur urd">تاریخ واپسی</span>
-						<span class="print-slip-pair__value ur urd"><?php echo $rdate_fmt; ?> <small>رات 08:00 بجے</small></span>
-					</div>
-					<div class="print-slip-money">
-						<span class="ur urd"><b>سوٹ تعداد</b> <?php echo $fmt_money($orders->qty); ?></span>
-						<span class="ur urd"><b>ایڈوانس</b> <?php echo $fmt_money($orders->advance); ?></span>
-						<span class="ur urd"><b>بقایا</b> <?php echo $fmt_money($balance_amt); ?></span>
-						<span class="ur urd"><b>سابقہ بقایا</b> <?php echo $fmt_money($prev_balance); ?></span>
+					<div class="print-slip-info-row print-slip-info-row--money">
+						<div class="print-slip-pair">
+							<span class="print-slip-pair__label ur urd">سوٹ تعداد</span>
+							<span class="print-slip-pair__value ur urd"><?php echo $fmt_money($orders->qty); ?></span>
+						</div>
+						<div class="print-slip-pair">
+							<span class="print-slip-pair__label ur urd">ایڈوانس</span>
+							<span class="print-slip-pair__value ur urd"><?php echo $fmt_money($orders->advance); ?></span>
+						</div>
+						<div class="print-slip-pair">
+							<span class="print-slip-pair__label ur urd">بقایا</span>
+							<span class="print-slip-pair__value ur urd"><?php echo $fmt_money($balance_amt); ?></span>
+						</div>
+						<div class="print-slip-pair">
+							<span class="print-slip-pair__label ur urd">سابقہ بقایا</span>
+							<span class="print-slip-pair__value ur urd"><?php echo $fmt_money($prev_balance); ?></span>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -368,6 +413,24 @@ $(document).ready(function() {
 			$orders = reset($order);
 			$meas_trim = function ($key) use ($orders) {
 				return isset($orders->$key) ? trim((string) $orders->$key) : '';
+			};
+			// First non-empty among alternate column names (legacy + extended nap fields).
+			$meas_pick = function () use ($orders) {
+				$keys = func_get_args();
+				$fallback = '';
+				foreach ($keys as $key)
+				{
+					$val = isset($orders->$key) ? trim((string) $orders->$key) : '';
+					if ($fallback === '')
+					{
+						$fallback = $val;
+					}
+					if ($val !== '')
+					{
+						return $val;
+					}
+				}
+				return $fallback;
 			};
 			$meas_field = function ($value, $label) {
 				$value = trim((string) $value);
@@ -384,12 +447,11 @@ $(document).ready(function() {
 			$meas_pair_cell = function ($value, $label) {
 				$value = trim((string) $value);
 				$label = trim((string) $label);
-				// WhatsApp PDF: skip blanks so filled rows stay large & clear.
-				if ($value === '')
+				if ($value === '' && $label === '')
 				{
 					return '';
 				}
-				// Label + value together (RTL): "قمیض لمبائی  43" — no wide orphan gap.
+				// Keep blank values so paired columns stay aligned with the print slip.
 				return '<td class="pdf-meas-cell ur urd" width="50%" style="width:50%;font-size:22pt;font-weight:bold;font-family:xbriyaz,lateef,sans-serif;direction:rtl;text-align:right;padding:9px 12px;border-bottom:1.5px solid #1e293b;vertical-align:middle;">'
 					.esc_html($label)
 					.'&nbsp;&nbsp;<span class="pdf-meas-num" dir="ltr" style="font-size:24pt;font-weight:bold;direction:ltr;">'
@@ -400,27 +462,56 @@ $(document).ready(function() {
 				$html .= '<h3 class="print-slip-meas__heading ur urd">'.esc_html($title).'</h3>';
 				if ($pdf_mode)
 				{
-					$pairs = array();
+					// Keep authoring order. Rows with only the first pair (indexes 2/3 empty)
+					// render full-width so stacks like گیرا نیچے → درمیان → اوپر stay vertical.
+					$empty_td = '<td width="50%" style="width:50%;border-bottom:1.5px solid #1e293b;"></td>';
+					$full_td = function ($value, $label) {
+						$value = trim((string) $value);
+						$label = trim((string) $label);
+						if ($value === '' && $label === '')
+						{
+							return '';
+						}
+						return '<td class="pdf-meas-cell ur urd" colspan="2" width="100%" style="width:100%;font-size:22pt;font-weight:bold;font-family:xbriyaz,lateef,sans-serif;direction:rtl;text-align:right;padding:9px 12px;border-bottom:1.5px solid #1e293b;vertical-align:middle;">'
+							.esc_html($label)
+							.'&nbsp;&nbsp;<span class="pdf-meas-num" dir="ltr" style="font-size:24pt;font-weight:bold;direction:ltr;">'
+							.esc_html($value).'</span></td>';
+					};
+					$body = '';
+					$has_row = FALSE;
 					foreach ($rows as $row)
 					{
-						$a = $meas_pair_cell(isset($row[0]) ? $row[0] : '', isset($row[1]) ? $row[1] : '');
-						$b = $meas_pair_cell(isset($row[2]) ? $row[2] : '', isset($row[3]) ? $row[3] : '');
-						if ($a !== '') { $pairs[] = $a; }
-						if ($b !== '') { $pairs[] = $b; }
+						$v1 = isset($row[0]) ? $row[0] : '';
+						$l1 = isset($row[1]) ? $row[1] : '';
+						$v2 = isset($row[2]) ? $row[2] : '';
+						$l2 = isset($row[3]) ? $row[3] : '';
+						$solo = (trim((string) $v2) === '' && trim((string) $l2) === '');
+						if ($solo)
+						{
+							$cell = $full_td($v1, $l1);
+							if ($cell === '')
+							{
+								continue;
+							}
+							$body .= '<tr>'.$cell.'</tr>';
+							$has_row = TRUE;
+							continue;
+						}
+						$a = $meas_pair_cell($v1, $l1);
+						$b = $meas_pair_cell($v2, $l2);
+						if ($a === '' && $b === '')
+						{
+							continue;
+						}
+						$body .= '<tr>'.($a !== '' ? $a : $empty_td).($b !== '' ? $b : $empty_td).'</tr>';
+						$has_row = TRUE;
 					}
-					if (empty($pairs))
+					if ( ! $has_row)
 					{
 						return '';
 					}
-					$html .= '<table class="pdf-meas-table" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed;">';
-					for ($i = 0, $n = count($pairs); $i < $n; $i += 2)
-					{
-						$left = $pairs[$i];
-						$right = isset($pairs[$i + 1])
-							? $pairs[$i + 1]
-							: '<td width="50%" style="width:50%;border-bottom:1.5px solid #1e293b;"></td>';
-						$html .= '<tr>'.$left.$right.'</tr>';
-					}
+					$html .= '<table class="pdf-meas-table" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;">';
+					$html .= $body;
 					$html .= '</table>';
 				}
 				else
@@ -428,35 +519,54 @@ $(document).ready(function() {
 					$html .= '<div class="print-slip-meas__grid">';
 					foreach ($rows as $row)
 					{
-						$html .= $meas_field(isset($row[0]) ? $row[0] : '', isset($row[1]) ? $row[1] : '');
-						$html .= $meas_field(isset($row[2]) ? $row[2] : '', isset($row[3]) ? $row[3] : '');
+						$v1 = isset($row[0]) ? $row[0] : '';
+						$l1 = isset($row[1]) ? $row[1] : '';
+						$v2 = isset($row[2]) ? $row[2] : '';
+						$l2 = isset($row[3]) ? $row[3] : '';
+						$solo = (trim((string) $v2) === '' && trim((string) $l2) === '');
+						if ($solo)
+						{
+							// Full-width stack item (geera lines).
+							$html .= '<div class="print-slip-meas__field print-slip-meas__field--span2">'
+								.'<span class="print-slip-meas__label">'.esc_html($l1).'</span>'
+								.'<span class="print-slip-meas__val">'.esc_html($v1).'</span>'
+								.'</div>';
+							continue;
+						}
+						$html .= $meas_field($v1, $l1);
+						$html .= $meas_field($v2, $l2);
 					}
 					$html .= '</div>';
 				}
 				$html .= '</section>';
 				return $html;
 			};
-			$has_kurta_nap = (
-				$meas_trim('KL') !== '' || $meas_trim('BL') !== '' || $meas_trim('Teera') !== '' ||
-				$meas_trim('Chaati') !== '' || $meas_trim('Gala') !== '' || $meas_trim('Shalwar_Lenght') !== '' ||
-				$meas_trim('Asan') !== '' || $meas_trim('geera') !== '' || $meas_trim('pait') !== '' ||
-				$meas_trim('WASIT') !== '' || $meas_trim('Poncha_Choraic') !== '' || $meas_trim('FPL') !== ''
-			);
-			$show_kurta_block = ($print_has_type('Kurta') || $has_kurta_nap);
-			if ($show_kurta_block)
+			$geera_parts = measurement_split_triple($meas_trim('geera'));
+			$geera_upar = $geera_parts[0];
+			$geera_darmiyan = $geera_parts[1];
+			$geera_neeche = $geera_parts[2];
+			$sgeera_parts = measurement_split_triple($meas_trim('SGeera'));
+			$sgeera_upar = $sgeera_parts[0];
+			$sgeera_darmiyan = $sgeera_parts[1];
+			$sgeera_neeche = $sgeera_parts[2];
+			// Only show measurement blocks for suit types on THIS order
+			// (do not force قمیض شلوار just because customer nap has kurta fields filled).
+			if ($print_has_type('Kurta'))
 			{
+				// Two-column slip order (right → left): matches shop print layout.
 				echo $meas_section('قمیض شلوار', array(
-					array($orders->KL, 'قمیض لمبائی', $orders->BL, 'باذو'),
-					array($orders->Teera, 'تیرا', $orders->geera, 'گیرا'),
-					array($orders->Chaati, 'چھاتی', $orders->pait, 'پیٹ'),
-					array($orders->Gala, 'گلا', $orders->Shalwar_Lenght, 'شلوار لمبائی'),
-					array($orders->Poncha_Choraic, 'پانچہ', $orders->SC, 'شلوار پھیر'),
-					array($orders->Asan, 'آسن', $orders->FPL, 'فرنٹ پٹی'),
-					array($orders->BP, 'باذو پٹی', $orders->CAKLAMBAI, 'چاک لمبائی'),
-					array($orders->CL, 'کف لمبائی', $orders->KAAFCURAI, 'کف چوڑائی'),
-					array($orders->MODA_CURAI, 'موڈاچوڑائی', $orders->Poncha_Chorai, 'پانچہ چوڑائی'),
-					array($orders->WASIT, 'کمر (ویسٹ)', $orders->FRONT_Pocket_Size, 'فرنٹ پاکٹ سائز'),
-					array($orders->BG, 'باذو گول', $orders->Side_Pocket_Size, 'سائیڈ پاکٹ سائز'),
+					array($orders->KL, 'قمیض لمبائی', $orders->Asan, 'آسن'),
+					array($orders->BL, 'باذو', $orders->FPL, 'فرنٹ پٹی'),
+					array($orders->Teera, 'تیرا', $orders->BP, 'باذو پٹی'),
+					array($geera_neeche, 'گیرا نیچے', $orders->CL, 'کف لمبائی'),
+					array($geera_darmiyan, 'گیرا درمیان', $orders->KAAFCURAI, 'کف چوڑائی'),
+					array($geera_upar, 'گیرا اوپر', $orders->MODA_CURAI, 'موڈا چوڑائی'),
+					array($orders->Chaati, 'چھاتی', $orders->Poncha_Chorai, 'پانچہ چوڑائی'),
+					array($orders->pait, 'پیٹ', $orders->WASIT, 'کمر (ویسٹ)'),
+					array($orders->Gala, 'گلا', $orders->FRONT_Pocket_Size, 'کہنی'),
+					array($orders->Shalwar_Lenght, 'شلوار لمبائی', $orders->BG, 'باذو گول'),
+					array($orders->Poncha_Choraic, 'پانچہ', $orders->Side_Pocket_Size, 'ہیپ'),
+					array($orders->SC, 'شلوار گھیر', $orders->CAKLAMBAI, 'چاک لمبائی'),
 				));
 			}
 			if ($print_has_type('Pajama'))
@@ -468,55 +578,58 @@ $(document).ready(function() {
 			}
 			if ($print_has_type('Pent'))
 			{
+				// Old-ERP pent nap order (single stack, top → bottom).
 				echo $meas_section('پینٹ', array(
-					array($orders->pentWaiste, 'کمر', $orders->PentLambai, 'لمبائی'),
-					array($orders->PentPoncha, 'پانچہ', $orders->HIP, 'ہپ'),
-					array('', '', $orders->PentThai, 'Thai'),
+					array($meas_trim('PentLambai'), 'لمبائی', '', ''),
+					array($meas_trim('pentWaiste'), 'کمر', '', ''),
+					array($meas_trim('HIP'), 'ہپ', '', ''),
+					array($meas_pick('PentPat', 'PentThai'), 'پٹ', '', ''),
+					array($meas_trim('PentGhutna'), 'گھٹنہ', '', ''),
+					array($meas_pick('PentPonchaMori', 'PentPoncha'), 'پانچہ موری', '', ''),
 				));
 			}
 			if ($print_has_type('Shirt'))
 			{
 				echo $meas_section('شرٹ', array(
 					array($orders->SBazoo, 'باذو', $orders->SLambai, 'لمبائی'),
-					array($orders->SGeera, 'گیرا', $orders->STeera, 'تیرا'),
+					array($orders->STeera, 'تیرا', '', ''),
+					array($sgeera_neeche, 'گیرا نیچے', '', ''),
+					array($sgeera_darmiyan, 'گیرا درمیان', '', ''),
+					array($sgeera_upar, 'گیرا اوپر', '', ''),
 					array($orders->SKamar, 'کمر', $orders->SChaati, 'چھاتی'),
 					array($orders->SGaala, 'گلا', '', ''),
 				));
 			}
 			if ($print_has_type('Coat'))
 			{
+				// Old-ERP sherwani/coat nap order (single stack, top → bottom).
 				echo $meas_section('شروانی/کوٹ', array(
-					array($orders->CoatBazoo, 'باذو', $orders->CoatLambai, 'لمبائی'),
-					array($orders->CoatChaati, 'چھاتی', $orders->CoatTeera, 'تیرا'),
-					array($orders->CoatKamar, 'کمر', $orders->CoatHIP, 'ہپ'),
-					array($orders->CoatGaala, 'گلا', $orders->crossback, 'Cross Back'),
+					array($meas_trim('CoatLambai'), 'لمبائی', '', ''),
+					array($meas_trim('CoatChaati'), 'چھاتی', '', ''),
+					array($meas_trim('CoatKamar'), 'کمر', '', ''),
+					array($meas_trim('CoatTeera'), 'تیرا', '', ''),
+					array($meas_trim('CoatBazoo'), 'بازو', '', ''),
+					array($meas_trim('CoatGaala'), 'گلا', '', ''),
+					array($meas_pick('CoatHIP', 'SherwaniHIP'), 'ہپ', '', ''),
+					array($meas_pick('CoatDola', 'SherwaniDola'), 'ڈولا', '', ''),
+					array($meas_pick('CoatBazooMori', 'SherwaniBazooMori'), 'بازو موری', '', ''),
+					array($meas_pick('crossback', 'SherwaniCrossback'), 'کراس بیک', '', ''),
+					array($meas_pick('CoatLambaiBack', 'SherwaniLambaiBack'), 'لمبائی بیک', '', ''),
 				));
 			}
 			if ($print_has_type('Waistcoat'))
 			{
+				// Old-ERP waistcoat nap order (single stack, top → bottom).
 				echo $meas_section('ویسکوٹ', array(
-					array($orders->wastTeera, 'تیرا', $orders->wastLambai, 'لمبائی'),
-					array($orders->wastChaati, 'چھاتی', $orders->wastHIP, 'ہپ'),
+					array($orders->wastLambai, 'لمبائی', '', ''),
+					array($orders->wastChaati, 'چھاتی', '', ''),
 					array($orders->wastKamar, 'کمر', '', ''),
+					array($orders->wastTeera, 'تیرا', '', ''),
 					array($orders->wastGaala, 'گلا', '', ''),
+					array($orders->wastHIP, 'ہپ', '', ''),
 				));
 			}
 			?>
-					<?php if ($pdf_mode) { ?>
-					<table class="pdf-meas-note-table" width="100%" cellpadding="0" cellspacing="0">
-						<tr>
-							<td class="m-note-lbl ur urd">نوٹ لائن</td>
-							<td class="m-note-val ur urd"><?php echo esc_html($orders->MREMARKS); ?></td>
-						</tr>
-					</table>
-					<?php } else { ?>
-					<div class="print-slip-meas-note">
-						<div class="print-slip-meas__field print-slip-meas__field--note">
-							<span class="print-slip-meas__label">نوٹ لائن</span>
-							<span class="print-slip-meas__val"><?php echo esc_html($orders->MREMARKS); ?></span>
-						</div>
-					</div>
-					<?php } ?>
 				</div>
 					</div>
 <?php if ( ! $pdf_mode) { ?>
@@ -531,6 +644,24 @@ $(document).ready(function() {
 		'pdf_mode' => FALSE,
 	));
 ?>
+			</div>
+			<?php
+			// Full-width note under ناپ + سوٹ تفصیل, above footer (old ERP position).
+			$footer_note = '';
+			if (isset($orders->MREMARKS))
+			{
+				$footer_note = trim((string) $orders->MREMARKS);
+			}
+			?>
+			<div class="print-slip-meas-note print-slip-meas-note--full">
+				<div class="print-slip-meas__field print-slip-meas__field--note print-slip-meas__field--note-rule">
+					<span class="print-slip-meas__note-inline ur urd">نوٹ لائن- <?php
+						if ($footer_note !== '')
+						{
+							echo '('.esc_html($footer_note).')';
+						}
+					?></span>
+				</div>
 			</div>
 </div>
 <?php } ?>
@@ -1159,14 +1290,6 @@ window.ORDER_PRINT_WA_BRIDGE = <?php echo json_encode(array(
 		});
 	}
 
-	document.addEventListener('DOMContentLoaded', function () {
-		var autoBtn = document.querySelector('.btn-order-whatsapp[data-auto-prompt="1"]');
-		if (!autoBtn) {
-			return;
-		}
-		// Always open the chooser so staff can use saved number OR enter another.
-		setTimeout(function () { openModal(autoBtn); }, 500);
-	});
 })();
 </script>
 </body>

@@ -24,8 +24,9 @@ $dashboard_summary = isset($dashboard_summary) && is_array($dashboard_summary) ?
 		var prefix = <?php echo json_encode($customer_search_url_prefix, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
 		window.dashboardHomeSearchSubmit = function (event) {
-			if (event && event.preventDefault) {
-				event.preventDefault();
+			if (event) {
+				if (event.preventDefault) event.preventDefault();
+				if (event.stopPropagation) event.stopPropagation();
 			}
 			var input = document.getElementById('dash-home-search');
 			var term = input ? String(input.value || '').replace(/^\s+|\s+$/g, '') : '';

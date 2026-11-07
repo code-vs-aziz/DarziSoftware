@@ -16,12 +16,7 @@ $this->load->helper('ui');
                 <div  >
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 
-<div class="alert alert-success" role="alert">
-	<?php echo esc_html(t('order_delivered_success')); ?>
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
                      	<div class="col-md-12">
                                 <div class="card" style="background-image: url('images/bg.png'); background-repeat: no-repeat;">
                                    <!-- <div class="card-header">Employee Form</div> -->
@@ -41,6 +36,26 @@ $this->load->helper('ui');
 									$os_order_from = isset($os_filters['order_from']) ? (string) $os_filters['order_from'] : '';
 									$os_order_to = isset($os_filters['order_to']) ? (string) $os_filters['order_to'] : '';
 									$os_stage = isset($os_filters['stage']) ? (string) $os_filters['stage'] : '';
+									$os_scope = (isset($os_scope) && (string) $os_scope === 'delivered') ? 'delivered' : 'current';
+									$os_is_delivered_scope = ($os_scope === 'delivered');
+									$os_via_dt = (isset($_GET['via']) && (string) $_GET['via'] === 'dt');
+									$os_dt_q = isset($os_filters['dt_q']) ? (string) $os_filters['dt_q'] : '';
+									$os_dt_seed = '';
+									if ($os_via_dt) {
+										if ($os_dt_q !== '') {
+											$os_dt_seed = $os_dt_q;
+										} elseif ($os_order_no !== '') {
+											$os_dt_seed = $os_order_no;
+										} elseif ($os_naap_no !== '') {
+											$os_dt_seed = $os_naap_no;
+										} else {
+											$os_dt_seed = $os_mobile_no;
+										}
+										// Keep typed value only in the table Search box, not the top filters.
+										$os_order_no = '';
+										$os_naap_no = '';
+										$os_mobile_no = '';
+									}
 									$employee_by_no = array();
 									if (isset($employee) && is_array($employee)) {
 										foreach ($employee as $employees) {
@@ -48,23 +63,34 @@ $this->load->helper('ui');
 										}
 									}
 									?>
+									<style>
+										.os-scope-toggle { display: inline-flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+										.os-scope-toggle .btn { min-width: 110px; font-weight: 700; }
+										.os-scope-toggle .btn.os-scope-active { box-shadow: 0 0 0 2px rgba(15, 118, 110, .35); }
+										.os-scope-toggle .btn:not(.os-scope-active) { opacity: .72; background: #5f9ea8; border-color: #5f9ea8; }
+									</style>
 									<form method="get" id="os-status-filter-form" class="mb-3" action="<?php echo site_url('transfer/order_Status'); ?>">
+										<input type="hidden" name="scope" id="os-scope-input" value="<?php echo esc_attr($os_scope); ?>">
+										<div class="os-scope-toggle" role="group" aria-label="Order status scope">
+											<button type="submit" class="btn btn-primary dz-btn--filled btn-sm<?php echo $os_is_delivered_scope ? '' : ' os-scope-active'; ?>" data-os-scope="current" onclick="document.getElementById('os-scope-input').value='current';"><?php echo esc_html(t('order_status_current')); ?></button>
+											<button type="submit" class="btn btn-primary dz-btn--filled btn-sm<?php echo $os_is_delivered_scope ? ' os-scope-active' : ''; ?>" data-os-scope="delivered" onclick="document.getElementById('os-scope-input').value='delivered';"><?php echo esc_html(t('order_status_delivered_tab')); ?></button>
+										</div>
 										<div class="row align-items-end">
 											<div class="col-md-2 mb-2">
 												<label class="mb-1"><strong>Customer</strong></label>
-												<input type="text" id="os-filter-customer-name" name="customer_name" class="form-control form-control-sm order-filter-urdu-field customer-urdu-field" dir="rtl" lang="ur" placeholder="<?php echo esc_html(t('customer_name')); ?>" value="<?php echo esc_html($os_customer); ?>" autocomplete="off">
+												<input type="text" id="os-filter-customer-name" name="customer_name" class="form-control form-control-sm order-filter-urdu-field customer-urdu-field os-filter-clearable" dir="rtl" lang="ur" placeholder="<?php echo esc_html(t('customer_name')); ?>" value="<?php echo esc_html($os_customer); ?>" autocomplete="off">
 											</div>
 											<div class="col-md-2 mb-2">
 												<label class="mb-1"><strong>Order #</strong></label>
-												<input type="text" name="order_no" class="form-control form-control-sm" placeholder="Order number" value="<?php echo esc_html($os_order_no); ?>" autocomplete="off">
+												<input type="text" name="order_no" class="form-control form-control-sm os-filter-clearable" placeholder="Order number" value="<?php echo esc_html($os_order_no); ?>" autocomplete="off">
 											</div>
 											<div class="col-md-2 mb-2">
 												<label class="mb-1"><strong>Naap #</strong></label>
-												<input type="text" name="naap_no" class="form-control form-control-sm" placeholder="Naap number" value="<?php echo esc_html($os_naap_no); ?>" autocomplete="off">
+												<input type="text" name="naap_no" class="form-control form-control-sm os-filter-clearable" placeholder="Naap number" value="<?php echo esc_html($os_naap_no); ?>" autocomplete="off">
 											</div>
 											<div class="col-md-2 mb-2">
 												<label class="mb-1"><strong>Mobile #</strong></label>
-												<input type="text" name="mobile_no" class="form-control form-control-sm" placeholder="Mobile number" value="<?php echo esc_html($os_mobile_no); ?>" autocomplete="off">
+												<input type="text" name="mobile_no" class="form-control form-control-sm os-filter-clearable" placeholder="Mobile number" value="<?php echo esc_html($os_mobile_no); ?>" autocomplete="off">
 											</div>
 											<div class="col-md-2 mb-2">
 												<label class="mb-1"><strong>Return From</strong></label>
@@ -74,14 +100,7 @@ $this->load->helper('ui');
 												<label class="mb-1"><strong>Return To</strong></label>
 												<input type="date" name="return_to" class="form-control form-control-sm" value="<?php echo esc_html($os_return_to); ?>">
 											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Order From</strong></label>
-												<input type="date" name="order_from" class="form-control form-control-sm" value="<?php echo esc_html($os_order_from); ?>">
-											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Order To</strong></label>
-												<input type="date" name="order_to" class="form-control form-control-sm" value="<?php echo esc_html($os_order_to); ?>">
-											</div>
+											<?php if ( ! $os_is_delivered_scope) { ?>
 											<div class="col-md-2 mb-2">
 												<label class="mb-1"><strong>Stage</strong></label>
 												<select name="stage" id="os-filter-stage" class="form-control form-control-sm" onchange="this.form.submit()">
@@ -91,22 +110,20 @@ $this->load->helper('ui');
 													<option value="HO2" <?php echo $os_stage === 'HO2' ? 'selected' : ''; ?>>After Cutting</option>
 													<option value="STIT" <?php echo $os_stage === 'STIT' ? 'selected' : ''; ?>>Stitching</option>
 													<option value="READY" <?php echo $os_stage === 'READY' ? 'selected' : ''; ?>>Ready 4 Deliver</option>
-													<option value="DELIVERED" <?php echo $os_stage === 'DELIVERED' ? 'selected' : ''; ?>><?php echo t('order_status_delivered_tab'); ?></option>
 												</select>
 											</div>
-											<div class="col-md-2 mb-2">
-												<button type="submit" class="btn btn-primary dz-btn--filled btn-sm btn-block"><?php echo t('app_search'); ?></button>
-												<?php if ($os_customer !== '' || $os_order_no !== '' || $os_naap_no !== '' || $os_mobile_no !== '' || $os_return_from !== '' || $os_return_to !== '' || $os_order_from !== '' || $os_order_to !== '' || $os_stage !== '') { ?>
-												<a href="<?php echo site_url('transfer/order_Status'); ?>" class="btn btn-secondary dz-btn--outlined btn-sm btn-block mt-1"><?php echo t('app_clear'); ?></a>
-												<?php } ?>
+											<?php } ?>
+											<div class="col-md-<?php echo $os_is_delivered_scope ? '12' : '10'; ?> mb-2">
+												<label class="mb-1 d-none d-md-block">&nbsp;</label>
+												<button type="submit" class="btn btn-primary dz-btn--filled btn-lg btn-block"><?php echo t('app_search'); ?></button>
 											</div>
 										</div>
 									</form>
-									<p class="text-muted small text-center mb-2"><?php echo t('order_status_unified_help'); ?></p>
+									<p class="text-muted small text-center mb-2"><?php echo $os_is_delivered_scope ? esc_html(t('order_status_delivered_help')) : t('order_status_unified_help'); ?></p>
 									<section>
  
 			<div class="demo-html"></div>
-			<table id="example" class="display" style="width:100%" data-order-list-table="1">
+			<table id="example" class="display" style="width:100%" data-order-list-table="1" data-os-via-dt="<?php echo $os_via_dt ? '1' : '0'; ?>" data-os-dt-seed="<?php echo esc_attr($os_dt_seed); ?>">
 			<thead>
 					<tr>
 						<th>Order #</th>
@@ -146,7 +163,7 @@ $this->load->helper('ui');
 			 $show_deliver = $is_ready;
 						                    ?>
 					<tr>
-						<td><?php echo $orderdata->ORDERNO.'-'.$sr; ?></td>
+						<td data-search="<?php echo esc_attr($orderdata->ORDERNO.' '.$orderdata->ORDERNO.'-'.$sr); ?>"><?php echo $orderdata->ORDERNO.'-'.$sr; ?></td>
 						 <td>
 						<?php echo isset($employee_by_no[$orderdata->empno]) ? $employee_by_no[$orderdata->empno] : ''; ?>
 						
@@ -177,7 +194,7 @@ $this->load->helper('ui');
 						<td><?php
 						echo !empty($orderdata->ORDERRDATE) ? date('d-m-Y', strtotime($orderdata->ORDERRDATE)) : '';
 						?></td>
-						<td><?php echo $orderdata->Phone; ?></td>
+						<td data-search="<?php echo esc_attr(preg_replace('/\D+/', '', (string) $orderdata->Phone).' '.$orderdata->Phone); ?>"><?php echo $orderdata->Phone; ?></td>
 						<td><?php echo $orderdata->name; ?></td>
 						<td><?php echo $orderdata->man_napno; ?></td>
 						<td><?php echo $orderdata->order_remarks; ?></td>

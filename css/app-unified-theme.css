@@ -77,6 +77,14 @@ html.app-lang-ar textarea.urd {
 	text-align: right;
 }
 
+/* Measurement nap boxes are numeric — keep LTR so cursor stays at the front. */
+html.app-lang-ur .measurement-form-page .measurement-tab-body input.txtbox,
+html.app-lang-ar .measurement-form-page .measurement-tab-body input.txtbox {
+	direction: ltr;
+	text-align: left;
+	unicode-bidi: isolate;
+}
+
 html {
 	overflow-y: scroll;
 }

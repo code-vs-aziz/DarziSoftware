@@ -16,10 +16,40 @@ class MY_Controller extends CI_Controller {
 	{
 		parent::__construct();
 		$this->load_app_models();
+		$this->purge_orphan_success_flash();
 		// CLI jobs (php index.php …) have no browser session.
 		if ($this->requires_login && ! is_cli())
 		{
 			$this->require_login();
+		}
+	}
+
+	/**
+	 * Remove leftover "suss" / success_msg session keys that are not valid
+	 * one-shot flashdata. Prevents green success banners from sticking on
+	 * every page open (common after older bugs left plain userdata).
+	 */
+	protected function purge_orphan_success_flash()
+	{
+		if (is_cli() || session_status() !== PHP_SESSION_ACTIVE)
+		{
+			return;
+		}
+		foreach (array('suss', 'success_msg') as $key)
+		{
+			$is_flash = isset($_SESSION['__ci_vars'][$key]) && ! is_int($_SESSION['__ci_vars'][$key]);
+			if (isset($_SESSION[$key]) && ! $is_flash)
+			{
+				unset($_SESSION[$key]);
+				if (isset($_SESSION['__ci_vars'][$key]))
+				{
+					unset($_SESSION['__ci_vars'][$key]);
+				}
+			}
+		}
+		if (isset($_SESSION['__ci_vars']) && empty($_SESSION['__ci_vars']))
+		{
+			unset($_SESSION['__ci_vars']);
 		}
 	}
 

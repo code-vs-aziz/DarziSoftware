@@ -14,6 +14,7 @@ $selected = isset($selected) ? (int) $selected : 0;
 				<?php echo ($selected === $k) ? 'checked="checked"' : ''; ?>>
 			<span class="order-kolar-option__card">
 				<img src="<?php echo base_url('images/'.$k.'.jpg'); ?>" alt="<?php echo esc_attr(t('order_kolar_style')); ?> <?php echo $k; ?>">
+				<span class="order-kolar-option__mark" aria-hidden="true">✓</span>
 			</span>
 		</label>
 		<?php } ?>

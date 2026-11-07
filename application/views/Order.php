@@ -94,6 +94,107 @@ function initOrderRemarkFields(root)
 	});
 }
 
+function orderBookingLimitMsg(res)
+{
+	var fmt = orderLang('booking_limit_reached', 'Booking limit full for return date %1$s. Limit: %2$d, already booked: %3$d, remaining: %4$d. Reduce quantity or change return date.');
+	if (!res) {
+		return orderLang('booking_limit_generic', 'Daily booking limit reached for this return date. Reduce quantity or choose another date.');
+	}
+	return fmt
+		.replace('%1$s', res.return_date || '')
+		.replace('%2$d', String(res.limit != null ? res.limit : 0))
+		.replace('%3$d', String(res.booked != null ? res.booked : 0))
+		.replace('%4$d', String(res.remaining != null ? res.remaining : 0));
+}
+
+function showOrderBookingLimitAlert(msg)
+{
+	var $box = $('#order-booking-limit-alert');
+	if (!$box.length) {
+		return;
+	}
+	$box.find('.order-booking-limit-alert__text').text(msg || '');
+	$box.removeClass('d-none').show();
+	try {
+		$box[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+	} catch (e) { /* ignore */ }
+}
+
+function clearOrderBookingLimitAlert()
+{
+	var $box = $('#order-booking-limit-alert');
+	if ($box.length) {
+		$box.addClass('d-none').hide();
+		$box.find('.order-booking-limit-alert__text').text('');
+	}
+}
+
+/**
+ * Check daily booking limit before opening suit lines.
+ * @param {function(boolean, object=)} done
+ */
+function checkOrderBookingLimit(done)
+{
+	var qtyEl = document.getElementById('Quantity');
+	var dateEl = document.getElementById('retrun_Date');
+	var qty = qtyEl ? String(qtyEl.value || '').trim() : '';
+	var rdate = dateEl ? String(dateEl.value || '').trim() : '';
+	var qtyNum = parseInt(qty, 10) || 0;
+
+	if (!qty || qtyNum < 1) {
+		clearOrderBookingLimitAlert();
+		done(true);
+		return;
+	}
+	if (!rdate) {
+		showOrderBookingLimitAlert(orderLang('select_return_date_first', 'Please select return date first.'));
+		done(false);
+		return;
+	}
+
+	$.ajax({
+		type: 'POST',
+		url: '<?php echo site_url('Order/booking_limit_check'); ?>',
+		dataType: 'json',
+		data: {
+			qty: qtyNum,
+			return_date: rdate,
+			exclude_order: 0
+		},
+		success: function (res) {
+			if (res && res.ok === false && (!res.error || res.error === 'booking_limit_exceeded' || res.message === 'booking_limit_exceeded')) {
+				showOrderBookingLimitAlert(orderBookingLimitMsg(res));
+				done(false, res);
+				return;
+			}
+			clearOrderBookingLimitAlert();
+			done(true, res);
+		},
+		error: function () {
+			/* Network fail — still allow UI; server enforces on submit. */
+			clearOrderBookingLimitAlert();
+			done(true);
+		}
+	});
+}
+
+function loadOrderSuitLines(qty)
+{
+	document.getElementById('total_amount').value = 0;
+	$.ajax({
+		type: 'POST',
+		url: '<?php echo site_url('Order/order_table'); ?>',
+		data: 'qty=' + encodeURIComponent(qty),
+		success: function (html) {
+			$('#maincat').html(html);
+			initOrderRemarkFields('#maincat');
+			if (typeof window.orderFormOnSuitLinesLoaded === 'function') {
+				window.orderFormOnSuitLinesLoaded();
+			}
+		}
+	});
+}
+
 $(document).ready(function(){
 	$(document).on('click', '.order-predefined-tag', function (e) {
 		e.preventDefault();
@@ -101,26 +202,20 @@ $(document).ready(function(){
 	});
 
     $(document).off('change.orderQty').on('change.orderQty', '#Quantity', function(){
-			 document.getElementById('total_amount').value = 0;
         var qty = $(this).val();
-        if(qty){
-			
-            $.ajax({
-                type:'POST',
-                url:'<?php echo site_url('Order/order_table'); ?>',
-                data:'qty='+qty,
-                success:function(html){
-                    $('#maincat').html(html);
-                    initOrderRemarkFields('#maincat');
-                    if (typeof window.orderFormOnSuitLinesLoaded === 'function') {
-                        window.orderFormOnSuitLinesLoaded();
-                    }
-                }
-            }); 
-        }else{
-           // $('#maincat').html('<option value="">Select Category first</option>');
-         //   $('#subcat').html('<option value="">Select Category first</option>'); 
-        }
+        if (!qty) {
+			clearOrderBookingLimitAlert();
+			$('#maincat').empty();
+			return;
+		}
+		checkOrderBookingLimit(function (ok) {
+			if (!ok) {
+				$('#maincat').empty();
+				document.getElementById('total_amount').value = 0;
+				return;
+			}
+			loadOrderSuitLines(qty);
+		});
     });
 
     $(document).off('keydown.orderQty').on('keydown.orderQty', '#Quantity', function(e){
@@ -129,6 +224,23 @@ $(document).ready(function(){
             $(this).trigger('change');
         }
     });
+
+	/* Return date change: re-check if qty already entered; block suits if over limit. */
+	$(document).off('change.orderRdate blur.orderRdate').on('change.orderRdate blur.orderRdate', '#retrun_Date', function () {
+		var qty = $('#Quantity').val();
+		if (!qty) {
+			clearOrderBookingLimitAlert();
+			return;
+		}
+		checkOrderBookingLimit(function (ok) {
+			if (!ok) {
+				$('#maincat').empty();
+				document.getElementById('total_amount').value = 0;
+			} else if (!$('#maincat').children().length) {
+				loadOrderSuitLines(qty);
+			}
+		});
+	});
 	
 });
 
@@ -142,33 +254,214 @@ function bal()
 	 
 }
 
-function submitConfirmedOrder()
+function orderLang(key, fallback)
+{
+	return (window.APP_LANG && APP_LANG[key]) ? APP_LANG[key] : fallback;
+}
+
+function orderHasCapturedImage()
+{
+	var imgtxt = document.getElementById('imgtxt');
+	var val = imgtxt ? String(imgtxt.value || '').trim() : '';
+	return val.indexOf('data:image') === 0;
+}
+
+function setOrderSubmitBusy(busy)
+{
+	var submitButton = document.getElementById('submit-button');
+	var amountEl = document.getElementById('submit-button-amount');
+	if (!submitButton)
+	{
+		return;
+	}
+	submitButton.disabled = !!busy;
+	if (amountEl)
+	{
+		amountEl.innerHTML = busy
+			? orderLang('loading', 'Saving...')
+			: orderLang('app_submit', <?php echo json_encode(t('app_submit'), JSON_UNESCAPED_UNICODE); ?>);
+	}
+}
+
+function setOrderImageData(dataUri)
+{
+	if (!dataUri)
+	{
+		return;
+	}
+	var imgtxt = document.getElementById('imgtxt');
+	if (imgtxt)
+	{
+		imgtxt.value = dataUri;
+	}
+	if (window.jQuery)
+	{
+		jQuery('.image-tag').val(dataUri);
+	}
+	var teimg = document.getElementById('teimg');
+	if (teimg)
+	{
+		teimg.src = dataUri;
+	}
+}
+
+function finishOrderSubmit()
 {
 	var form = document.forms.Form;
+	if (!form)
+	{
+		setOrderSubmitBusy(false);
+		return false;
+	}
+	setOrderSubmitBusy(true);
+	form.submit();
+	return false;
+}
+
+function confirmSaveWithoutPhoto(onYes)
+{
+	var msg = orderLang(
+		'order_no_image_confirm',
+		'No image has been captured. Do you want to save the order without an image and use the default avatar instead?'
+	);
+	var proceed = function () {
+		var toggle = document.getElementById('orderUseAvatar');
+		if (toggle && !toggle.checked)
+		{
+			toggle.checked = true;
+			if (typeof setOrderAvatarMode === 'function')
+			{
+				setOrderAvatarMode(true);
+			}
+		}
+		if (typeof window.applyOrderAvatarImage === 'function')
+		{
+			window.applyOrderAvatarImage(function (dataUri) {
+				if (dataUri)
+				{
+					setOrderImageData(dataUri);
+				}
+				onYes();
+			});
+			return;
+		}
+		onYes();
+	};
+	if (window.AppConfirm)
+	{
+		window.AppConfirm.show({
+			title: orderLang('app_confirm', 'Confirm'),
+			message: msg,
+			okLabel: orderLang('order_save_without_photo', 'Save with avatar'),
+			cancelLabel: orderLang('app_cancel', 'Cancel'),
+			onConfirm: proceed
+		});
+		return;
+	}
+	if (window.confirm(msg))
+	{
+		proceed();
+	}
+}
+
+function snapOrderWebcam(done, fail)
+{
+	if (!window.Webcam || !window.Webcam.live || !window.Webcam.loaded)
+	{
+		if (typeof fail === 'function')
+		{
+			fail();
+		}
+		return;
+	}
+	var settled = false;
+	var timer = window.setTimeout(function () {
+		if (settled)
+		{
+			return;
+		}
+		settled = true;
+		if (typeof fail === 'function')
+		{
+			fail();
+		}
+	}, 4000);
+	try
+	{
+		Webcam.snap(function (data_uri) {
+			if (settled)
+			{
+				return;
+			}
+			settled = true;
+			window.clearTimeout(timer);
+			if (data_uri && String(data_uri).indexOf('data:image') === 0)
+			{
+				setOrderImageData(data_uri);
+				window.__orderPhotoCaptured = true;
+				done(data_uri);
+			}
+			else if (typeof fail === 'function')
+			{
+				fail();
+			}
+		});
+	}
+	catch (err)
+	{
+		if (settled)
+		{
+			return;
+		}
+		settled = true;
+		window.clearTimeout(timer);
+		if (typeof fail === 'function')
+		{
+			fail();
+		}
+	}
+}
+
+function submitConfirmedOrder()
+{
 	var submitButton = document.getElementById('submit-button');
 	if (submitButton && submitButton.disabled)
 	{
 		return false;
 	}
-	if (submitButton)
+
+	var go = function () {
+		finishOrderSubmit();
+	};
+
+	if (orderHasCapturedImage() || window.orderAvatarModeActive)
 	{
-		submitButton.disabled = true;
-		document.getElementById('submit-button-amount').innerHTML = (window.APP_LANG && APP_LANG.loading) ? APP_LANG.loading : 'Saving...';
+		if (window.orderAvatarModeActive && !orderHasCapturedImage() && typeof window.applyOrderAvatarImage === 'function')
+		{
+			window.applyOrderAvatarImage(function (dataUri) {
+				if (dataUri)
+				{
+					setOrderImageData(dataUri);
+				}
+				go();
+			});
+			return false;
+		}
+		return go();
 	}
-	if (window.Webcam)
+
+	if (window.Webcam && window.Webcam.live && window.Webcam.loaded)
 	{
-		Webcam.snap(function(data_uri) {
-			$(".image-tag").val(data_uri);
-			$("#imgtxt").val(data_uri);
-			if (document.getElementById('teimg'))
-			{
-				document.getElementById('teimg').src = data_uri;
-			}
-			form.submit();
+		snapOrderWebcam(function () {
+			go();
+		}, function () {
+			confirmSaveWithoutPhoto(go);
 		});
 		return false;
 	}
-	return true;
+
+	confirmSaveWithoutPhoto(go);
+	return false;
 }
 
 function valid(e, options)
@@ -286,18 +579,30 @@ function valid(e, options)
 		text-decoration:none;
 	}
 	</style>
-<link href="<?php echo base_url(); ?>css/order-form-enhancements.css?v=7" rel="stylesheet" media="all">
+<link href="<?php echo base_url(); ?>css/order-form-enhancements.css?v=11" rel="stylesheet" media="all">
 <body class="animsition erp-app erp-form-page order-form-page">
     <div class="page-wrapper order-form-page">
         <!-- HEADER MOBILE-->
             <!-- MAIN CONTENT-->
-            <div class="main-content">
+            <div class="main-content order-form-page">
 			<form name="Form" action="<?php echo site_url('Order/process'); ?>" method="post" onsubmit="return valid(event)" data-no-ajax="true">
 			<input type="hidden" name="order_submit_token" value="<?php echo isset($order_submit_token) ? $order_submit_token : ''; ?>">
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
+						<?php
+						$order_flash_msg = app_take_flash('success_msg');
+						$order_flash_suss = app_take_flash('suss');
+						if ($order_flash_msg !== NULL && $order_flash_msg !== '') {
+						?>
+					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show">
+											<span class="badge badge-pill badge-success"><?php echo t('app_success'); ?></span>
+											<?php echo esc_html((string) $order_flash_msg); ?>
+											<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+												<span aria-hidden="true">×</span>
+											</button>
+										</div>
+						<?php } elseif ($order_flash_suss === 'yes') { ?>
 					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show">
 											<span class="badge badge-pill badge-success"><?php echo t('app_success'); ?></span>
 											<?php echo sprintf(t('app_record_entered'), $last_id); ?>
@@ -305,17 +610,38 @@ function valid(e, options)
 												<span aria-hidden="true">×</span>
 											</button>
 										</div>
-						<?php  } elseif ($this->session->flashdata('suss') === 'duplicate') { ?>
+						<?php } elseif ($order_flash_suss === 'duplicate') { ?>
 					 <div class="sufee-alert alert with-close alert-warning alert-dismissible fade show">
 											<?php echo t('order_flash_duplicate'); ?>
 											<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
 										</div>
-						<?php  } elseif ($this->session->flashdata('suss') === 'incomplete') { ?>
+						<?php } elseif ($order_flash_suss === 'incomplete') { ?>
 					 <div class="sufee-alert alert with-close alert-danger alert-dismissible fade show">
 											<?php echo t('order_flash_incomplete'); ?>
 											<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
 										</div>
-						<?php  } ?>				
+						<?php } elseif ($order_flash_suss === 'booking_limit') { ?>
+					 <div class="sufee-alert alert with-close alert-danger alert-dismissible fade show">
+											<?php
+											$bli = app_take_flash('booking_limit_info');
+											if (is_array($bli))
+											{
+												echo esc_html(sprintf(
+													t('order_flash_booking_limit'),
+													isset($bli['return_date']) ? $bli['return_date'] : '',
+													isset($bli['limit']) ? (int) $bli['limit'] : 0,
+													isset($bli['booked']) ? (int) $bli['booked'] : 0,
+													isset($bli['remaining']) ? (int) $bli['remaining'] : 0
+												));
+											}
+											else
+											{
+												echo t('order_flash_booking_limit_generic');
+											}
+											?>
+											<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+										</div>
+						<?php } ?>				
                      	<div class="col-md-12">
                                 <div class="dz-card erp-module-card data-entry-card order-entry-card">
                                    <!-- <div class="card-header">Employee Form</div> -->
@@ -343,7 +669,7 @@ function valid(e, options)
 					: (isset($order_measurement_row->name) ? (string) $order_measurement_row->name : '');
 			}
 			$order_ctx = isset($customer_context) && is_array($customer_context) ? $customer_context : array();
-			$order_default_return = date('Y-m-d', strtotime('+7 days'));
+			$order_default_return = date('d-M-Y');
 			?>
 					<div class="order-customer-panel">
 						<div class="order-section__head">
@@ -393,27 +719,15 @@ function valid(e, options)
 						<div class="order-section__head">
 							<h3 class="order-section__title"><?php echo t('order_section_details'); ?></h3>
 						</div>
+					<?php /* Naap + customer already shown in customer panel — keep submit values hidden. */ ?>
+					<input id="Naap12no" name="Naap12no" type="hidden" value="<?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : ''; ?>">
+					<input id="Naapno" name="Naapno" type="hidden" value="<?php echo $order_measurement_row ? (int) $order_measurement_row->MCODE : ''; ?>">
+					<input id="order_customer_name_display" name="customer_name" type="hidden" value="<?php echo esc_html($order_customer_display_name); ?>">
+					<input id="customer_NO" name="customer_NO" type="hidden" value="<?php echo $order_measurement_row ? (int) $order_measurement_row->Customerno : ''; ?>">
 					<div class="row">
-						<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_naap_no'); ?></label>
-           
-            <input id="Naap12no" name="Naap12no" readonly="readonly" type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : ''; ?>"  >                                  
-            <input id="Naapno" name="Naapno" readonly="readonly" type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? (int) $order_measurement_row->MCODE : ''; ?>"  >
-			<input type="text" class="form-control" readonly="readonly" value="<?php echo $order_measurement_row ? esc_html((string) $order_measurement_row->MANNAAPNO) : ''; ?>">
-                                           </div>  
-						</div>
-										<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_customer_name'); ?></label>
-										 
-  <input id="order_customer_name_display" name="customer_name" disabled type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo esc_html($order_customer_display_name); ?>"  >
-  <input id="customer_NO" name="customer_NO" readonly="readonly" type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_measurement_row ? (int) $order_measurement_row->Customerno : ''; ?>"  >
-                                            </div>  
-						</div>
-						<div class="col">
+						<div class="col-md-3">
 							<div class="form-group">
-								<label class="control-label mb-1"><?php echo t('order_staff_employee'); ?></label>
+								<label class="control-label mb-1" for="staff_employee"><?php echo t('order_staff_employee'); ?></label>
 								<select name="staff_employee" id="staff_employee" class="form-control staff-employee-single" required>
 									<option value=""><?php echo t('order_select_staff_employee'); ?></option>
 									<?php
@@ -427,29 +741,30 @@ function valid(e, options)
 								</select>
 							</div>
 						</div>
-					</div>	
-			 
-				<div class="row">
-									<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_current_date'); ?></label>
-  <input id="current" name="current"  disabled type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo date('d-M-Y'); ?>" re>
-                                            </div>  
+						<div class="col-md-3">
+							<div class="form-group">
+								<label class="control-label mb-1" for="current"><?php echo t('order_current_date'); ?></label>
+								<input id="current" name="current" disabled type="text" class="form-control dz-date" value="<?php echo date('d-M-Y'); ?>" autocomplete="off">
+							</div>
 						</div>
-						
-										<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_return_date'); ?></label>
-  <input id="retrun_Date" name="retrun_Date"   type="date" class="form-control" aria-required="true" aria-invalid="false"  value="<?php echo esc_attr($order_default_return); ?>" >
-                                            </div>  
+						<div class="col-md-3">
+							<div class="form-group">
+								<label class="control-label mb-1" for="retrun_Date"><?php echo t('order_return_date'); ?></label>
+								<input id="retrun_Date" name="retrun_Date" type="text" class="form-control dz-date" required value="<?php echo esc_attr($order_default_return); ?>" autocomplete="off" placeholder="dd-Mon-yyyy">
+							</div>
 						</div>
-														<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('app_quantity'); ?></label>
-  <input id="Quantity" name="Quantity"   type="number" min="1" class="form-control" aria-required="true" aria-invalid="false" value="" >
-                                            </div>  
+						<div class="col-md-3">
+							<div class="form-group">
+								<label class="control-label mb-1" for="Quantity"><?php echo t('app_quantity'); ?></label>
+								<input id="Quantity" name="Quantity" type="number" min="1" class="form-control" required value="">
+							</div>
 						</div>
-						 
+						<div class="col-md-12">
+							<div id="order-booking-limit-alert" class="sufee-alert alert with-close alert-danger fade show d-none" role="alert" style="display:none;">
+								<span class="order-booking-limit-alert__text"></span>
+								<button type="button" class="close" aria-label="Close" onclick="clearOrderBookingLimitAlert(); return false;"><span aria-hidden="true">×</span></button>
+							</div>
+						</div>
 					</div>
 					</div>
 
@@ -519,7 +834,6 @@ function valid(e, options)
 							</div>
 						</div>
 						<div class="order-payment-sticky__actions">
-							<button type="button" id="orderPreviewBtn" class="btn btn-lg btn-outline-primary btn-block"><?php echo t('order_preview_title'); ?></button>
 							<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
 								<span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
 								<span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
@@ -530,13 +844,35 @@ function valid(e, options)
 </div>
                                 </div>
                                 <div class="col-lg-4 col-xl-3 order-form-camera-col">
-                                  <div class="order-camera-panel">
+                                  <div class="order-camera-panel" id="orderCameraPanel"
+									data-avatar-female="<?php echo esc_attr(base_url('images/avatar-female.svg')); ?>"
+									data-avatar-male="<?php echo esc_attr(base_url('images/avatar-male.svg')); ?>">
                                     <div class="order-camera-panel__head"><?php echo t('order_camera'); ?></div>
                                     <div class="order-camera-panel__view">
-                                    <div id="my_camera" class="order-camera-panel__stage"></div>
-                                  </div>
+										<div id="my_camera" class="order-camera-panel__stage"></div>
+										<img id="orderAvatarPreview" class="order-camera-panel__avatar" alt="" hidden>
+									</div>
+									<p class="order-camera-status" id="orderCameraStatus" hidden role="status"></p>
+									<label class="order-camera-avatar-toggle">
+										<input type="checkbox" id="orderUseAvatar" name="use_avatar" value="1">
+										<span>
+											<strong><?php echo t('order_use_avatar'); ?></strong>
+											<small><?php echo t('order_use_avatar_hint'); ?></small>
+										</span>
+									</label>
+									<div class="order-camera-avatar-choices" id="orderAvatarChoices" hidden>
+										<label class="order-camera-avatar-choice">
+											<input type="radio" name="avatar_gender" value="female" checked>
+											<span><?php echo t('order_avatar_female'); ?></span>
+										</label>
+										<label class="order-camera-avatar-choice">
+											<input type="radio" name="avatar_gender" value="male">
+											<span><?php echo t('order_avatar_male'); ?></span>
+										</label>
+									</div>
                                   <div class="order-camera-panel__actions">
                                     <button type="button" class="btn btn-sm btn-outline-primary btn-block" id="orderCapturePhotoBtn"><?php echo t('order_capture_photo'); ?></button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-block" id="orderRetryCameraBtn" hidden></button>
                                   </div>
                                   </div>
                                 </div>
@@ -669,88 +1005,405 @@ function myFunction() {
 
         </script>
 	 <script language="JavaScript">
-function initOrderWebcam()
+window.orderAvatarModeActive = false;
+window.__orderWebcamLive = false;
+window.__orderWebcamInitialized = false;
+window.__orderWebcamFallbackTried = false;
+window.__orderPhotoCaptured = false;
+window.__orderWebcamHandlersBound = false;
+
+function getOrderAvatarGender()
 {
-	if (window.__orderWebcamInitialized)
+	var selected = document.querySelector('input[name="avatar_gender"]:checked');
+	return selected ? selected.value : 'female';
+}
+
+function getOrderAvatarUrl()
+{
+	var panel = document.getElementById('orderCameraPanel');
+	if (!panel)
+	{
+		return '';
+	}
+	return getOrderAvatarGender() === 'male'
+		? (panel.getAttribute('data-avatar-male') || '')
+		: (panel.getAttribute('data-avatar-female') || '');
+}
+
+function setOrderCameraStatus(message, isError)
+{
+	var el = document.getElementById('orderCameraStatus');
+	var retryBtn = document.getElementById('orderRetryCameraBtn');
+	if (!el)
 	{
 		return;
 	}
-	var view = document.querySelector('.order-camera-panel__view');
+	if (!message)
+	{
+		el.hidden = true;
+		el.textContent = '';
+		el.classList.remove('is-error');
+		if (retryBtn)
+		{
+			retryBtn.hidden = true;
+		}
+		return;
+	}
+	el.hidden = false;
+	el.textContent = message;
+	el.classList.toggle('is-error', !!isError);
+	if (retryBtn)
+	{
+		retryBtn.hidden = !isError;
+		retryBtn.textContent = orderLang('order_camera_retry', 'Retry camera');
+	}
+}
+
+window.applyOrderAvatarImage = function (done)
+{
+	var url = getOrderAvatarUrl();
+	var preview = document.getElementById('orderAvatarPreview');
+	if (!url)
+	{
+		if (typeof done === 'function')
+		{
+			done('');
+		}
+		return;
+	}
+	if (preview)
+	{
+		preview.src = url;
+		preview.hidden = false;
+	}
+	var img = new Image();
+	img.onload = function () {
+		var canvas = document.createElement('canvas');
+		canvas.width = 400;
+		canvas.height = 400;
+		var ctx = canvas.getContext('2d');
+		ctx.fillStyle = '#ffffff';
+		ctx.fillRect(0, 0, 400, 400);
+		try
+		{
+			ctx.drawImage(img, 0, 0, 400, 400);
+			var dataUri = canvas.toDataURL('image/jpeg', 0.92);
+			setOrderImageData(dataUri);
+			if (preview)
+			{
+				preview.src = dataUri;
+			}
+			window.__orderPhotoCaptured = true;
+			if (typeof done === 'function')
+			{
+				done(dataUri);
+			}
+		}
+		catch (err)
+		{
+			if (typeof done === 'function')
+			{
+				done('');
+			}
+		}
+	};
+	img.onerror = function () {
+		if (typeof done === 'function')
+		{
+			done('');
+		}
+	};
+	img.src = url;
+};
+
+function setOrderAvatarMode(enabled)
+{
+	window.orderAvatarModeActive = !!enabled;
+	var panel = document.getElementById('orderCameraPanel');
+	var preview = document.getElementById('orderAvatarPreview');
+	var choices = document.getElementById('orderAvatarChoices');
 	var stage = document.getElementById('my_camera');
-	if (!view || !stage || !window.Webcam)
+	var captureBtn = document.getElementById('orderCapturePhotoBtn');
+	if (panel)
+	{
+		panel.classList.toggle('is-avatar-mode', !!enabled);
+	}
+	if (choices)
+	{
+		choices.hidden = !enabled;
+	}
+	if (captureBtn)
+	{
+		captureBtn.disabled = !!enabled;
+	}
+	if (enabled)
+	{
+		try
+		{
+			if (window.Webcam && (window.Webcam.live || window.Webcam.loaded))
+			{
+				Webcam.reset();
+			}
+		}
+		catch (err) {}
+		window.__orderWebcamInitialized = false;
+		window.__orderWebcamLive = false;
+		if (stage)
+		{
+			stage.innerHTML = '';
+		}
+		setOrderCameraStatus('');
+		window.applyOrderAvatarImage();
+	}
+	else
+	{
+		if (preview)
+		{
+			preview.hidden = true;
+			preview.removeAttribute('src');
+		}
+		var imgtxt = document.getElementById('imgtxt');
+		if (imgtxt)
+		{
+			imgtxt.value = '';
+		}
+		window.__orderPhotoCaptured = false;
+		window.__orderWebcamFallbackTried = false;
+		window.setTimeout(function () {
+			initOrderWebcam(true);
+		}, 200);
+	}
+}
+
+function bindOrderAvatarControls()
+{
+	var toggle = document.getElementById('orderUseAvatar');
+	if (!toggle || toggle.getAttribute('data-avatar-bound') === '1')
 	{
 		return;
 	}
-
-	var size = Math.floor(view.clientWidth);
-	if (size < 200)
-	{
-		size = 280;
-	}
-
-	Webcam.set({
-		width: size,
-		height: size,
-		dest_width: size,
-		dest_height: size,
-		image_format: 'jpeg',
-		jpeg_quality: 90
+	toggle.setAttribute('data-avatar-bound', '1');
+	toggle.addEventListener('change', function () {
+		setOrderAvatarMode(this.checked);
 	});
+	var radios = document.querySelectorAll('input[name="avatar_gender"]');
+	for (var i = 0; i < radios.length; i++)
+	{
+		radios[i].addEventListener('change', function () {
+			if (window.orderAvatarModeActive)
+			{
+				window.applyOrderAvatarImage();
+			}
+		});
+	}
+	var retryBtn = document.getElementById('orderRetryCameraBtn');
+	if (retryBtn && retryBtn.getAttribute('data-retry-bound') !== '1')
+	{
+		retryBtn.setAttribute('data-retry-bound', '1');
+		retryBtn.addEventListener('click', function () {
+			window.__orderWebcamFallbackTried = false;
+			initOrderWebcam(true);
+		});
+	}
+	setOrderAvatarMode(toggle.checked);
+}
 
+function bindOrderWebcamHandlers()
+{
+	if (!window.Webcam || window.__orderWebcamHandlersBound)
+	{
+		return;
+	}
+	window.__orderWebcamHandlersBound = true;
+	Webcam.on('live', function () {
+		window.__orderWebcamLive = true;
+		window.__orderWebcamInitialized = true;
+		setOrderCameraStatus('');
+	});
 	Webcam.on('error', function (err) {
 		if (window.console && console.error)
 		{
 			console.error('Webcam error:', err);
 		}
+		window.__orderWebcamLive = false;
+		window.__orderWebcamInitialized = false;
+		if (!window.__orderWebcamFallbackTried && !window.orderAvatarModeActive)
+		{
+			window.__orderWebcamFallbackTried = true;
+			window.setTimeout(function () {
+				tryAttachOrderWebcam(true);
+			}, 150);
+			return;
+		}
+		setOrderCameraStatus(
+			orderLang('order_camera_unavailable', 'Camera could not start. Check permission/device, tap Retry, or use the default avatar.'),
+			true
+		);
 	});
-
-	Webcam.attach('#my_camera');
-	window.__orderWebcamInitialized = true;
 }
 
-if (window.Webcam && document.getElementById('my_camera'))
+function tryAttachOrderWebcam(useSimpleConstraints)
+{
+	var view = document.querySelector('.order-camera-panel__view');
+	var stage = document.getElementById('my_camera');
+	if (!view || !stage || !window.Webcam || window.orderAvatarModeActive)
+	{
+		return;
+	}
+
+	var size = Math.floor(view.clientWidth || view.offsetWidth || 0);
+	if (size < 200)
+	{
+		size = 280;
+	}
+	var dest = Math.min(Math.max(size, 240), 480);
+
+	try
+	{
+		if (window.Webcam.live || window.Webcam.loaded)
+		{
+			Webcam.reset();
+		}
+	}
+	catch (err) {}
+
+	stage.innerHTML = '';
+	setOrderCameraStatus(orderLang('order_camera_starting', 'Starting camera…'), false);
+
+	var settings = {
+		width: size,
+		height: size,
+		dest_width: dest,
+		dest_height: dest,
+		image_format: 'jpeg',
+		jpeg_quality: 90,
+		force_flash: false,
+		enable_flash: false,
+		constraints: useSimpleConstraints
+			? true
+			: {
+				facingMode: 'user',
+				width: { ideal: 640 },
+				height: { ideal: 480 }
+			}
+	};
+	Webcam.set(settings);
+	bindOrderWebcamHandlers();
+	try
+	{
+		Webcam.attach('#my_camera');
+	}
+	catch (attachErr)
+	{
+		window.__orderWebcamInitialized = false;
+		window.__orderWebcamLive = false;
+		setOrderCameraStatus(
+			orderLang('order_camera_unavailable', 'Camera could not start. Check permission/device, tap Retry, or use the default avatar.'),
+			true
+		);
+	}
+}
+
+function initOrderWebcam(force)
+{
+	if (window.orderAvatarModeActive)
+	{
+		return;
+	}
+	if (window.__orderWebcamInitialized && window.__orderWebcamLive && !force)
+	{
+		return;
+	}
+	if (!window.Webcam)
+	{
+		setOrderCameraStatus(
+			orderLang('order_camera_unavailable', 'Camera could not start. Check permission/device, tap Retry, or use the default avatar.'),
+			true
+		);
+		return;
+	}
+	window.__orderWebcamInitialized = false;
+	window.__orderWebcamLive = false;
+	if (force)
+	{
+		window.__orderWebcamFallbackTried = false;
+	}
+	tryAttachOrderWebcam(false);
+}
+
+if (document.getElementById('my_camera') || document.getElementById('orderUseAvatar'))
 {
 	window.addEventListener('load', function () {
-		window.setTimeout(initOrderWebcam, 200);
+		bindOrderAvatarControls();
+		window.setTimeout(function () {
+			initOrderWebcam(true);
+		}, 250);
 	});
 	if (window.jQuery)
 	{
 		jQuery(document).on('app:ajax-loaded', function () {
-			if (!document.getElementById('my_camera'))
+			if (!document.getElementById('orderCameraPanel'))
 			{
 				return;
 			}
-			if (window.Webcam && window.Webcam.live)
+			try
 			{
-				Webcam.reset();
+				if (window.Webcam && (window.Webcam.live || window.Webcam.loaded))
+				{
+					Webcam.reset();
+				}
 			}
+			catch (err) {}
 			window.__orderWebcamInitialized = false;
-			window.setTimeout(initOrderWebcam, 250);
+			window.__orderWebcamLive = false;
+			window.__orderWebcamFallbackTried = false;
+			var toggle = document.getElementById('orderUseAvatar');
+			if (toggle)
+			{
+				toggle.removeAttribute('data-avatar-bound');
+			}
+			var retryBtn = document.getElementById('orderRetryCameraBtn');
+			if (retryBtn)
+			{
+				retryBtn.removeAttribute('data-retry-bound');
+			}
+			bindOrderAvatarControls();
+			window.setTimeout(function () {
+				initOrderWebcam(true);
+			}, 300);
 		});
 	}
 }
-  
-    function take_snapshot() {
-		if (!window.Webcam) {
-			return;
+
+function take_snapshot() {
+	if (window.orderAvatarModeActive) {
+		if (typeof window.applyOrderAvatarImage === 'function') {
+			window.applyOrderAvatarImage();
 		}
-        Webcam.snap( function(data_uri) {
-            $(".image-tag").val(data_uri);
-            $("#imgtxt").val(data_uri);
-          //  document.getElementById('results').innerHTML = '<img src="'+data_uri+'"/>';
-			 
-			 document.getElementById('teimg').src = data_uri;
-            
-			
-			
-        } );
-    }
+		return;
+	}
+	if (!window.Webcam || !window.Webcam.live) {
+		setOrderCameraStatus(
+			orderLang('order_camera_unavailable', 'Camera could not start. Check permission/device, tap Retry, or use the default avatar.'),
+			true
+		);
+		return;
+	}
+	snapOrderWebcam(function () {
+		setOrderCameraStatus('');
+	}, function () {
+		setOrderCameraStatus(
+			orderLang('order_camera_unavailable', 'Camera could not start. Check permission/device, tap Retry, or use the default avatar.'),
+			true
+		);
+	});
+}
 </script>
 <?php $this->load->view('partials/order_copy_suit_line_js'); ?>
 <script>window.ORDER_FORM_CFG = <?php echo json_encode(array(
 	'lastOrderUrl' => site_url('Order/customer_last_order_lines'),
 ), JSON_UNESCAPED_UNICODE); ?>;</script>
-<script src="<?php echo base_url('js/order-form-enhancements.js?v=3'); ?>"></script>
+<script src="<?php echo base_url('js/order-form-enhancements.js?v=5'); ?>"></script>
  
 </body>
 

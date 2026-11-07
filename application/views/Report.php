@@ -43,7 +43,7 @@ $render_report_tile = function ($key) use ($catalog, $registry) {
 	$pdf_ok = !empty($item['builder']);
 	?>
 	<div class="dz-report-tile-wrap" data-report-key="<?php echo esc_attr($key); ?>" data-pdf="<?php echo $pdf_ok ? '1' : '0'; ?>">
-		<a class="dz-report-tile" href="<?php echo esc_html($url); ?>" target="_blank" rel="noopener noreferrer">
+		<a class="dz-report-tile" href="<?php echo esc_html($url); ?>" target="_blank" rel="noopener noreferrer" data-no-ajax="true">
 			<span class="dz-report-tile__icon" aria-hidden="true"><?php echo ui_icon($item['icon']); ?></span>
 			<span class="dz-report-tile__text">
 				<span class="dz-report-tile__title"><?php echo esc_html($label); ?></span>
@@ -67,7 +67,8 @@ $render_report_tile = function ($key) use ($catalog, $registry) {
 								<p class="dz-report-hub__subtitle"><?php echo esc_html(t('report_hub_subtitle_advanced')); ?></p>
 							</header>
 
-							<section class="dz-card dz-report-hub__section dz-report-quick" aria-labelledby="report-quick-heading">
+							<?php /* Quick generate panel hidden for now — restore by removing hidden. */ ?>
+							<section class="dz-card dz-report-hub__section dz-report-quick" aria-labelledby="report-quick-heading" hidden>
 								<div class="dz-card__header">
 									<h2 id="report-quick-heading" class="dz-card__title"><?php echo esc_html(t('report_quick_title')); ?></h2>
 								</div>
@@ -120,7 +121,8 @@ $render_report_tile = function ($key) use ($catalog, $registry) {
 								</div>
 							</section>
 
-							<section class="dz-card dz-report-hub__section dz-report-voice-panel" aria-labelledby="report-voice-heading">
+							<?php /* Voice assistant panel hidden for now — restore by removing hidden. */ ?>
+							<section class="dz-card dz-report-hub__section dz-report-voice-panel" aria-labelledby="report-voice-heading" hidden>
 								<div class="dz-card__header">
 									<h2 id="report-voice-heading" class="dz-card__title"><?php echo esc_html(t('report_voice_title')); ?></h2>
 								</div>
@@ -198,7 +200,7 @@ $render_report_tile = function ($key) use ($catalog, $registry) {
 	<script src="<?php echo base_url(); ?>vendor/chartjs/Chart.bundle.min.js"></script>
 	<script src="<?php echo base_url(); ?>vendor/select2/select2.min.js"></script>
 	<script src="<?php echo base_url(); ?>js/main.js"></script>
-	<script src="<?php echo base_url(); ?>js/report-voice-assistant.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/report-hub.js?v=2"></script>
+	<script src="<?php echo base_url(); ?>js/report-voice-assistant.js?v=6"></script>
+	<script src="<?php echo base_url(); ?>js/report-hub.js?v=7"></script>
 </body>
 </html>

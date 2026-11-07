@@ -18,13 +18,17 @@ $print_has_type = function ($needle) use ($types) {
 $meas_trim = function ($key) use ($orders) {
 	return isset($orders->$key) ? trim((string) $orders->$key) : '';
 };
-$has_kurta_nap = (
-	$meas_trim('KL') !== '' || $meas_trim('BL') !== '' || $meas_trim('Teera') !== '' ||
-	$meas_trim('Chaati') !== '' || $meas_trim('Gala') !== '' || $meas_trim('Shalwar_Lenght') !== '' ||
-	$meas_trim('Asan') !== '' || $meas_trim('geera') !== '' || $meas_trim('pait') !== '' ||
-	$meas_trim('WASIT') !== '' || $meas_trim('Poncha_Choraic') !== '' || $meas_trim('FPL') !== ''
-);
-$show_kurta_block = ($print_has_type('Kurta') || $has_kurta_nap);
+$geera_parts = measurement_split_triple($meas_trim('geera'));
+$geera_upar = $geera_parts[0];
+$geera_darmiyan = $geera_parts[1];
+$geera_neeche = $geera_parts[2];
+$sgeera_parts = measurement_split_triple($meas_trim('SGeera'));
+$sgeera_upar = $sgeera_parts[0];
+$sgeera_darmiyan = $sgeera_parts[1];
+$sgeera_neeche = $sgeera_parts[2];
+// Only show nap blocks for garment types on THIS order (WhatsApp PDF + print).
+// Do not force قمیض شلوار just because customer measurement has kurta fields filled.
+$show_kurta_block = $print_has_type('Kurta');
 if ($show_kurta_block) {
 	echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">قمیض شلوار</td></tr>';
 }
@@ -45,19 +49,41 @@ if ($show_kurta_block) {
 							</td>
 						</tr>
 								<tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->geera; ?></td>
-						<td align="right" class="m-lbl" style="border-bottom:1px solid black;" >
-							   &nbsp; &nbsp; <b>گیرا    </b>  
-							 
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;"></td>
+							<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo $orders->Teera; ?></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;">
+							   &nbsp; &nbsp; <b>تیرا  </b>
 							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->Teera; ?></td>
-									<td align="right" class="m-lbl" style="border-bottom:1px solid black;">
-							   &nbsp; &nbsp; <b>تیرا  </b>  
-							 
+						</tr>
+								<tr>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;"></td>
+							<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo esc_html($geera_neeche); ?></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;">
+							   &nbsp; &nbsp; <b>گیرا نیچے</b>
 							</td>
-						</tr>	
+						</tr>
+								<tr>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;"></td>
+							<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo esc_html($geera_darmiyan); ?></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;">
+							   &nbsp; &nbsp; <b>گیرا درمیان</b>
+							</td>
+						</tr>
+								<tr>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;"></td>
+							<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo esc_html($geera_upar); ?></td>
+							<td align="right" class="m-lbl" style="border-bottom:1px solid black;">
+							   &nbsp; &nbsp; <b>گیرا اوپر</b>
+							</td>
+						</tr>
 				<tr>
 		 
 						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->pait; ?></td>
@@ -225,51 +251,37 @@ if ($show_kurta_block) {
 			  if($print_has_type('Pent'))
 			  {
 				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">پینٹ</td></tr>';
+				$pent_pick = function () use ($orders) {
+					$keys = func_get_args();
+					$fallback = '';
+					foreach ($keys as $key)
+					{
+						$val = isset($orders->$key) ? trim((string) $orders->$key) : '';
+						if ($fallback === '') { $fallback = $val; }
+						if ($val !== '') { return $val; }
+					}
+					return $fallback;
+				};
+				$pent_rows = array(
+					array($pent_pick('PentLambai'), 'لمبائی'),
+					array($pent_pick('pentWaiste'), 'کمر'),
+					array($pent_pick('HIP'), 'ہپ'),
+					array($pent_pick('PentPat', 'PentThai'), 'پٹ'),
+					array($pent_pick('PentGhutna'), 'گھٹنہ'),
+					array($pent_pick('PentPonchaMori', 'PentPoncha'), 'پانچہ موری'),
+				);
+				foreach ($pent_rows as $pr)
+				{
 			  ?>
 			  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->PentLambai; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>لمبائی   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->pentWaiste; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b>کمر  </b> 
-							 
-							</td>
+						<td class="m-val" style="border-bottom:1px solid black;" align="left" colspan="4"><?php echo esc_html($pr[0]); ?></td>
+						<td align="right" class="m-lbl">
+							   &nbsp; &nbsp; <b><?php echo esc_html($pr[1]); ?></b>
+						</td>
 						</tr>
-						  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->HIP; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>ہپ   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->PentPoncha; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> پانچہ  </b> 
-							 
-							</td>
-						</tr>		
-					  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->PentThai; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>Thai
-  : </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"> </td>
-									<td align="right" class="m-lbl" >
-							   
-							 
-							</td>
-						</tr>
-			 <?php  }
+			  <?php
+				}
+			  }
 			  if($print_has_type('Shirt'))
 			  {
 				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">شرٹ</td></tr>';
@@ -289,19 +301,41 @@ if ($show_kurta_block) {
 							</td>
 						</tr>
 						  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->STeera; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>تیرا   </b>  
-							 
-							</td>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+						<td align="right" class="m-lbl"></td>
 <td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->SGeera; ?></td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo $orders->STeera; ?></td>
 									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> گیرا  </b> 
-							 
+							   &nbsp; &nbsp; <b>تیرا</b>
 							</td>
-						</tr>		
+						</tr>
+						  <tr>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+						<td align="right" class="m-lbl"></td>
+<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo esc_html($sgeera_neeche); ?></td>
+									<td align="right" class="m-lbl" >
+							   &nbsp; &nbsp; <b>گیرا نیچے</b>
+							</td>
+						</tr>
+						  <tr>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+						<td align="right" class="m-lbl"></td>
+<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo esc_html($sgeera_darmiyan); ?></td>
+									<td align="right" class="m-lbl" >
+							   &nbsp; &nbsp; <b>گیرا درمیان</b>
+							</td>
+						</tr>
+						  <tr>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+						<td align="right" class="m-lbl"></td>
+<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo esc_html($sgeera_upar); ?></td>
+									<td align="right" class="m-lbl" >
+							   &nbsp; &nbsp; <b>گیرا اوپر</b>
+							</td>
+						</tr>
 		 								  <tr>
 		 
 						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->SChaati; ?></td>
@@ -334,130 +368,66 @@ if ($show_kurta_block) {
 			  if($print_has_type('Coat'))
 			  {
 				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">شروانی/کوٹ</td></tr>';
+				$coat_pick = function () use ($orders) {
+					$keys = func_get_args();
+					$fallback = '';
+					foreach ($keys as $key)
+					{
+						$val = isset($orders->$key) ? trim((string) $orders->$key) : '';
+						if ($fallback === '') { $fallback = $val; }
+						if ($val !== '') { return $val; }
+					}
+					return $fallback;
+				};
+				$coat_rows = array(
+					array($coat_pick('CoatLambai'), 'لمبائی'),
+					array($coat_pick('CoatChaati'), 'چھاتی'),
+					array($coat_pick('CoatKamar'), 'کمر'),
+					array($coat_pick('CoatTeera'), 'تیرا'),
+					array($coat_pick('CoatBazoo'), 'بازو'),
+					array($coat_pick('CoatGaala'), 'گلا'),
+					array($coat_pick('CoatHIP', 'SherwaniHIP'), 'ہپ'),
+					array($coat_pick('CoatDola', 'SherwaniDola'), 'ڈولا'),
+					array($coat_pick('CoatBazooMori', 'SherwaniBazooMori'), 'بازو موری'),
+					array($coat_pick('crossback', 'SherwaniCrossback'), 'کراس بیک'),
+					array($coat_pick('CoatLambaiBack', 'SherwaniLambaiBack'), 'لمبائی بیک'),
+				);
+				foreach ($coat_rows as $cr)
+				{
 			  ?>
 			  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatLambai; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>لمبائی   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatBazoo; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b>باذو  </b> 
-							 
-							</td>
+						<td class="m-val" style="border-bottom:1px solid black;" align="left" colspan="4"><?php echo esc_html($cr[0]); ?></td>
+						<td align="right" class="m-lbl">
+							   &nbsp; &nbsp; <b><?php echo esc_html($cr[1]); ?></b>
+						</td>
 						</tr>
-						  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatTeera; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>تیرا   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatChaati; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> چھاتی  </b> 
-							 
-							</td>
-						</tr>		
-		 								  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatHIP; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>ہپ   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatKamar; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> کمر  </b> 
-							 
-							</td>
-						</tr>		
-						<tr>
-		 
-						<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->crossback; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>Cross Back
-   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->CoatGaala; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> گلا  </b> 
-							 
-							</td>
-						</tr>		
-						 <?php  }
+			  <?php
+				}
+			  }
 			  if($print_has_type('Waistcoat'))
 			  {
 				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">ویسکوٹ</td></tr>';
+				$wast_rows = array(
+					array('wastLambai', 'لمبائی'),
+					array('wastChaati', 'چھاتی'),
+					array('wastKamar', 'کمر'),
+					array('wastTeera', 'تیرا'),
+					array('wastGaala', 'گلا'),
+					array('wastHIP', 'ہپ'),
+				);
+				foreach ($wast_rows as $wr)
+				{
+					$wk = $wr[0];
+					$wl = $wr[1];
+					$wv = isset($orders->$wk) ? $orders->$wk : '';
 			  ?>
 			  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastLambai; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>لمبائی   </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastTeera; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b>تیرا  </b> 
-							 
-							</td>
+						<td class="m-val" style="border-bottom:1px solid black;" align="left" colspan="4"><?php echo esc_html($wv); ?></td>
+						<td align="right" class="m-lbl">
+							   &nbsp; &nbsp; <b><?php echo esc_html($wl); ?></b>
+						</td>
 						</tr>
-						  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastHIP; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b>ہپ 
-   </b>  
- 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastChaati; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> چھاتی  </b> 
-							 
-							</td>
-						</tr>		
-		 								  <tr>
-		 
-						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  //echo $orders->CoatHIP; ?></td>
-						<td align="right" class="m-lbl"  >
-							   &nbsp; &nbsp; <b><!--ہپ-->  </b>  
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastKamar; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> کمر  </b> 
-							 
-							</td>
-						</tr>		
-						<tr>
-		 
-						<td class="m-val" style="border-bottom:1px solid black;" align="left"> </td>
-						<td align="right" class="m-lbl"  >
-							   
-							 
-							</td>
-<td class="m-gap">&nbsp;</td>
-							<td class="m-val" style="border-bottom:1px solid black;" align="left"><?php  echo $orders->wastGaala; ?></td>
-									<td align="right" class="m-lbl" >
-							   &nbsp; &nbsp; <b> گلا  </b> 
-							 
-							</td>
-						</tr>		
-			  <?php }  ?>
-						<tr>
-							<td class="m-val" style="border-bottom:1px solid black;" colspan="2" align="left"><?php echo $orders->MREMARKS; ?></td>
-							<td class="m-gap">&nbsp;</td>
-							<td class="m-lbl" style="border-bottom:1px solid black;" colspan="2" align="right"><b>نوٹ لائن</b></td>
-						</tr>
+			  <?php
+				}
+			  }  ?>
 </table>

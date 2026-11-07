@@ -15,7 +15,7 @@ $roles = isset($roles) ? $roles : array();
 							<div class="erp-card-head"><h2 class="erp-module-title mb-0"><?php echo t('rbac_roles'); ?></h2></div>
 							<div class="card-body erp-card-body">
 								<?php $this->load->view('rbac_nav'); ?>
-								<?php if($this->session->flashdata('suss') == 'yes') { ?><div class="alert alert-success"><?php echo t('app_saved_success'); ?></div><?php } ?>
+								<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
 								<form action="<?php echo site_url('Rbac/save_role'); ?>" method="post" class="mb-4">
 									<div class="row">
 										<div class="col-md-3"><label>Role Name</label><input type="text" name="role_name" class="form-control" required></div>

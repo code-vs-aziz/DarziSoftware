@@ -85,37 +85,76 @@ class Transfer extends MY_Controller {
 		{
 			redirect('Login');
 		}
+		$os_scope = strtolower(trim((string) $this->input->get('scope', TRUE)));
+		if ($os_scope !== 'delivered')
+		{
+			$os_scope = 'current';
+		}
 		$status_filters = array(
 			'customer_name' => trim((string) $this->input->get('customer_name', TRUE)),
 			'order_no' => trim((string) $this->input->get('order_no', TRUE)),
 			'naap_no' => trim((string) $this->input->get('naap_no', TRUE)),
 			'mobile_no' => trim((string) $this->input->get('mobile_no', TRUE)),
+			'dt_q' => trim((string) $this->input->get('dt_q', TRUE)),
 			'return_from' => trim((string) $this->input->get('return_from', TRUE)),
 			'return_to' => trim((string) $this->input->get('return_to', TRUE)),
-			'order_from' => trim((string) $this->input->get('order_from', TRUE)),
-			'order_to' => trim((string) $this->input->get('order_to', TRUE)),
+			// Order From/To removed from Order Status UI — never apply entry-date range here.
+			'order_from' => '',
+			'order_to' => '',
 			'stage' => trim((string) $this->input->get('stage', TRUE)),
 		);
-		// First open / Clear: show Ready for Deliver immediately (no search needed).
+		$has_lookup = ($status_filters['order_no'] !== ''
+			|| $status_filters['naap_no'] !== ''
+			|| $status_filters['mobile_no'] !== ''
+			|| $status_filters['dt_q'] !== ''
+			|| $status_filters['customer_name'] !== '');
+		// First open / Clear: Stage = All (user can narrow if needed).
 		if ($this->input->get('stage') === NULL)
 		{
-			$status_filters['stage'] = 'READY';
+			$status_filters['stage'] = '';
 		}
-		if ($status_filters['return_from'] === '' && $this->input->get('fromdate', TRUE) !== NULL)
+		// Order # / phone / naap / table Search must find the suit at any stage (not only Ready).
+		if ($has_lookup && ($status_filters['order_no'] !== '' || $status_filters['naap_no'] !== '' || $status_filters['mobile_no'] !== '' || $status_filters['dt_q'] !== ''))
+		{
+			$status_filters['stage'] = '';
+			$status_filters['return_from'] = '';
+			$status_filters['return_to'] = '';
+			$status_filters['order_from'] = '';
+			$status_filters['order_to'] = '';
+		}
+		if ($status_filters['return_from'] === '' && $this->input->get('fromdate', TRUE) !== NULL && ! $has_lookup)
 		{
 			$status_filters['return_from'] = trim((string) $this->input->get('fromdate', TRUE));
 		}
-		if ($status_filters['return_to'] === '' && $this->input->get('todate', TRUE) !== NULL)
+		if ($status_filters['return_to'] === '' && $this->input->get('todate', TRUE) !== NULL && ! $has_lookup)
 		{
 			$status_filters['return_to'] = trim((string) $this->input->get('todate', TRUE));
 		}
-		// No forced dates — Stage alone loads the list. Dates only if user fills them.
+		// Delivered tab: Stage does not apply; default last 30 days if no search/dates.
+		if ($os_scope === 'delivered')
+		{
+			$status_filters['stage'] = '';
+			if ( ! $has_lookup
+				&& $status_filters['return_from'] === ''
+				&& $status_filters['return_to'] === '')
+			{
+				$status_filters = $this->order_query->apply_default_order_date_filters($status_filters, 30, 120, FALSE);
+			}
+		}
 		$data['status_filters'] = $status_filters;
+		$data['os_scope'] = $os_scope;
 		$data['cust_search'] = trim((string) $this->input->get('cust_search', TRUE));
 		$data['fromdate'] = $status_filters['return_from'];
 		$data['todate'] = $status_filters['return_to'];
 		$data['stage'] = $status_filters['stage'];
-		$data['orderdata'] = $this->order_query->order_Status($status_filters);
+		if ($os_scope === 'delivered')
+		{
+			$data['orderdata'] = $this->order_query->order_Status_D($status_filters);
+		}
+		else
+		{
+			$data['orderdata'] = $this->order_query->order_Status($status_filters);
+		}
 		if (empty($data['orderdata']))
 		{
 			$data['orderdata'] = array();
@@ -124,21 +163,39 @@ class Transfer extends MY_Controller {
  	$this->load->view('order_status',$data);
 	}
 	
-	 public function order_StatusD()
+	public function order_StatusD()
 	{
-		// Legacy URL — unified Order Status list (filter Delivered if needed).
-		$query = $this->input->server('QUERY_STRING');
-		$target = 'transfer/order_Status';
-		$params = array();
-		if (is_string($query) && $query !== '')
+		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
+		$this->load->helper('url');
+		$this->load->library('session');
+		if ( ! $this->session->userdata('user'))
 		{
-			parse_str($query, $params);
+			redirect('Login');
+			return;
 		}
-		if (empty($params['stage']))
+
+		// Legacy URL → unified Order Status with Delivered scope.
+		$q = array('scope' => 'delivered');
+		foreach (array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'return_from', 'return_to', 'fromdate', 'todate') as $key)
 		{
-			$params['stage'] = 'DELIVERED';
+			$val = trim((string) $this->input->post_get($key, TRUE));
+			if ($val !== '')
+			{
+				if ($key === 'fromdate' && empty($q['return_from']))
+				{
+					$q['return_from'] = $val;
+				}
+				elseif ($key === 'todate' && empty($q['return_to']))
+				{
+					$q['return_to'] = $val;
+				}
+				elseif ($key !== 'fromdate' && $key !== 'todate')
+				{
+					$q[$key] = $val;
+				}
+			}
 		}
-		redirect($target.'?'.http_build_query($params));
+		redirect('transfer/order_Status?'.http_build_query($q));
 	}
  
 	public function transfer_table()
@@ -206,24 +263,51 @@ class Transfer extends MY_Controller {
 		$search_arr = $this->input->post('search');
 		$search = is_array($search_arr) && isset($search_arr['value']) ? trim((string) $search_arr['value']) : '';
 
+		$show_bulk = ($dept === 'CUT' || $dept === 'STIT');
+		// Map DataTables column index → SQL (checkbox shifts indices when bulk is on).
+		$col_map_bulk = array(
+			1 => 'order_mst.trnno',
+			2 => 'employee.name',
+			3 => 'order_mst.EDATE',
+			4 => 'order_mst.RDATE',
+			5 => 'customer.Phone',
+			6 => 'customer.name',
+			7 => 'customer.man_napno',
+			8 => 'order_dtl.order_remarks',
+		);
+		$col_map_plain = array(
+			0 => 'order_mst.trnno',
+			1 => 'employee.name',
+			2 => 'order_mst.EDATE',
+			3 => 'order_mst.RDATE',
+			4 => 'customer.Phone',
+			5 => 'customer.name',
+			6 => 'customer.man_napno',
+			7 => 'order_dtl.order_remarks',
+		);
+		$col_map = $show_bulk ? $col_map_bulk : $col_map_plain;
+
+		$order_by = '';
+		$order_dir = 'ASC';
+		$order_post = $this->input->post('order');
+		if (is_array($order_post) && ! empty($order_post[0]) && is_array($order_post[0]))
+		{
+			$col_idx = isset($order_post[0]['column']) ? (int) $order_post[0]['column'] : -1;
+			$dir_raw = isset($order_post[0]['dir']) ? strtolower((string) $order_post[0]['dir']) : 'asc';
+			if (isset($col_map[$col_idx]))
+			{
+				$order_by = $col_map[$col_idx];
+				$order_dir = ($dir_raw === 'desc') ? 'DESC' : 'ASC';
+			}
+		}
+
 		$total = $this->order_query->count_pending_transfer_rows($dept, '');
 		$filtered = ($search === '')
 			? $total
 			: $this->order_query->count_pending_transfer_rows($dept, $search);
-		$rows = $this->order_query->get_pending_transfer_rows($dept, $start, $length, $search);
-
-		$employees = $this->master_data->get_dat(array('employee'));
-		$emp_map = array();
-		if (is_array($employees))
-		{
-			foreach ($employees as $emp)
-			{
-				$emp_map[(string) $emp->empno] = (string) $emp->name;
-			}
-		}
+		$rows = $this->order_query->get_pending_transfer_rows($dept, $start, $length, $search, $order_by, $order_dir);
 
 		$list_from = (string) $this->uri->segment(3);
-		$show_bulk = ($dept === 'CUT' || $dept === 'STIT');
 		$data_out = array();
 		$sr_by_order = array();
 		foreach ($rows as $row)
@@ -240,7 +324,7 @@ class Transfer extends MY_Controller {
 			$line_sr = isset($row->ORDERSR) ? (int) $row->ORDERSR : (int) $row->SUITNO;
 			$display_sr = $sr_by_order[$order_no];
 			$transfer_id = (int) $row->TRANSFERID;
-			$emp_name = isset($emp_map[(string) $row->empno]) ? $emp_map[(string) $row->empno] : '';
+			$emp_name = isset($row->emp_name) ? trim((string) $row->emp_name) : '';
 
 			$entry = $row->ORDERDATE;
 			if ($entry === '' || $entry === NULL)
@@ -671,7 +755,8 @@ class Transfer extends MY_Controller {
 		}
 
 		$dept1 = $result['dept1'];
-		if ($dept1 === 'CUT' || $dept1 === 'STIT')
+		// Print slip only after Booking → Cutting. HO2 → Stitching should stay on the list.
+		if ($dept1 === 'CUT')
 		{
 			redirect('Transfer/transfer_Print/'.$this->uri->segment(3).'/'.$dept.'/'.$this->uri->segment(5));
 			return;

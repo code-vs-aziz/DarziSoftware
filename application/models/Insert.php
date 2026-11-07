@@ -30,30 +30,54 @@ class Insert extends CI_Model
 		return isset($map[$key]) ? $map[$key] : (string) $tab;
 	}
 
-	function insert_dat($data, $tab, $PAGE)
+	function insert_dat($data, $tab, $PAGE, $success_msg = '')
 	{
 		$tab = $this->_normalize_table($tab);
 		$this->db->insert($tab, $data);
 		$this->_clear_master_dat_cache($tab);
 		$this->load->helper('url');
-		$this->session->set_flashdata('suss', 'yes');
+		$this->load->helper('flash');
+		if (is_string($success_msg) && $success_msg !== '')
+		{
+			app_set_success_flash($success_msg);
+		}
+		else
+		{
+			$this->session->set_flashdata('suss', 'yes');
+		}
 		redirect($PAGE);
 	}
 
-	function insert_dat1($data, $tab)
+	function insert_dat1($data, $tab, $success_msg = '')
 	{
 		$tab = $this->_normalize_table($tab);
 		$this->db->insert($tab, $data);
-		$this->session->set_flashdata('suss', 'yes');
+		$this->load->helper('flash');
+		if (is_string($success_msg) && $success_msg !== '')
+		{
+			app_set_success_flash($success_msg);
+		}
+		else
+		{
+			$this->session->set_flashdata('suss', 'yes');
+		}
 	}
 
-	public function entry_update1($field, $id, $data, $table)
+	public function entry_update1($field, $id, $data, $table, $success_msg = '')
 	{
 		$table = $this->_normalize_table($table);
 		$this->db->where($field, $id);
 		$this->db->update($table, $data);
 		$this->_clear_master_dat_cache($table);
-		$this->session->set_flashdata('suss', 'yes');
+		$this->load->helper('flash');
+		if (is_string($success_msg) && $success_msg !== '')
+		{
+			app_set_success_flash($success_msg);
+		}
+		else
+		{
+			$this->session->set_flashdata('suss', 'yes');
+		}
 	}
 
 	protected function _clear_master_dat_cache($table)

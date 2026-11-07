@@ -33,7 +33,7 @@ foreach ($payment as $payments) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Pending Customer Ledger</title>
-<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>">
+<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>?v=portrait-a4-2">
 <style>
 	body.report-body { background: #f4f7fb; color: #1f2933; font-family: Arial, sans-serif; }
 	.report-shell { max-width: 1180px; margin: 18px auto; padding: 0 14px; }

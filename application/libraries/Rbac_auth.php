@@ -122,6 +122,13 @@ class Rbac_auth
     }
     if ($class === 'notifications')
     {
+      // Shared shop WhatsApp bridge: one QR session for everyone.
+      // Status (and order dispatch) must work for manager/staff — not only admin.
+      // QR start/restart/settings stay admin (configuration.manage).
+      if (in_array($method, array('bridge_status_json', 'dispatch_for_order'), TRUE))
+      {
+        return '';
+      }
       return 'configuration.manage';
     }
     if ($class === 'broadcast')

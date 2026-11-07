@@ -26,53 +26,74 @@ foreach ($order as $orders) {
 	} else {
 		$pocket_parts[] = '(شلوار پاکٹ '.$orders->Shawlarpocket.')';
 	}
-	$detail_parts = array();
-	if ( ! empty($orders->order_remarks)) {
-		$detail_parts[] = $orders->order_remarks;
-	}
+	$suit_note = ! empty($orders->order_remarks) ? trim((string) $orders->order_remarks) : '';
+	$suit_note = preg_replace('/^سوٹ\s*تفصیل\s*[-–—:٫.\s]*/u', '', $suit_note);
+	$suit_note = trim((string) $suit_note);
+	$suit_end = '';
 	if ( ! empty($suit)) {
 		foreach ($suit as $suits) {
 			if ($suits->SNO == $orders->SNO) {
-				$detail_parts[] = $suits->name;
+				$suit_end = (string) $suits->name;
+				break;
 			}
 		}
 	}
-	if ( ! empty($style)) {
-		foreach ($style as $styles) {
-			if (isset($styles->DNO, $orders->design) && $styles->DNO == $orders->design) {
-				$detail_parts[] = $styles->vol_name.$styles->vol_no.' -DESIGN NO:'.$styles->design;
-			}
-		}
+	$detail_html = '';
+	$style_body = preg_replace('/^(?:[\-\x{2013}\x{2014}:]+\s*)+/u', '', (string) $suit_note);
+	$style_body = trim((string) $style_body);
+	if ($style_body !== '' && preg_match('/^([^"\x{201C}:]+?)(\s*[\"\x{201C}:].*)$/u', $style_body, $cm)) {
+		$detail_html = '<strong>'.esc_html(trim($cm[1])).'</strong>'.esc_html($cm[2]);
+	} elseif ($style_body !== '' && preg_match('/^(\S+)(.*)$/u', $style_body, $cm)) {
+		$detail_html = '<strong>'.esc_html($cm[1]).'</strong>'.esc_html($cm[2]);
+	} elseif ($style_body !== '') {
+		$detail_html = esc_html($style_body);
 	}
-	if ( ! empty($embroidery)) {
-		foreach ($embroidery as $embroiderys) {
-			if (isset($embroiderys->ENO, $orders->ENO) && $embroiderys->ENO == $orders->ENO) {
-				$detail_parts[] = $embroiderys->embroidery_name.$embroiderys->vol_no.' -EMBROIDERY NO:'.$embroiderys->design;
-			}
-		}
+	$type_raw = isset($orders->type) ? trim((string) $orders->type) : '';
+	$type_note_map = array(
+		'Kurta' => 'remarks_kurta',
+		'Pajama' => 'remarks_pajama',
+		'Pent' => 'remarks_pent',
+		'Shirt' => 'remarks_shirt',
+		'Coat' => 'remarks_coat',
+		'Waistcoat' => 'remarks_waistcoat',
+	);
+	$nap_note = '';
+	if (isset($type_note_map[$type_raw]) && isset($orders->{$type_note_map[$type_raw]})) {
+		$nap_note = trim((string) $orders->{$type_note_map[$type_raw]});
 	}
-	// Measurement note (MREMARKS) belongs with measurements, not every suit line.
-	$detail_text = implode(' · ', array_filter($detail_parts));
+	if ($nap_note === '' && isset($orders->MREMARKS)) {
+		$nap_note = trim((string) $orders->MREMARKS);
+	}
+	if ($nap_note !== '' && $suit_note !== '' && mb_stripos($suit_note, $nap_note) !== FALSE) {
+		$nap_note = '';
+	}
 	$pocket_text = implode(' ', $pocket_parts);
+	$price_text = $price != 0.0 ? rtrim(rtrim(number_format($price, 2, '.', ''), '0'), '.') : '—';
 ?>
-<table width="100%" cellpadding="1" cellspacing="0" class="items" dir="ltr" style="table-layout:fixed;margin-bottom:4px;">
-<colgroup>
-	<col style="width:8mm">
-	<col style="width:14mm">
-	<col style="width:16mm">
-	<col>
-</colgroup>
+<table width="100%" cellpadding="1" cellspacing="0" class="items print-suit-classic" dir="ltr" style="table-layout:fixed;margin-bottom:2px;">
 	<tr>
-		<td class="i-no lbl">-<?php echo $SR; ?></td>
-		<td class="val" colspan="3" style="border-bottom:1px dotted #999;"><?php echo esc_html($detail_text); ?></td>
+		<td class="lbl" colspan="3" style="border-bottom:1px dotted #111;direction:rtl;text-align:right;color:#111;">
+			<?php echo (int) $SR; ?>-
+			<?php echo $detail_html !== '' ? $detail_html : esc_html($suit_end); ?>
+			<?php if ($detail_html !== '' && $suit_end !== '' && mb_stripos($suit_note, $suit_end) === FALSE) { ?>
+			 :- <?php echo esc_html($suit_end); ?>
+			<?php } ?>
+			<?php if ($nap_note !== '') {
+				$note_body = $nap_note;
+				if (preg_match('/^\((.*)\)\s*$/us', $note_body, $nm)) {
+					$note_body = trim($nm[1]);
+				}
+			?>
+			 <span class="print-suit-classic__inline-note"><span class="print-suit-classic__note-brack">(</span><?php echo esc_html($note_body); ?><span class="print-suit-classic__note-brack">)</span></span>
+			<?php } ?>
+		</td>
 	</tr>
 	<tr>
-		<td></td>
-		<td class="i-price val" style="border-bottom:1px dotted #999;"><?php echo $price; ?></td>
-		<td class="i-img" style="border-bottom:1px dotted #999;">
+		<td class="i-price val" style="width:14mm;border-bottom:1px dotted #111;color:#111;"><?php echo esc_html($price_text); ?></td>
+		<td class="i-img" style="width:16mm;border-bottom:1px dotted #111;">
 			<?php if ($fabric_src !== '') { ?><img src="<?php echo $fabric_src; ?>" style="height:28px;max-width:48px;"><?php } ?>
 		</td>
-		<td class="lbl" style="border-bottom:1px dotted #999;"><?php echo esc_html($pocket_text); ?></td>
+		<td class="lbl" style="border-bottom:1px dotted #111;direction:rtl;text-align:right;color:#111;font-weight:bold;"><?php echo esc_html($pocket_text); ?></td>
 	</tr>
 </table>
 <?php } ?>

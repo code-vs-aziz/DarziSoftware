@@ -89,8 +89,9 @@ if ($load_detail_inline) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<?php $this->load->view('partials/csrf_bootstrap'); ?>
 <title>Cash Ledger</title>
-<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>">
+<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>?v=portrait-a4-2">
 <style>
 	body.report-body { background: #f4f7fb; color: #1f2933; font-family: Arial, sans-serif; }
 	.report-shell { max-width: 1180px; margin: 18px auto; padding: 0 14px; }
@@ -98,6 +99,7 @@ if ($load_detail_inline) {
 	.report-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 16px; background: #eef7f8; border-bottom: 1px solid #dcebee; flex-wrap: wrap; }
 	.report-btn { border: 0; border-radius: 8px; padding: 9px 16px; color: #fff; background: #16a1ad; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; }
 	.report-btn.secondary { background: #5f6f7a; }
+	.report-btn.ghost { background: #fff; color: #0f766e; border: 1px solid #99f6e4; }
 	.report-btn:disabled { opacity: .55; cursor: not-allowed; }
 	.report-title { padding: 16px 24px; display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; border-bottom: 1px solid #e6edf5; }
 	.report-title h2 { margin: 0; font-size: 24px; }
@@ -142,8 +144,27 @@ if ($load_detail_inline) {
 <body class="report-body">
 <div class="report-shell">
 	<div class="report-card">
+		<?php
+		$cl_filter_q = array();
+		if ($fromdate !== '') { $cl_filter_q['fromdate'] = $fromdate; }
+		if ($todate !== '') { $cl_filter_q['todate'] = $todate; }
+		$cl_filter_url = site_url('Cash/reprtcash_ledger');
+		if ( ! empty($cl_filter_q)) {
+			$cl_filter_url .= '?'.http_build_query($cl_filter_q);
+		}
+		// Prefill dates when landing on filter screen via Back.
+		if ( ! $has_report) {
+			$g_from = trim((string) $this->input->get('fromdate', TRUE));
+			$g_to = trim((string) $this->input->get('todate', TRUE));
+			if ($g_from !== '') { $fromdate = $g_from; }
+			if ($g_to !== '') { $todate = $g_to; }
+		}
+		?>
 		<?php if ($export_mode !== 'excel') { ?>
 		<div class="report-actions print-hide">
+			<?php if ($has_report) { ?>
+			<a class="report-btn ghost" href="<?php echo esc_html($cl_filter_url); ?>"><?php echo esc_html(t('report_back_filters')); ?></a>
+			<?php } ?>
 			<button type="button" class="report-btn" onclick="window.print()">Print / PDF</button>
 			<?php if ($has_report) { ?>
 			<a class="report-btn secondary" href="<?php echo $excel_url; ?>">Export Excel</a>
@@ -167,37 +188,43 @@ if ($load_detail_inline) {
 			</div>
 		</div>
 
-		<?php if (!$has_report) { ?>
+		<?php if ($export_mode !== 'excel' && $export_mode !== 'pdf') { ?>
 		<form class="report-form print-hide" action="<?php echo site_url('Cash/cash_ledger_pro'); ?>" method="post" data-no-ajax="true">
 			<?php $this->load->view('partials/csrf_field'); ?>
+			<?php if ($has_report) { ?>
+			<p class="report-meta" style="margin:0 0 10px;"><?php echo esc_html(t('report_change_filters')); ?></p>
+			<?php } ?>
 			<div class="report-form-grid">
 				<div class="report-field">
 					<label>From Date</label>
-					<input type="date" name="fromdate" required>
+					<input type="date" name="fromdate" value="<?php echo esc_attr($fromdate); ?>" required>
 				</div>
 				<div class="report-field">
 					<label>To Date</label>
-					<input type="date" name="todate" required>
+					<input type="date" name="todate" value="<?php echo esc_attr($todate); ?>" required>
 				</div>
 				<div class="report-field">
-					<button type="submit" class="report-btn" style="width:100%;"><?php echo t('app_submit'); ?></button>
+					<button type="submit" class="report-btn" style="width:100%;"><?php echo esc_html(t('report_generate')); ?></button>
 				</div>
 			</div>
 		</form>
-		<?php } else { ?>
+		<?php } ?>
+
+		<?php if ($has_report) { ?>
 		<div class="report-table-wrap">
 			<div class="report-summary" id="cl-summary">
-				<div><span>Opening Balance</span><strong><?php echo number_format($cash_opening, 2); ?></strong></div>
 				<div><span>Cash Receipt</span><strong id="cl-receipt"><?php echo number_format($receipt_total, 2); ?></strong></div>
 				<div><span>Cash Payment</span><strong id="cl-payment"><?php echo number_format($payment_total, 2); ?></strong></div>
 				<div><span>Period Net</span><strong id="cl-net"><?php echo number_format($period_net, 2); ?></strong></div>
-				<div><span>Closing Balance</span><strong id="cl-closing"><?php echo number_format($closing_balance, 2); ?></strong></div>
 			</div>
 			<p class="drill-hint print-hide" id="cl-line-hint">
 				<?php echo $line_count; ?> transaction line(s) in this period. Use drill-down below for yearly, quarterly, monthly, daily, or line detail.
 			</p>
 
 			<?php if ($export_mode !== 'excel' && !$load_detail_inline) { ?>
+			<div class="print-hide" style="position:absolute;left:-9999px;height:0;overflow:hidden;" aria-hidden="true">
+				<?php $this->load->view('partials/csrf_field'); ?>
+			</div>
 			<div class="drill-panel print-hide" id="cl-drill-panel">
 				<h3>Drill-down</h3>
 				<div class="drill-toolbar">
@@ -247,12 +274,6 @@ if ($load_detail_inline) {
 				</thead>
 				<tbody id="cl-tbody">
 					<?php if ($load_detail_inline) { ?>
-					<tr>
-						<td></td>
-						<td><strong>Opening Balance</strong></td>
-						<td class="num"><strong><?php echo number_format($cash_opening, 2); ?></strong></td>
-						<td class="num"></td>
-					</tr>
 					<?php if (!empty($rows)) {
 						$year_groups = cash_ledger_group_rows_by_year($rows);
 						foreach ($year_groups as $year_group) { ?>
@@ -429,9 +450,7 @@ if ($load_detail_inline) {
 			+ '<th><?php echo t('report_narration'); ?></th>'
 			+ '<th style="width:15%;">Cash Receipt</th>'
 			+ '<th style="width:15%;">Cash Payment</th>';
-		var opening = totals && totals.opening != null ? Number(totals.opening) : cfg.opening;
-		var html = '<tr><td></td><td><strong>Opening Balance</strong></td>'
-			+ '<td class="num"><strong>' + fmt(opening) + '</strong></td><td></td></tr>';
+		var html = '';
 		if (!rows.length) {
 			html += '<tr><td colspan="4" class="empty-state">No lines match your filters.</td></tr>';
 		} else {
@@ -464,6 +483,22 @@ if ($load_detail_inline) {
 		return d.innerHTML;
 	}
 
+	function appendCsrf(fd) {
+		var nameMeta = document.querySelector('meta[name="csrf-token-name"]');
+		var valMeta = document.querySelector('meta[name="csrf-token-value"]');
+		var name = (nameMeta && nameMeta.getAttribute('content')) || 'dz_csrf_token';
+		var val = valMeta ? valMeta.getAttribute('content') : '';
+		if (!val) {
+			var hidden = document.querySelector('input[name="' + name + '"], input[name="dz_csrf_token"]');
+			if (hidden && hidden.value) val = hidden.value;
+		}
+		if (!val) {
+			var m = document.cookie.match(/(?:^|;\s*)dz_csrf_cookie=([^;]+)/);
+			if (m && m[1]) val = decodeURIComponent(m[1]);
+		}
+		if (val) fd.append(name, val);
+	}
+
 	function loadDrill(resetScope) {
 		if (resetScope) {
 			scopeFrom = '';
@@ -482,10 +517,21 @@ if ($load_detail_inline) {
 			if (dayEl.value) fd.append('day', dayEl.value);
 			if (sourceEl.value) fd.append('source', sourceEl.value);
 		}
+		appendCsrf(fd);
 		loadBtn.disabled = true;
 		setStatus('Loading…');
 		fetch(cfg.url, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-			.then(function (r) { return r.json(); })
+			.then(function (r) {
+				var ct = (r.headers.get('content-type') || '').toLowerCase();
+				if (!r.ok || ct.indexOf('application/json') === -1) {
+					return r.text().then(function () {
+						throw new Error(r.status === 403
+							? 'Security check failed. Refresh the page and try again.'
+							: 'Could not load drill-down. Refresh and try again.');
+					});
+				}
+				return r.json();
+			})
 			.then(function (res) {
 				if (!res.ok) throw new Error(res.message || 'Load failed');
 				tableWrap.classList.remove('detail-hidden');
@@ -502,7 +548,7 @@ if ($load_detail_inline) {
 				}
 			})
 			.catch(function (err) {
-				setStatus(err.message);
+				setStatus(err.message || 'Load failed');
 			})
 			.then(function () {
 				loadBtn.disabled = false;
@@ -526,6 +572,12 @@ if ($load_detail_inline) {
 window.onload = function() { window.print(); };
 </script>
 <?php } ?>
-<?php $this->load->view('partials/report_ajax_shell'); ?>
+<?php
+$this->load->view('partials/report_back_nav', array(
+	'report_has_report' => $has_report,
+	'report_filter_url' => $cl_filter_url,
+));
+$this->load->view('partials/report_ajax_shell');
+?>
 </body>
 </html>

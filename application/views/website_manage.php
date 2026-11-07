@@ -20,11 +20,19 @@ $base = site_url('Website');
 								<h2 class="erp-module-title mb-0"><?php echo t('menu_website'); ?></h2>
 							</div>
 							<div class="card-body erp-card-body data-entry-body">
-								<?php if ($this->session->flashdata('suss')) { ?>
-									<div class="alert alert-success"><?php echo esc_html((string) $this->session->flashdata('suss')); ?></div>
+								<?php
+								$web_suss = app_take_flash('suss');
+								$web_ok = app_take_flash('success_msg');
+								$web_err = app_take_flash('error');
+								$web_flash_text = ($web_ok !== NULL && $web_ok !== '') ? (string) $web_ok : (($web_suss !== NULL && $web_suss !== '' && $web_suss !== 'yes') ? (string) $web_suss : '');
+								if ($web_flash_text !== '') {
+								?>
+									<div class="alert alert-success"><?php echo esc_html($web_flash_text); ?></div>
+								<?php } elseif ($web_suss === 'yes') { ?>
+									<div class="alert alert-success"><?php echo esc_html(t('app_saved_success')); ?></div>
 								<?php } ?>
-								<?php if ($this->session->flashdata('error')) { ?>
-									<div class="alert alert-danger"><?php echo esc_html((string) $this->session->flashdata('error')); ?></div>
+								<?php if ($web_err !== NULL && $web_err !== '') { ?>
+									<div class="alert alert-danger"><?php echo esc_html((string) $web_err); ?></div>
 								<?php } ?>
 
 								<?php if ( ! $table_ready) { ?>

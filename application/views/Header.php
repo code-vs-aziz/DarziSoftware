@@ -96,12 +96,6 @@ if (!empty($erp_can['order.status'])) {
 if (!empty($erp_can['order.detail'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_order_detail'), site_url('Order/order_view_det'), 'fa-file-alt', erp_nav_is_active('order', $erp_router_class, $erp_router_method, $erp_uri) && !in_array($erp_router_method, array('order_issue', 'print_blank'), TRUE));
 }
-if (!empty($erp_can['order.ready_delivered'])) {
-	$erp_nav_html .= erp_nav_item(t('menu_ready_delivered'), site_url('Order/order_issue'), 'fa-box-open', $erp_router_class === 'order' && $erp_router_method === 'order_issue');
-}
-if (!empty($erp_can['cash.receipt'])) {
-	$erp_nav_html .= erp_nav_item(t('menu_cash'), site_url('Cash'), 'fa-money-bill-wave', erp_nav_is_active('cash', $erp_router_class, $erp_router_method, $erp_uri));
-}
 if (!empty($erp_can['transfer.booking'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_pending_booking'), site_url('transfer/transfer_table/HO/HO'), 'fa-book', erp_nav_transfer_stage_active('ho', $erp_uri));
 }
@@ -114,8 +108,14 @@ if (!empty($erp_can['transfer.ho2'])) {
 if (!empty($erp_can['transfer.stitching'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_pending_stitching'), site_url('transfer/transfer_table/STIT/STIT'), 'fa-tshirt', erp_nav_transfer_stage_active('stit', $erp_uri));
 }
+if (!empty($erp_can['order.ready_delivered'])) {
+	$erp_nav_html .= erp_nav_item(t('menu_ready_delivered'), site_url('Order/order_issue'), 'fa-box-open', $erp_router_class === 'order' && $erp_router_method === 'order_issue');
+}
 if (!empty($erp_can['reports.menu'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_reports'), site_url('Welcome/Report'), 'fa-chart-bar', $erp_router_class === 'welcome' && $erp_router_method === 'report');
+}
+if (!empty($erp_can['cash.receipt'])) {
+	$erp_nav_html .= erp_nav_item(t('menu_cash'), site_url('Cash'), 'fa-money-bill-wave', erp_nav_is_active('cash', $erp_router_class, $erp_router_method, $erp_uri));
 }
 if (!empty($erp_can['employee.manage'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_employee'), site_url('Employee'), 'fa-user-tie', erp_nav_is_active('employee', $erp_router_class, $erp_router_method, $erp_uri));
@@ -242,6 +242,15 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 				<button class="hamburger hamburger--slider dz-topbar-mobile__menu" type="button" aria-label="<?php echo esc_html(t('app_menu')); ?>" aria-controls="dz-mobile-drawer" aria-expanded="false" data-dz-nav-toggle="true">
 					<span class="hamburger-box"><span class="hamburger-inner"></span></span>
 				</button>
+				<button
+					type="button"
+					class="dz-topbar-mobile__back<?php echo $erp_is_home ? ' is-home-hidden' : ''; ?>"
+					data-dz-nav-back="true"
+					data-home-url="<?php echo esc_attr(site_url('Welcome')); ?>"
+					aria-label="<?php echo esc_html(t('app_back')); ?>"
+					title="<?php echo esc_html(t('app_back')); ?>"
+					<?php echo $erp_is_home ? 'hidden' : ''; ?>
+				><?php echo ui_icon('arrow-left'); ?></button>
 				<h1 class="dz-topbar-mobile__title"><?php echo esc_html($erp_page_title); ?></h1>
 				<div class="dz-topbar-mobile__actions">
 					<?php $this->load->view('partials/offline_status_chip', array('offline_indicator_variant' => 'mobile')); ?>

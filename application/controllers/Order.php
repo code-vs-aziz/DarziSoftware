@@ -85,6 +85,28 @@ class Order extends MY_Controller {
 		return $this->Business_config_model->get_config();
 	}
 
+	/**
+	 * Enforce daily / per-date booking qty limit by return date.
+	 * @return bool TRUE if booking is allowed
+	 */
+	private function assert_booking_limit_ok($return_date, $qty, $exclude_order_trnno = 0)
+	{
+		$this->load->model('Booking_limit_model');
+		$check = $this->Booking_limit_model->check_can_book($return_date, $qty, $exclude_order_trnno);
+		if ( ! empty($check['ok']))
+		{
+			return TRUE;
+		}
+		$this->session->set_flashdata('suss', 'booking_limit');
+		$this->session->set_flashdata('booking_limit_info', array(
+			'limit' => isset($check['limit']) ? (int) $check['limit'] : 0,
+			'booked' => isset($check['booked']) ? (int) $check['booked'] : 0,
+			'remaining' => isset($check['remaining']) ? (int) $check['remaining'] : 0,
+			'return_date' => date('Y-m-d', strtotime((string) $return_date)),
+		));
+		return FALSE;
+	}
+
 	private static $order_garment_types = array('Kurta', 'Pajama', 'Pent', 'Shirt', 'Coat', 'Waistcoat');
 
 	private function _order_print_slips_data($trnno)
@@ -102,6 +124,23 @@ class Order extends MY_Controller {
 		if (empty($order))
 		{
 			return array();
+		}
+
+		// سابقه بقایا — other orders' unpaid for this customer (print header).
+		$customer_code = 0;
+		$first = $order[0];
+		if (isset($first->Customerno) && (int) $first->Customerno > 0)
+		{
+			$customer_code = (int) $first->Customerno;
+		}
+		elseif (isset($first->customer_code) && (int) $first->customer_code > 0)
+		{
+			$customer_code = (int) $first->customer_code;
+		}
+		$prev_balance = $this->order_query->get_customer_previous_balance($customer_code, $trnno);
+		foreach ($order as $line)
+		{
+			$line->prev_balance = $prev_balance;
 		}
 
 		$types = array();
@@ -144,6 +183,7 @@ class Order extends MY_Controller {
 				'SR' => 1,
 				'pdf_mode' => FALSE,
 				'print_img_base' => $print_img_base,
+				'prev_balance' => $prev_balance,
 			),
 		);
 	}
@@ -248,6 +288,26 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 .order-pdf .ftr td { background-color: #BBB; }
 .order-pdf .ftr-big { font-size: 24px; font-weight: bold; text-align: center; }
 .order-pdf .ftr-sm { font-size: 11pt; font-weight: bold; text-align: right; }
+.order-pdf .credit { width: 100%; border-collapse: collapse; margin-top: 8px; direction: rtl; }
+.order-pdf .credit td { border-top: 1px solid #94a3b8; padding: 10px 8px 4px; }
+.order-pdf .credit-text {
+	font-family: lateef, xbriyaz, sans-serif;
+	font-size: 13pt;
+	font-weight: bold;
+	line-height: 22px;
+	color: #0f172a;
+	text-align: center;
+	direction: rtl;
+}
+.order-pdf .credit-phone {
+	display: inline-block;
+	margin-top: 4px;
+	font-size: 14pt;
+	font-weight: bold;
+	letter-spacing: 0.5px;
+	direction: ltr;
+	unicode-bidi: embed;
+}
 ';
 	}
 
@@ -271,8 +331,8 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			'useKashida' => 75,
 		);
 
-		// Portrait Letter: on WhatsApp phones landscape PDFs shrink to unreadability.
-		// Full-width measurement grid + large Urdu default size.
+		// Classic receipt density (left nap + right suits) — keep default size modest;
+		// .order-pdf CSS sets explicit 10–12pt on tables for WhatsApp readability.
 		$mpdf = new \Mpdf\Mpdf(array(
 			'mode' => 'utf-8',
 			'format' => 'Letter',
@@ -284,7 +344,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			'fontDir' => $fontDirs,
 			'fontdata' => $fontData,
 			'default_font' => 'xbriyaz',
-			'default_font_size' => 20,
+			'default_font_size' => 11,
 			'autoScriptToLang' => FALSE,
 			'autoLangToFont' => FALSE,
 		));
@@ -305,11 +365,11 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			.$this->_pdf_print_styles()
 			.'</style></head><body class="pdf-body">';
 
-		// Use the same print-slip layout staff see (pdf_mode tables), not a separate summary.
+		// Classic Darzi Baba receipt: measurements LEFT + suit lines RIGHT
+		// (order_print pdf_mode stacked layout was hard to read on WhatsApp).
 		foreach ($slips as $data)
 		{
-			$data['pdf_mode'] = TRUE;
-			$html .= $this->load->view('order_print', $data, TRUE);
+			$html .= $this->load->view('order_pdf', $data, TRUE);
 			break;
 		}
 
@@ -692,23 +752,50 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	 
 	 
 	 
-		public function Order_deactive()
-	{	
-	// $this->load->view('Order');
-	 $this->load->model("insert");
-	 $this->load->helper('url'); 
-	 $last = $this->uri->segment(3);
-	 $this->db->query("update order_mst set ostatus = 1 where trnno='".$last."'");
-	 $this->dashboard_data->clear_dashboard_summary_cache();
-	// $this->db->query("delete  from order_dtl where order_trnno='".$last."'");
-	// row_delete
-	redirect('Order/order_view_det'); 
-	 
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
+	public function Order_deactive()
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
 
-		
+		$trnno = (int) $this->uri->segment(3);
+		if ($trnno > 0)
+		{
+			$this->order_query->deactivate_order($trnno);
+			$this->session->set_flashdata('success_msg', t('app_order_deactivated'));
+		}
+		if (isset($this->dashboard_data) && is_object($this->dashboard_data))
+		{
+			$this->dashboard_data->clear_dashboard_summary_cache();
+		}
+		redirect('Order/order_view_det?order_status=deactivated');
+	}
+
+	public function Order_active()
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
+
+		$trnno = (int) $this->uri->segment(3);
+		if ($trnno > 0)
+		{
+			$this->order_query->reactivate_order($trnno);
+			$this->session->set_flashdata('success_msg', t('app_order_reactivated'));
+		}
+		if (isset($this->dashboard_data) && is_object($this->dashboard_data))
+		{
+			$this->dashboard_data->clear_dashboard_summary_cache();
+		}
+		redirect('Order/order_view_det?order_status=active');
 	}
 	
 	
@@ -859,6 +946,33 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 
 		
 	}
+
+	/**
+	 * AJAX: early booking-limit check (qty / return date) before suit lines load.
+	 */
+	public function booking_limit_check()
+	{
+		$this->load->library('session');
+		header('Content-Type: application/json; charset=UTF-8');
+		if ( ! $this->session->userdata('user'))
+		{
+			echo json_encode(array('ok' => FALSE, 'error' => 'session'));
+			return;
+		}
+
+		$return_date = $this->input->post('return_date', TRUE);
+		$qty = (int) $this->input->post('qty');
+		$exclude = (int) $this->input->post('exclude_order');
+
+		$this->load->model('Booking_limit_model');
+		$check = $this->Booking_limit_model->check_can_book($return_date, $qty, $exclude);
+		if (empty($check['ok']))
+		{
+			$check['ok'] = FALSE;
+			$check['return_date'] = date('Y-m-d', strtotime((string) $return_date));
+		}
+		echo json_encode($check);
+	}
 	
 	public function order_issue()
 	{
@@ -998,8 +1112,9 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			'mobile_no' => trim((string) $this->input->get('mobile_no', TRUE)),
 			'return_from' => trim((string) $this->input->get('return_from', TRUE)),
 			'return_to' => trim((string) $this->input->get('return_to', TRUE)),
-			'order_from' => trim((string) $this->input->get('order_from', TRUE)),
-			'order_to' => trim((string) $this->input->get('order_to', TRUE)),
+			// Order From/To removed from Ready UI — never apply entry-date range here.
+			'order_from' => '',
+			'order_to' => '',
 			'stage' => '',
 		);
 		if ($ready_filters['return_from'] === '' && $this->input->get('fromdate', TRUE) !== NULL)
@@ -1010,13 +1125,22 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		{
 			$ready_filters['return_to'] = trim((string) $this->input->get('todate', TRUE));
 		}
-		return $this->order_query->apply_default_order_date_filters($ready_filters, 30);
+		// Match Order Status: identity lookups ignore leftover date windows.
+		$has_lookup = ($ready_filters['order_no'] !== ''
+			|| $ready_filters['naap_no'] !== ''
+			|| $ready_filters['mobile_no'] !== '');
+		if ($has_lookup)
+		{
+			$ready_filters['return_from'] = '';
+			$ready_filters['return_to'] = '';
+		}
+		return $ready_filters;
 	}
 
 	protected function _ready_deliver_filter_query_params($filters)
 	{
 		$params = array();
-		$filter_keys = array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'return_from', 'return_to', 'order_from', 'order_to');
+		$filter_keys = array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'return_from', 'return_to');
 		if ( ! is_array($filters))
 		{
 			return $params;
@@ -1351,6 +1475,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		   'order_from' => trim((string) ($this->input->post('order_from', TRUE) !== NULL ? $this->input->post('order_from', TRUE) : $this->input->get('order_from', TRUE))),
 		   'order_to' => trim((string) ($this->input->post('order_to', TRUE) !== NULL ? $this->input->post('order_to', TRUE) : $this->input->get('order_to', TRUE))),
 		   'row_limit' => trim((string) ($this->input->post('row_limit', TRUE) !== NULL ? $this->input->post('row_limit', TRUE) : $this->input->get('row_limit', TRUE))),
+		   'order_status' => trim((string) ($this->input->post('order_status', TRUE) !== NULL ? $this->input->post('order_status', TRUE) : $this->input->get('order_status', TRUE))),
 	   );
 	   if ($detail_filters['row_limit'] === '')
 	   {
@@ -1374,7 +1499,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	   {
 		   $detail_filters['customer_name'] = $cust_search;
 	   }
-	   $detail_filters = $this->order_query->apply_default_order_date_filters($detail_filters);
+	   // Order Detail: never auto-fill Return From/To — user sets dates when needed.
 	   $data['detail_filters'] = $detail_filters;
 	   $data['cust_search'] = $cust_search;
 	   $data['fromdate'] = $detail_filters['order_from'];
@@ -1548,6 +1673,18 @@ public function process()
 		}
 
 		$firstDate = date("Y-m-d", strtotime($this->input->post('retrun_Date')));
+		$order_qty = $this->input->post('Quantity') !== NULL && $this->input->post('Quantity') !== ''
+			? (int) $this->input->post('Quantity')
+			: 1;
+		if ($order_qty < 1)
+		{
+			$order_qty = 1;
+		}
+		if ( ! $this->assert_booking_limit_ok($firstDate, $order_qty, 0))
+		{
+			redirect($naap_code > 0 ? 'Order/order_view/'.$naap_code : 'Welcome');
+			return;
+		}
 		$image_val = $this->input->post('iamge');
 		if ($image_val === NULL || $image_val === FALSE)
 		{
@@ -1561,7 +1698,7 @@ public function process()
 				'snap_customer_code' => isset($meas_row->Customerno) ? (int) $meas_row->Customerno : (isset($meas_row->customer_code) ? (int) $meas_row->customer_code : 0),
 				'RDATE' => $firstDate,
 				'staff_empno' => $staff_empno,
-				'qty' => $this->input->post('Quantity') !== NULL && $this->input->post('Quantity') !== '' ? $this->input->post('Quantity') : 1,
+				'qty' => $order_qty,
 				'total' => $total_amount,
 				'advance' => $advance,
 				'Discount' => $discount,
@@ -1660,13 +1797,8 @@ for($i=0; $i<$line_count; $i++)
 			$this->cash_ledger->invalidate_cash_ledger_opening_cache($data1['EDATE']);
 		}
 
-		// Order WhatsApp PDF is sent manually from the print page after staff picks a number.
-		// Do not auto-queue / auto-dispatch plain-text WhatsApp on create.
-		$this->session->set_flashdata('order_whatsapp_prompt', $order_trnno);
-		
-			// echo $where5;
- 
-			redirect('Order/Order_Print_det/'.$order_trnno); 
+		// WhatsApp PDF dialog is manual only (WhatsApp button on print page).
+		redirect('Order/Order_Print_det/'.$order_trnno); 
 			//	print_r($data);
 			//	die;
 				
@@ -1734,11 +1866,40 @@ public function process_edit()
 
 		$firstDate = date("Y-m-d", strtotime($this->input->post('retrun_Date')));
 		$current_date = date("Y-m-d", strtotime($this->input->post('current')));
+		$order_qty = (int) $this->input->post('Quantity');
+		if ($order_qty < 1)
+		{
+			$order_qty = max(1, $line_count);
+		}
+
+		// Booking limit only when edit increases demand (new return date or higher qty).
+		// Discount / advance / remarks-only saves must not be blocked if the day is already over limit.
+		$existing = $this->db->select('RDATE, qty')
+			->from('order_mst')
+			->where('trnno', $last)
+			->limit(1)
+			->get()
+			->row();
+		$old_rdate = ($existing && ! empty($existing->RDATE))
+			? date('Y-m-d', strtotime((string) $existing->RDATE))
+			: '';
+		$old_qty = ($existing) ? (int) $existing->qty : 0;
+		$date_changed = ($old_rdate === '' || $old_rdate !== $firstDate);
+		$qty_increased = ($order_qty > $old_qty);
+		if ($date_changed || $qty_increased)
+		{
+			if ( ! $this->assert_booking_limit_ok($firstDate, $order_qty, $last))
+			{
+				redirect('Order/Order_edit/'.$last);
+				return;
+			}
+		}
+
 		 	$data1 = array(
 				'EDATE' => $current_date,
 				//'naap_no' => $this->input->post('Naapno'),
 				'RDATE' => $firstDate,
-				'qty' => $this->input->post('Quantity'),
+				'qty' => $order_qty,
 				'total' => $order_total,
 				'advance' => (float) str_replace(',', '', (string) $this->input->post('Advance')),
 				'Discount' => (float) str_replace(',', '', (string) $this->input->post('Discount')),
@@ -1853,21 +2014,45 @@ for($i=0; $i<$line_count; $i++)
 		 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	 $this->form_validation->set_rules('Name', 'Text Field One', 'required');
 	 	$this->load->model("insert");
-		
-		$bal = $this->input->post('total_Amount') - (  $this->input->post('Advance')
-				+ $this->input->post('Discount') + $this->input->post('Balance') );
-				 
-		$firstDate = date("Y-m-d", strtotime($this->input->post('retrun_Date')));
+
+		// PHP 8+: cast money fields — empty POST strings crash float + string.
+		$total_amount = (float) $this->input->post('total_Amount');
+		$advance_amt = (float) $this->input->post('Advance');
+		$discount_amt = (float) $this->input->post('Discount');
+		$paid_now = (float) $this->input->post('Balance');
+		if ($paid_now < 0)
+		{
+			$paid_now = 0;
+		}
+		$bal = $total_amount - ($advance_amt + $discount_amt + $paid_now);
+		if ($bal < 0)
+		{
+			$bal = 0;
+		}
+
+		$udaar = strtoupper(trim((string) $this->input->post('udaar')));
+		if ($udaar !== 'YES')
+		{
+			$udaar = 'NO';
+		}
+		// Udaar / credit delivery with remaining balance → Pending Payment list.
+		$pending_flag = ($udaar === 'YES' && $bal > 0) ? 'YES' : 'NO';
+
+		$paid_date = trim((string) $this->input->post('paid_Date'));
+		if ($paid_date === '')
+		{
+			$paid_date = date('Y-m-d');
+		}
+
 			 	$data1 = array(
 				'EDATE' => date('Y-m-d'),
 				'order_id' => $this->uri->segment(3),
-				'PAID' => $this->input->post('Balance'),
-				'NPAID_dATE' => $this->input->post('paid_Date'),
+				'PAID' => $paid_now,
+				'NPAID_dATE' => $paid_date,
 				'customer_id' => $this->input->post('customer_code'),
 			 'balance' => $bal,
-				'pending' => $this->input->post('udaar'),
+				'pending' => $pending_flag,
 ); 
 			$narration  = 'Recevied Agaisnt Order '. $this->uri->segment(3);
 
@@ -1883,17 +2068,21 @@ for($i=0; $i<$line_count; $i++)
 				return;
 			}
 
+			// Only book cash when something was actually collected now.
+			if ($paid_now > 0)
+			{
 			$data5 = array(
 				'EDATE' => date('Y-m-d'),
 				'type' => '2',
 				'customer_id	' => $this->input->post('customer_code'),
 				'order_no' => $this->uri->segment(3),
-				'amount' => $this->input->post('Balance'),
+				'amount' => $paid_now,
 				'narration' => $narration,
 ); 	
 			
 			
 			$res=$this->insert->insert_dat1($data5,'cash');
+			}
 	
  
  $delivered_any = FALSE;
@@ -1965,12 +2154,11 @@ if ($delivered_any)
 	$this->notification_service->stash_delivery_flash($notify_del);
 	$this->notification_service->stash_whatsapp_flash($notify_del);
 
-	$udaar = (string) $this->input->post('udaar');
-	if ($udaar === 'YES' && $bal > 0)
+	if ($pending_flag === 'YES' && $bal > 0)
 	{
 		$notify_pay = $this->notification_service->trigger('payment_reminder', $order_id, array(
 			'balance' => (float) $bal,
-			'due_date' => (string) $this->input->post('paid_Date'),
+			'due_date' => $paid_date,
 			'customer_id' => $customer_id,
 			'trigger_source' => 'delivery_pending_balance',
 			'allow_resend' => TRUE,
@@ -1982,7 +2170,8 @@ if ($delivered_any)
 		}
 	}
 
-	$this->session->set_flashdata('suss', 'yes');
+	$this->load->helper('flash');
+	app_set_success_flash(t('order_delivered_success'));
 }
 
 		$redirect_to = trim((string) $this->input->post('redirect_to', TRUE));

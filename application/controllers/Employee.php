@@ -163,16 +163,7 @@ public function process()
 		$data = $this->_employee_form_data();
 				
 				
-				$res=$this->insert->insert_dat($data,'employee' ,'Employee');
-				if($res==true)
-				{	
-					$data['suss'] = 'yes';
-				 	
-				}
-				else
-				{
-				 //	$this->session->set_flashdata('suss', 'no');
-				}
+				$this->insert->insert_dat($data, 'employee', 'Employee', t('master_employee_created'));
 		}
 				
 				
@@ -190,7 +181,7 @@ public function process()
 		if ($last <= 0) {
 			redirect('Employee');
 		}
-		$this->insert->entry_update1('empno', $last, $data, 'employee');
+		$this->insert->entry_update1('empno', $last, $data, 'employee', t('master_employee_created'));
 		redirect('Employee');
 		}	
  

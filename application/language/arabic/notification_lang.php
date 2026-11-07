@@ -45,6 +45,7 @@ $lang['notify_bridge_resetting'] = 'جارٍ مسح الجلسة… توليد Q
 $lang['notify_bridge_starting'] = 'جارٍ تشغيل الجسر…';
 $lang['notify_bridge_use_panel'] = 'الحالة ورمز QR في لوحة جسر واتساب أعلاه.';
 $lang['notify_bridge_chip_title'] = 'حالة جسر واتساب — افتح رسائل العملاء';
+$lang['notify_bridge_chip_title_shared'] = 'جسر واتساب (مشترك) — المسؤول يمسح QR مرة واحدة لكل المتجر';
 $lang['notify_bridge_chip_checking'] = 'جارٍ الفحص…';
 $lang['notify_bridge_chip_ok'] = 'واتساب متصل';
 $lang['notify_bridge_chip_wait'] = 'امسح QR';

@@ -27,6 +27,11 @@ if (!$customer_row) {
 }
 $customer_type = isset($customer_row->cus_type) && $customer_row->cus_type !== '' ? $customer_row->cus_type : 'Local';
 $edit_code = (int) $customer_row->code;
+$return_to = trim((string) $this->input->get_post('return_to', TRUE));
+if ($return_to !== '' && (strpos($return_to, '://') !== FALSE || strpos($return_to, '//') === 0)) {
+	$return_to = '';
+}
+$return_back_url = ($return_to !== '') ? site_url($return_to) : site_url('Customer');
 ?>
 <link href="<?php echo base_url('css/customer-form-enhancements.css?v=5'); ?>" rel="stylesheet" media="all">
 <script>
@@ -52,11 +57,7 @@ $edit_code = (int) $customer_row->code;
 		<div class="main-content">
 			<div class="section__content section__content--p30">
 				<div class="container-fluid">
-					<?php if ($this->session->flashdata('suss') == 'yes') { ?>
-						<div class="alert alert-success customer-alert" role="alert"><?php echo t('app_record_entered_short'); ?></div>
-					<?php } elseif ($this->uri->segment(4) === 'err') { ?>
-						<div class="alert alert-danger customer-alert" role="alert"><?php echo t('customer_naap_exists'); ?></div>
-					<?php } ?>
+					<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
 
 					<div class="col-md-12">
 						<div class="dz-card erp-module-card data-entry-card">
@@ -70,6 +71,9 @@ $edit_code = (int) $customer_row->code;
 							<div class="card-body erp-card-body data-entry-body">
 								<div class="customer-form-layout">
 									<form name="Form" action="<?php echo site_url('Customer/process_edit/' . $edit_code); ?>" method="post" data-no-ajax="true">
+										<?php if ($return_to !== '') { ?>
+										<input type="hidden" name="return_to" value="<?php echo esc_attr($return_to); ?>">
+										<?php } ?>
 										<input id="City" name="City" type="hidden" value="<?php echo esc_html((string) $customer_row->city); ?>">
 										<input id="Country" name="Country" type="hidden" value="<?php echo esc_html((string) $customer_row->country); ?>">
 										<input id="Remarks" name="Remarks" type="hidden" value="<?php echo esc_html((string) $customer_row->remarks); ?>">
@@ -169,7 +173,7 @@ $edit_code = (int) $customer_row->code;
 
 										<div class="customer-submit-sticky">
 											<div class="customer-submit-sticky__actions customer-submit-sticky__actions--split">
-												<a href="<?php echo site_url('Customer'); ?>" class="btn btn-lg btn-secondary btn-block" data-no-ajax="true"><?php echo t('app_back'); ?></a>
+												<a href="<?php echo esc_html($return_back_url); ?>" class="btn btn-lg btn-secondary btn-block" data-no-ajax="true"><?php echo t('app_back'); ?></a>
 												<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
 													<span><?php echo t('app_submit'); ?></span>
 												</button>

@@ -15,12 +15,7 @@ $this->load->helper('ui');
                 <div  >
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 
-<div class="alert alert-success" role="alert">
-											<?php echo t('master_employee_created'); ?>
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_record_entered_short'))); ?>				
                      	<div class="col-md-12">
                                 <div class="card" style="background-image: url('images/bg.png'); background-repeat: no-repeat;">
                                    <!-- <div class="card-header">Employee Form</div> -->

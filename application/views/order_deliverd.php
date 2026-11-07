@@ -78,12 +78,7 @@ $this->load->helper('ui');
                 <div  >
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 
-<div class="alert alert-success" role="alert">
-											<?php echo t('order_delivered_success'); ?>
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('order_delivered_success'))); ?>				
                      	<div class="col-md-12">
                                         <div class="dz-card erp-module-card data-entry-card delivery-entry-card">
 									<div class="erp-card-head">
@@ -99,32 +94,42 @@ $this->load->helper('ui');
 						                    ?>
 											<?php }  ?>	
  				
+					<?php
+					$deliver_order_no = '';
+					if (isset($order_single_data1->order_id) && (string) $order_single_data1->order_id !== '') {
+						$deliver_order_no = (string) $order_single_data1->order_id;
+					} elseif ($this->uri->segment(3)) {
+						$deliver_order_no = (string) $this->uri->segment(3);
+					}
+					?>
 					<div class="row">
-						<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_naap_no'); ?></label>
- 
-           
-            <input id="customer_name" name="Naapno"   readonly="readonly" type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_single_data1->man_napno; ?>"  >                                </div>  
+						<div class="col-md-3 col-6">
+							<div class="form-group">
+								<label for="deliver-naap-no" class="control-label mb-1"><?php echo t('order_naap_no'); ?></label>
+								<input id="deliver-naap-no" name="Naapno" readonly="readonly" type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo esc_attr(isset($order_single_data1->man_napno) ? $order_single_data1->man_napno : ''); ?>">
+							</div>
 						</div>
-										<div class="col">		
-                                             <div class="form-group">
-                                                <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_customer_name'); ?></label>
-										 
-  <input id="customer_name" name="customer_name"  disabled type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_single_data1->name; ?>"  >
-  
-                                            </div>  
-											<input type="hidden" value="<?php  echo $order_single_data1->CUSTOMERCODE; ?>" name="customer_code">
+						<div class="col-md-3 col-6">
+							<div class="form-group">
+								<label for="deliver-order-no" class="control-label mb-1"><?php echo t('order_order_no'); ?></label>
+								<input id="deliver-order-no" name="OrderNo" readonly="readonly" type="text" class="form-control" value="<?php echo esc_attr($deliver_order_no); ?>">
+							</div>
 						</div>
-						 
-					</div>	
+						<div class="col-md-6 col-12">
+							<div class="form-group">
+								<label for="deliver-customer-name" class="control-label mb-1"><?php echo t('order_customer_name'); ?></label>
+								<input id="deliver-customer-name" name="customer_name" disabled type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo esc_attr(isset($order_single_data1->name) ? $order_single_data1->name : ''); ?>">
+							</div>
+							<input type="hidden" value="<?php echo esc_attr(isset($order_single_data1->CUSTOMERCODE) ? $order_single_data1->CUSTOMERCODE : ''); ?>" name="customer_code">
+						</div>
+					</div>
 			 		
 				<div class="row">
 			
 										<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_return_date'); ?></label>
-  <input id="retrun_Date" name="retrun_Date" readonly  type="date" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_single_data1->RDATE; ?>" >
+  <input id="retrun_Date" name="retrun_Date" readonly type="text" class="form-control dz-date" aria-required="true" aria-invalid="false" value="<?php echo esc_attr(date('d-M-Y', strtotime($order_single_data1->RDATE))); ?>" >
   
                                             </div>  
 						</div>

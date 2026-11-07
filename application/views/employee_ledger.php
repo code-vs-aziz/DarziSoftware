@@ -82,7 +82,7 @@ $net_payable = $empopening + $wages_total - $payment_total;
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Employee Ledger</title>
-<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>">
+<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>?v=portrait-a4-2">
 <style>
 	body.report-body { background: #f4f7fb; color: #1f2933; font-family: Arial, sans-serif; }
 	.report-shell { max-width: 1180px; margin: 18px auto; padding: 0 14px; }
@@ -90,6 +90,7 @@ $net_payable = $empopening + $wages_total - $payment_total;
 	.report-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 16px; background: #eef7f8; border-bottom: 1px solid #dcebee; }
 	.report-btn { border: 0; border-radius: 8px; padding: 9px 16px; color: #fff; background: #16a1ad; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
 	.report-btn.secondary { background: #5f6f7a; }
+	.report-btn.ghost { background: #fff; color: #0f766e; border: 1px solid #99f6e4; }
 	.report-header { display: grid; grid-template-columns: 180px 1fr 180px; align-items: center; gap: 12px; padding: 18px 24px 12px; border-bottom: 1px solid #e6edf5; }
 	.report-logo-small { max-height: 120px; max-width: 160px; }
 	.report-logo-main { max-height: 120px; max-width: 420px; }
@@ -122,8 +123,37 @@ $net_payable = $empopening + $wages_total - $payment_total;
 <body class="report-body">
 <div class="report-shell">
 	<div class="report-card">
+		<?php
+		$emp_filter_q = array();
+		if ($fromdate !== '') { $emp_filter_q['fromdate'] = $fromdate; }
+		if ($todate !== '') { $emp_filter_q['todate'] = $todate; }
+		if ($employee_id !== '') { $emp_filter_q['employee'] = $employee_id; }
+		if ($emp_status_filter !== '' && $emp_status_filter !== 'All') {
+			$emp_filter_q['emp_status'] = $emp_status_filter;
+		}
+		$emp_filter_url = site_url('Cash/reprtemployee_ledger');
+		if ( ! empty($emp_filter_q)) {
+			$emp_filter_url .= '?'.http_build_query($emp_filter_q);
+		}
+		// Prefill when landing on filter screen via Back.
+		if ( ! $has_report) {
+			$g_from = trim((string) $this->input->get('fromdate', TRUE));
+			$g_to = trim((string) $this->input->get('todate', TRUE));
+			$g_emp = trim((string) $this->input->get('employee', TRUE));
+			$g_st = trim((string) $this->input->get('emp_status', TRUE));
+			if ($g_from !== '') { $fromdate = $g_from; }
+			if ($g_to !== '') { $todate = $g_to; }
+			if ($g_emp !== '') { $employee_id = $g_emp; }
+			if (in_array($g_st, array('All', 'Active', 'Inactive'), TRUE)) {
+				$emp_status_filter = $g_st;
+			}
+		}
+		?>
 		<?php if ($export_mode !== 'excel') { ?>
 		<div class="report-actions print-hide">
+			<?php if ($has_report) { ?>
+			<a class="report-btn ghost" href="<?php echo esc_html($emp_filter_url); ?>"><?php echo esc_html(t('report_back_filters')); ?></a>
+			<?php } ?>
 			<button type="button" class="report-btn" onclick="window.print()">Print / PDF</button>
 			<?php if ($has_report) { ?>
 			<a class="report-btn secondary" href="<?php echo $excel_url; ?>">Export Excel</a>
@@ -147,18 +177,13 @@ $net_payable = $empopening + $wages_total - $payment_total;
 			</div>
 		</div>
 
-		<?php if (!$has_report) { ?>
-		<form class="report-form print-hide" action="<?php echo site_url('Cash/employee_ledger_pro'); ?>" method="post" data-no-ajax="true">
+		<?php if ($export_mode !== 'excel' && $export_mode !== 'pdf') { ?>
+		<form class="report-form print-hide" action="<?php echo site_url('Cash/employee_ledger_pro'); ?>" method="post" data-no-ajax="true" id="emp-ledger-filter-form">
 			<?php $this->load->view('partials/csrf_field'); ?>
+			<?php if ($has_report) { ?>
+			<p class="report-meta" style="margin:0 0 10px;"><?php echo esc_html(t('report_change_filters')); ?></p>
+			<?php } ?>
 			<div class="report-form-grid">
-				<div class="report-field">
-					<label>From Date</label>
-					<input type="date" name="fromdate" required>
-				</div>
-				<div class="report-field">
-					<label>To Date</label>
-					<input type="date" name="todate" required>
-				</div>
 				<div class="report-field">
 					<label><?php echo t('report_employee_status'); ?></label>
 					<select name="emp_status" id="emp_status_filter" onchange="window.location='<?php echo site_url('Cash/reprtemployee_ledger'); ?>?emp_status='+encodeURIComponent(this.value);">
@@ -168,20 +193,47 @@ $net_payable = $empopening + $wages_total - $payment_total;
 					</select>
 				</div>
 				<div class="report-field">
+					<label>From Date</label>
+					<input type="date" name="fromdate" value="<?php echo esc_attr($fromdate); ?>" required>
+				</div>
+				<div class="report-field">
+					<label>To Date</label>
+					<input type="date" name="todate" value="<?php echo esc_attr($todate); ?>" required>
+				</div>
+				<div class="report-field">
 					<label><?php echo t('report_employee'); ?></label>
 					<select name="employee" required>
 						<option value=""><?php echo t('report_select_employee'); ?></option>
 						<?php foreach ($employee as $employees) { ?>
-						<option value="<?php echo esc_html((string) $employees->empno); ?>"><?php echo esc_html((string) $employees->name); ?></option>
+						<option value="<?php echo esc_html((string) $employees->empno); ?>"<?php echo ((string) $employees->empno === (string) $employee_id) ? ' selected' : ''; ?>><?php echo esc_html((string) $employees->name); ?></option>
 						<?php } ?>
 					</select>
 				</div>
 				<div class="report-field">
-					<button type="submit" class="report-btn" style="width:100%;"><?php echo t('app_submit'); ?></button>
+					<button type="submit" class="report-btn" style="width:100%;"><?php echo esc_html(t('report_generate')); ?></button>
 				</div>
 			</div>
 		</form>
-		<?php } else { ?>
+		<script>
+		(function () {
+			var form = document.getElementById('emp-ledger-filter-form');
+			if (!form) return;
+			form.addEventListener('submit', function (e) {
+				e.preventDefault();
+				var from = String((form.querySelector('[name="fromdate"]') || {}).value || '').trim();
+				var to = String((form.querySelector('[name="todate"]') || {}).value || '').trim();
+				var emp = String((form.querySelector('[name="employee"]') || {}).value || '').trim();
+				var st = String((form.querySelector('[name="emp_status"]') || {}).value || 'All').trim();
+				if (!from || !to || !emp) return;
+				var url = <?php echo json_encode(site_url('Cash/employee_ledger')); ?> + '/' + encodeURIComponent(from) + '/' + encodeURIComponent(to) + '/' + encodeURIComponent(emp);
+				if (st && st !== 'All') url += '?emp_status=' + encodeURIComponent(st);
+				window.location.href = url;
+			});
+		})();
+		</script>
+		<?php } ?>
+
+		<?php if ($has_report) { ?>
 		<div class="report-table-wrap">
 			<div class="report-summary">
 				<div><span>Opening Balance</span><strong><?php echo number_format($empopening, 2); ?></strong></div>
@@ -252,6 +304,12 @@ window.onload = function() {
 };
 </script>
 <?php } ?>
-<?php $this->load->view('partials/report_ajax_shell'); ?>
+<?php
+$this->load->view('partials/report_back_nav', array(
+	'report_has_report' => $has_report,
+	'report_filter_url' => $emp_filter_url,
+));
+$this->load->view('partials/report_ajax_shell');
+?>
 </body>
 </html>

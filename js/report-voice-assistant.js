@@ -40,7 +40,18 @@
 		if (!data || !data.ok || !data.url) {
 			return;
 		}
-		window.open(data.url, '_blank', 'noopener');
+		if (window.DZ && typeof window.DZ.openInNewContext === 'function') {
+			window.DZ.openInNewContext(data.url);
+			return;
+		}
+		var a = document.createElement('a');
+		a.href = data.url;
+		a.target = '_blank';
+		a.rel = 'noopener noreferrer';
+		a.setAttribute('data-no-ajax', 'true');
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
 	}
 
 	function runCommand(text) {

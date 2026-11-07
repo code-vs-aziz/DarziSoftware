@@ -201,7 +201,7 @@ class Customer extends MY_Controller {
 		$results = array();
 		if (mb_strlen($q) >= 2)
 		{
-			$rows = $this->customer_query->search_customers_paged($q, 12, 0);
+			$rows = $this->customer_query->search_customers_paged($q, 50, 0);
 			$codes = array();
 			foreach ($rows as $row)
 			{
@@ -411,6 +411,11 @@ public function process()
 
 		$last = (int) $this->uri->segment(3);
 		$man_napno = trim((string) $this->input->post('man_napno'));
+		$return_to = trim((string) $this->input->post('return_to', TRUE));
+		if ($return_to !== '' && (strpos($return_to, '://') !== FALSE || strpos($return_to, '//') === 0))
+		{
+			$return_to = '';
+		}
 		if ($last > 0 && $man_napno !== '')
 		{
 			$existing = $this->master_data->get_dat_where(
@@ -419,7 +424,12 @@ public function process()
 			);
 			if ( ! empty($existing))
 			{
-				redirect('Customer/customer_edit/'.$last.'/err');
+				$err_url = 'Customer/customer_edit/'.$last.'/err';
+				if ($return_to !== '')
+				{
+					$err_url .= '?return_to='.rawurlencode($return_to);
+				}
+				redirect($err_url);
 				return;
 			}
 		}
@@ -438,6 +448,13 @@ public function process()
 		);
 
 		$this->insert->entry_update1('code', $last, $data, 'customer');
+		if ($return_to !== '')
+		{
+			$this->load->helper('flash');
+			app_set_success_flash(t('app_saved_success'));
+			redirect($return_to);
+			return;
+		}
 		redirect('Customer');
 		return;
 		}		

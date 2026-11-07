@@ -90,7 +90,7 @@ $autoload['drivers'] = array();
 |
 |	$autoload['helper'] = array('url', 'file');
 */
-$autoload['helper'] = array('url', 'app_lang', 'esc', 'password', 'ui');
+$autoload['helper'] = array('url', 'app_lang', 'esc', 'password', 'ui', 'flash', 'measurement_triple');
 
 /*
 | -------------------------------------------------------------------

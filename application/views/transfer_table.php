@@ -17,12 +17,7 @@ $this->load->helper('ui');
                 <div  >
                     <div class="container-fluid" style="padding-left:0px !important">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 
-<div class="alert alert-success" role="alert">
-											
-										</div>
-						<?php  } ?>
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
 						<?php if ($this->session->flashdata('transfer_error')) { ?>
 						<div class="alert alert-danger" role="alert">
 							<?php echo esc_html($this->session->flashdata('transfer_error')); ?>

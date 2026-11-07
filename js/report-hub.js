@@ -108,6 +108,28 @@
 		});
 	}
 
+	/**
+	 * Open report in a real browser tab (or Electron same-window handler).
+	 * Uses DZ.openInNewContext — never windowFeatures (chrome-less "app" popup).
+	 */
+	function openReportTab(url) {
+		if (!url) {
+			return;
+		}
+		if (window.DZ && typeof window.DZ.openInNewContext === 'function') {
+			window.DZ.openInNewContext(url);
+			return;
+		}
+		var a = document.createElement('a');
+		a.href = url;
+		a.target = '_blank';
+		a.rel = 'noopener noreferrer';
+		a.setAttribute('data-no-ajax', 'true');
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	}
+
 	function errorMessage(code) {
 		var map = {
 			missing_dates: lang('report_err_missing_dates', 'Select from and to dates.'),
@@ -133,7 +155,7 @@
 			return;
 		}
 
-		applyPreset('last_7');
+		// Leave From/To empty — user sets dates (or picks a preset chip).
 
 		var chips = document.querySelectorAll('.dz-report-chip[data-preset]');
 		for (var i = 0; i < chips.length; i++) {
@@ -167,7 +189,7 @@
 					return;
 				}
 				setStatus(lang('report_status_opened', 'Report opened.'), false);
-				window.open(res.url, '_blank', 'noopener');
+				openReportTab(res.url);
 			});
 		});
 

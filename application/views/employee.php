@@ -19,9 +19,7 @@ $this->load->view('Header');
 		<div class="main-content">
 			<div class="section__content section__content--p30">
 				<div class="container-fluid">
-					<?php if ($this->session->flashdata('suss') == 'yes') { ?>
-						<div class="alert alert-danger erp-form-alert" role="alert"><?php echo t('app_error'); ?></div>
-					<?php } ?>
+					<?php $this->load->view('partials/success_alert', array('success_default' => t('master_employee_created'))); ?>
 					<div class="col-md-12">
 						<div class="dz-card erp-module-card data-entry-card">
 							<div class="erp-card-head">

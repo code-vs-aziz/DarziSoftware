@@ -763,6 +763,44 @@ html.app-lang-ar .app-lang-switcher__btn[lang="ar"] {
 	padding: 8px;
 }
 
+.dz-topbar-mobile__back {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	margin: 0;
+	padding: 0;
+	border-radius: 10px;
+	border: 1px solid var(--dz-outline);
+	background: var(--dz-surface);
+	color: var(--dz-text);
+	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+}
+
+.dz-topbar-mobile__back[hidden],
+.dz-topbar-mobile__back.is-home-hidden,
+body.erp-home .dz-topbar-mobile__back {
+	display: none !important;
+}
+
+.dz-topbar-mobile__back:hover,
+.dz-topbar-mobile__back:focus-visible {
+	background: var(--dz-primary-container, #e0f2fe);
+	border-color: var(--dz-primary);
+	color: var(--dz-primary);
+	outline: none;
+}
+
+html[dir="rtl"] .dz-topbar-mobile__back i,
+html.app-lang-ar .dz-topbar-mobile__back i,
+html.app-lang-ur .dz-topbar-mobile__back i {
+	transform: scaleX(-1);
+}
+
 .dz-topbar-mobile__title {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -1224,6 +1262,7 @@ html.app-lang-ar .dz-topbar-mobile__title {
 	margin: 0 auto 1.75rem;
 	max-width: min(640px, 92vw);
 	background: transparent;
+	transition: max-width 0.28s ease, margin-bottom 0.28s ease, opacity 0.28s ease;
 }
 
 .dz-home__logo img {
@@ -1238,6 +1277,38 @@ html.app-lang-ar .dz-topbar-mobile__title {
 	box-shadow: none;
 }
 
+/* Multiple search hits: shrink logo; keep list in viewport and scrollable. */
+body.erp-home.is-home-suggest-open .main-content,
+body.erp-home .dz-home.is-suggest-open {
+	justify-content: flex-start;
+}
+
+body.erp-home.is-home-suggest-open .page-wrapper,
+body.erp-home.is-home-suggest-open .main-content,
+body.erp-home.is-home-suggest-open .section__content,
+body.erp-home.is-home-suggest-open .container-fluid,
+body.erp-home.is-home-suggest-open .dz-container {
+	overflow: visible !important;
+}
+
+.dz-home.is-suggest-open {
+	padding-top: 0.65rem;
+	padding-bottom: 1.25rem;
+}
+
+.dz-home.is-suggest-open .dz-home__logo {
+	max-width: min(220px, 42vw);
+	margin-bottom: 0.65rem;
+}
+
+.dz-home.is-suggest-open .dz-home__hint {
+	display: none;
+}
+
+.dz-home.is-suggest-open .dz-home__suggest {
+	max-height: min(58vh, 480px);
+}
+
 .dz-home__actions {
 	display: block;
 	width: 100%;
@@ -1250,6 +1321,7 @@ html.app-lang-ar .dz-topbar-mobile__title {
 	display: block;
 	width: 100%;
 	text-align: start;
+	z-index: 20;
 }
 
 .dz-home__search-shell {
@@ -1343,14 +1415,39 @@ html.app-lang-ar .dz-topbar-mobile__title {
 	left: 0;
 	right: 0;
 	top: calc(100% + 6px);
-	z-index: 30;
-	max-height: min(320px, 50vh);
-	overflow: auto;
+	z-index: 80;
+	max-height: min(52vh, 420px);
+	overflow-x: hidden;
+	overflow-y: auto !important;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	touch-action: pan-y;
 	background: var(--dz-surface);
 	border: 1px solid var(--dz-outline);
 	border-radius: 12px;
 	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
 	text-align: start;
+	scrollbar-gutter: stable;
+	transition: max-height 0.28s ease;
+}
+
+.dz-home__suggest-more {
+	display: block;
+	padding: 0.7rem 1rem;
+	border-top: 1px solid var(--dz-outline);
+	background: #f8fafc;
+	color: var(--dz-primary, #0284c7);
+	font-weight: 650;
+	font-size: 0.875rem;
+	text-align: center;
+	text-decoration: none !important;
+	position: sticky;
+	bottom: 0;
+}
+
+.dz-home__suggest-more:hover {
+	background: #e0f2fe;
+	color: var(--dz-primary-dark, #0369a1);
 }
 
 .dz-home__suggest-item {
@@ -1527,6 +1624,15 @@ html.app-lang-ar .dz-topbar-mobile__title {
 	.dz-home__logo {
 		max-width: min(420px, 94vw);
 		margin-bottom: 1.15rem;
+	}
+
+	.dz-home.is-suggest-open .dz-home__logo {
+		max-width: min(150px, 36vw);
+		margin-bottom: 0.5rem;
+	}
+
+	.dz-home.is-suggest-open .dz-home__suggest {
+		max-height: min(58vh, 480px);
 	}
 
 	.dz-home__search-shell {
@@ -2195,22 +2301,23 @@ textarea.form-control {
 	gap: var(--dz-space-3);
 	padding: var(--dz-space-4);
 	min-height: 88px;
-	background: var(--dz-surface-variant);
-	border: 1px solid var(--dz-outline);
+	background: var(--dz-primary);
+	border: 1px solid var(--dz-primary-dark);
 	border-radius: var(--dz-radius-md);
-	box-shadow: none;
+	box-shadow: var(--dz-elevation-1);
 	text-decoration: none !important;
-	color: inherit !important;
+	color: var(--dz-on-primary) !important;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
 .dz-report-tile:hover,
 .dz-report-tile:focus {
-	background: var(--dz-surface);
-	border-color: var(--dz-primary-light);
+	background: var(--dz-primary-dark);
+	border-color: var(--dz-primary-dark);
 	box-shadow: var(--dz-elevation-2);
 	transform: translateY(-1px);
 	outline: none;
+	color: var(--dz-on-primary) !important;
 }
 
 .dz-report-tile__icon {
@@ -2221,8 +2328,8 @@ textarea.form-control {
 	width: 40px;
 	height: 40px;
 	border-radius: var(--dz-radius-sm);
-	background: var(--dz-primary-container);
-	color: var(--dz-primary-dark);
+	background: rgba(255, 255, 255, 0.22);
+	color: var(--dz-on-primary);
 	font-size: 1rem;
 }
 
@@ -2237,26 +2344,26 @@ textarea.form-control {
 .dz-report-tile__title {
 	font-size: 0.9375rem;
 	font-weight: 600;
-	color: var(--dz-text);
+	color: var(--dz-on-primary);
 	line-height: 1.35;
 }
 
 .dz-report-tile__hint {
 	font-size: 0.75rem;
 	line-height: 1.4;
-	color: var(--dz-text-secondary);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .dz-report-tile__chevron {
 	flex-shrink: 0;
 	margin-top: 10px;
-	color: var(--dz-text-muted);
+	color: rgba(255, 255, 255, 0.75);
 	font-size: 0.75rem;
 	transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .dz-report-tile:hover .dz-report-tile__chevron {
-	color: var(--dz-primary-dark);
+	color: var(--dz-on-primary);
 	transform: translateX(2px);
 }
 
@@ -2521,15 +2628,15 @@ body.blank-print-page .print-slip-watermark {
 	opacity: 0.055;
 }
 
-/* Order print needs more width for measurements + suits side-by-side */
+/* Order print: small slip wider so long نوٹ لائن stays one line; A4 option full width */
 body.print-size-small.order-print-page .print-slip-sheet {
-	width: min(100%, 190mm);
-	max-width: 190mm;
+	width: min(100%, 195mm);
+	max-width: 195mm;
 }
 
 body.print-size-a4.order-print-page .print-slip-sheet {
-	width: min(100%, 250mm);
-	max-width: 250mm;
+	width: min(100%, 210mm);
+	max-width: 210mm;
 }
 
 body.print-size-small.blank-print-page .container-fluid,
@@ -2541,12 +2648,12 @@ body.print-size-a4.blank-print-page .order-print-toolbar__inner {
 
 body.print-size-small.order-print-page .container-fluid,
 body.print-size-small.order-print-page .order-print-toolbar__inner {
-	max-width: 190mm;
+	max-width: 195mm;
 }
 
 body.print-size-a4.order-print-page .container-fluid,
 body.print-size-a4.order-print-page .order-print-toolbar__inner {
-	max-width: 250mm;
+	max-width: 210mm;
 }
 
 /*
@@ -2955,15 +3062,16 @@ body.blank-print-page .print-slip-footer__notes {
 	border: 1px solid #e2e8f0;
 	border-radius: 12px;
 	display: grid;
-	grid-template-columns: 1.2fr 1fr;
-	gap: 0.75rem 1rem;
+	/* Notes need more width so long Urdu terms stay on one line */
+	grid-template-columns: minmax(7.5rem, 0.75fr) minmax(0, 1.45fr);
+	gap: 0.55rem 0.85rem;
 	align-items: center;
 }
 
 .print-slip-footer__title {
 	direction: rtl;
 	text-align: center;
-	font-size: clamp(1.15rem, 2.4vw, 1.65rem);
+	font-size: clamp(1.05rem, 2.2vw, 1.5rem);
 	font-weight: 800;
 	color: #0f172a;
 	line-height: 1.35;
@@ -2972,14 +3080,16 @@ body.blank-print-page .print-slip-footer__notes {
 .print-slip-footer__notes {
 	direction: rtl;
 	text-align: right;
-	font-size: 0.88rem;
+	font-size: 0.82rem;
 	font-weight: 700;
 	color: #334155;
-	line-height: 1.55;
+	line-height: 1.45;
+	min-width: 0;
 }
 
 .print-slip-footer__notes span {
 	display: block;
+	white-space: nowrap;
 }
 
 .blank-print-page .page-wrapper.top {
@@ -3025,14 +3135,33 @@ body.blank-print-page .print-slip-footer__notes {
 	}
 
 	.print-slip-sheet {
-		width: 100% !important;
-		max-width: none !important;
-		margin: 0;
+		margin: 0 auto;
 		border: 0;
 		border-radius: 0;
 		box-shadow: none;
 		padding: 0.35cm 0.5cm;
 		overflow: visible;
+	}
+
+	/* Order slip: keep chosen paper width (do not stretch to full A4) */
+	body.print-size-small.order-print-page .print-slip-sheet {
+		width: 195mm !important;
+		max-width: 195mm !important;
+	}
+
+	body.print-size-a4.order-print-page .print-slip-sheet {
+		width: 210mm !important;
+		max-width: 210mm !important;
+	}
+
+	body.print-size-small.order-print-page .container-fluid,
+	body.print-size-small.order-print-page .order-print-toolbar__inner {
+		max-width: 195mm !important;
+	}
+
+	body.print-size-a4.order-print-page .container-fluid,
+	body.print-size-a4.order-print-page .order-print-toolbar__inner {
+		max-width: 210mm !important;
 	}
 
 	.print-slip-watermark {
@@ -3081,12 +3210,6 @@ body.blank-print-page .print-slip-footer__notes {
 		print-color-adjust: exact;
 	}
 
-	body.print-size-small .print-slip-sheet,
-	body.print-size-a4 .print-slip-sheet {
-		max-width: none;
-		width: 100% !important;
-	}
-
 	body.blank-print-page,
 	body.order-print-page {
 		margin: 0 !important;
@@ -3102,6 +3225,17 @@ body.blank-print-page .print-slip-footer__notes {
 		background: #eee !important;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
+		grid-template-columns: minmax(7rem, 0.7fr) minmax(0, 1.5fr);
+		gap: 0.4rem 0.65rem;
+		padding: 0.55rem 0.65rem;
+	}
+
+	.print-slip-footer__notes {
+		font-size: 0.72rem;
+	}
+
+	.print-slip-footer__notes span {
+		white-space: nowrap;
 	}
 
 	.print-size-selector {
@@ -3143,21 +3277,42 @@ body.blank-print-page .print-slip-footer__notes {
 	background: #fff;
 }
 
-/* Each title sits immediately beside its value (RTL: label right, value hugs it) */
-.print-slip-info-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.4rem 1.25rem;
-	align-items: end;
+/* Classic 3-row header tarteeb (name/dates/money) — new styling, old order */
+.print-slip-info-grid,
+.print-slip-info-grid--classic {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
 	width: 100%;
 	min-width: 0;
+}
+
+.print-slip-info-row {
+	display: grid;
+	align-items: end;
+	gap: 0.35rem 1rem;
+	width: 100%;
+}
+
+.print-slip-info-row--name {
+	grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+}
+
+.print-slip-info-row--dates {
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.print-slip-info-row--money {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.35rem 0.75rem;
+	padding-top: 0.15rem;
 }
 
 .print-slip-pair {
 	display: flex;
 	flex-direction: row;
 	align-items: baseline;
-	gap: 0.4rem;
+	gap: 0.35rem;
 	min-width: 0;
 	width: 100%;
 	direction: rtl;
@@ -3167,56 +3322,27 @@ body.blank-print-page .print-slip-footer__notes {
 	flex: 0 0 auto;
 	white-space: nowrap;
 	font-weight: 800;
-	font-size: 0.9rem;
+	font-size: 0.88rem;
 	color: #0f172a;
-	line-height: 1.4;
+	line-height: 1.35;
 }
 
 .print-slip-pair__value {
 	flex: 1 1 auto;
-	min-width: 2.5rem;
+	min-width: 2rem;
 	font-weight: 700;
-	font-size: 0.92rem;
+	font-size: 0.9rem;
 	color: #0f172a;
 	border-bottom: 1px dotted #111;
-	padding: 0.1rem 0.2rem 0.15rem;
-	line-height: 1.4;
+	padding: 0.05rem 0.15rem 0.12rem;
+	line-height: 1.35;
 	text-align: right;
 	direction: rtl;
 }
 
-.print-slip-pair__value small {
-	font-weight: 700;
-	color: #334155;
-	margin-right: 0.35rem;
-	white-space: nowrap;
-}
 
 .print-slip-money {
-	grid-column: 1 / -1;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: center;
-	gap: 0.65rem 1.75rem;
-	padding: 0.5rem 0.5rem 0.2rem;
-	margin-top: 0.2rem;
-	text-align: center !important;
-	font-size: 0.9rem;
-	font-weight: 700;
-	direction: ltr !important;
-	width: 100%;
-}
-
-.print-slip-money span {
-	white-space: nowrap;
-	flex: 0 0 auto;
-	direction: rtl;
-	text-align: right;
-}
-
-.print-slip-money b {
-	margin-left: 0.3rem;
+	display: none;
 }
 
 /* Legacy unused */
@@ -3231,17 +3357,17 @@ body.blank-print-page .print-slip-footer__notes {
 
 .print-slip-body {
 	display: grid;
-	/* Nap a bit wider so Urdu labels are not clipped */
-	grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
-	gap: 0.85rem 0.9rem;
+	/* Suit تفصیل wider (like old ERP) so style text wraps in fewer lines */
+	grid-template-columns: minmax(0, 0.68fr) minmax(0, 1.32fr);
+	gap: 0.65rem 0.55rem;
 	align-items: start;
 	width: 100%;
 	margin: 0.35rem 0 0.75rem;
 }
 
 body.order-print-page.print-size-small .print-slip-body {
-	grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-	gap: 0.7rem 0.8rem;
+	grid-template-columns: minmax(0, 0.64fr) minmax(0, 1.36fr);
+	gap: 0.55rem 0.45rem;
 }
 
 .print-slip-meas-col,
@@ -3261,9 +3387,14 @@ body.order-print-page.print-size-small .print-slip-body {
 }
 
 .print-slip-panel--meas {
-	/* Extra room for Urdu Nastaliq descenders / long labels */
-	padding-left: 0.55rem;
-	padding-right: 0.75rem;
+	padding-left: 0.4rem;
+	padding-right: 0.5rem;
+}
+
+.print-slip-panel--suits,
+.print-slip-panel--suits-classic {
+	padding-left: 0.45rem;
+	padding-right: 0.5rem;
 }
 
 .print-slip-panel__head {
@@ -3297,10 +3428,11 @@ body.order-print-page.print-size-small .print-slip-body {
 	border-bottom: 1px solid #cbd5e1;
 }
 
-/* Two neat columns: label (right) · value (left), one underline under each field */
+/* Two neat columns (RTL): first field of each pair sits on the right, like the shop slip */
 .print-slip-meas__grid {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	direction: rtl;
 	gap: 0.32rem 0.7rem;
 	width: 100%;
 }
@@ -3330,6 +3462,24 @@ body.order-print-page.print-size-small .print-slip-body {
 
 .print-slip-meas__field--note {
 	width: 100%;
+	justify-content: flex-start;
+	gap: 0.35rem;
+}
+
+.print-slip-meas__note-inline {
+	display: block;
+	width: 100%;
+	direction: rtl;
+	text-align: right;
+	font-weight: 800;
+	color: #0f172a;
+	font-size: 0.95rem;
+	line-height: 1.55;
+	white-space: nowrap;
+}
+
+.print-slip-meas__field--span2 {
+	grid-column: 1 / -1;
 }
 
 .print-slip-meas__label {
@@ -3363,148 +3513,206 @@ body.order-print-page.print-size-small .print-slip-body {
 .print-slip-meas-note {
 	margin-top: 0.45rem;
 	width: 100%;
+	overflow: visible;
 }
 
-/* Suit cards: # · details · price (balanced gap) */
+.print-slip-meas-note--full {
+	grid-column: 1 / -1;
+	margin-top: 0.55rem;
+	margin-bottom: 0.15rem;
+}
+
+.print-slip-meas-note .print-slip-meas__field--note {
+	overflow: visible;
+	border-bottom: 1px solid #334155;
+}
+
+/* Thick rule under nap+suit body (footer se pehle), old ERP style */
+.print-slip-meas__field--note-rule {
+	min-height: 1.35rem;
+	padding: 0.25rem 0.15rem 0.35rem;
+	border-bottom: 2.5px solid #111 !important;
+	direction: rtl;
+	text-align: right;
+	height: auto;
+	overflow: visible;
+}
+
+.print-slip-meas__field--note-rule .print-slip-meas__note-inline {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	font-weight: 700;
+	font-size: 0.78rem;
+	line-height: 1.85;
+	color: #111;
+	white-space: normal !important;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	overflow: visible;
+}
+
+/* Classic suit slip — compact 2-line old ERP pattern */
+.print-slip-panel--suits-classic {
+	border: none;
+	background: transparent;
+	padding: 0.1rem 0 0;
+}
+
+.print-suit-card--classic,
 .print-suit-card {
 	border: none;
-	border-bottom: 1px solid #e2e8f0;
 	border-radius: 0;
 	background: transparent;
-	padding: 0.55rem 0.15rem 0.55rem;
-	margin-bottom: 0.15rem;
+	padding: 0.2rem 0 0.35rem;
+	margin: 0 0 0.15rem;
+	overflow: visible;
 	break-inside: avoid;
 	page-break-inside: avoid;
 }
 
-.print-suit-card:last-child {
-	margin-bottom: 0;
-	border-bottom: none;
-	padding-bottom: 0.25rem;
-}
-
-/* price LEFT · details · suit number RIGHT */
-.print-suit-card__row {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	align-items: start;
-	gap: 0.45rem 0.75rem;
-	direction: ltr;
-	width: 100%;
-}
-
-.print-suit-card.has-fabric .print-suit-card__row {
-	grid-template-columns: auto auto minmax(0, 1fr) auto;
-}
-
-.print-suit-card__price {
-	flex: 0 0 auto;
-	font-weight: 800;
-	font-size: 0.84rem;
-	color: #0f172a;
-	min-width: 2.75rem;
-	text-align: left;
-	line-height: 1.45;
-	padding-top: 0.12rem;
-	letter-spacing: 0.01em;
-}
-
-.print-suit-card__fabric {
-	flex: 0 0 auto;
-	display: block;
-}
-
-.print-suit-card__fabric img {
-	display: block;
-	height: 30px;
-	width: 38px;
-	max-width: 38px;
-	object-fit: cover;
-	border: 1px solid #cbd5e1;
-	border-radius: 3px;
-	background: #fff;
-}
-
-.print-suit-card__titles {
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 0.28rem;
+.print-suit-classic__detail {
+	direction: rtl;
 	text-align: right;
-	direction: rtl;
-}
-
-.print-suit-card__titleline {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: flex-start;
-	align-items: baseline;
-	gap: 0.25rem 0.45rem;
-	direction: rtl;
-}
-
-.print-suit-card__type {
-	font-size: 0.78rem;
+	font-size: 0.72rem;
 	font-weight: 700;
-	color: #64748b;
-	letter-spacing: 0.02em;
+	/* Urdu glyphs need generous line gap or rows collide */
+	line-height: 2.2;
+	color: #111;
+	padding: 0.2rem 0 0.35rem;
+	margin: 0;
+	overflow: visible;
 }
 
-.print-suit-card__name {
-	font-size: 0.84rem;
+/* Dotted rule ABOVE pockets row — black */
+.print-suit-classic__rule {
+	display: block;
+	width: 100%;
+	height: 0;
+	border: 0;
+	border-bottom: 1.5px dotted #000;
+	margin: 0.15rem 0 0;
+	padding: 0;
+}
+
+.print-suit-no {
 	font-weight: 800;
-	color: #0f172a;
-	line-height: 1.7;
+	margin-left: 0.12rem;
 }
 
-.print-suit-card__remarks {
-	font-size: 0.86rem;
+.print-suit-card__color {
+	font-weight: 900;
+	color: #000;
+}
+
+.print-suit-card__suit-end {
 	font-weight: 700;
-	color: #334155;
-	line-height: 1.7;
 }
 
-.print-suit-card__badge {
+.print-suit-classic__meta {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 0.35rem;
+	width: 100%;
+	margin-top: 0.35rem; /* space after dotted line, then pockets */
+	padding-bottom: 0.2rem;
+	direction: ltr;
+	overflow: visible;
+}
+
+.print-suit-classic__price {
+	flex: 0 0 auto;
+	font-weight: 800;
+	font-size: 0.8rem;
+	color: #111;
+	text-align: left;
+	border-bottom: 1px dotted #111;
+	padding: 0 0.15rem 0.12rem 0;
+	min-width: 2.4rem;
+	white-space: nowrap;
+	line-height: 1.45;
+	overflow: visible;
+}
+
+.print-suit-classic__fabric {
 	flex: 0 0 auto;
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
-	min-width: 1.45rem;
-	height: 1.45rem;
-	border-radius: 999px;
-	background: #0f172a;
-	color: #fff;
-	font-weight: 800;
-	font-size: 0.8rem;
-	line-height: 1;
-	margin-top: 0.05rem;
 }
 
-.print-suit-card__pockets {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: flex-start;
-	gap: 0.25rem 0.45rem;
-	font-size: 0.78rem;
-	font-weight: 700;
-	color: #475569;
-	line-height: 1.65;
-	margin-top: 0.1rem;
+.print-suit-classic__fabric img {
+	display: block;
+	height: 22px;
+	width: 30px;
+	object-fit: cover;
+	border: 1px solid #888;
+	background: #fff;
 }
 
-.print-suit-card__extra {
-	margin-top: 0.15rem;
-	padding-top: 0;
-	border-top: none;
-	font-size: 0.76rem;
-	font-weight: 600;
-	color: #64748b;
-	text-align: right;
+.print-suit-classic__pockets {
+	flex: 1 1 auto;
 	direction: rtl;
-	line-height: 1.55;
+	text-align: right;
+	font-size: 0.68rem;
+	font-weight: 700;
+	color: #111;
+	line-height: 2;
+	white-space: normal;
+	overflow: visible;
+	padding: 0.15rem 0 0.2rem;
 }
 
-/* Legacy head/meta unused after compact row layout */
+.print-suit-classic__inline-note {
+	font-weight: 700;
+	color: #111;
+}
+
+.print-suit-classic__note-brack {
+	font-weight: 900;
+	font-size: 1.35em;
+	line-height: 1;
+	color: #000;
+	vertical-align: baseline;
+}
+
+.print-suit-classic__note {
+	display: none; /* note now inline after suit name */
+}
+
+body.print-size-small.order-print-page .print-suit-classic__detail {
+	font-size: 0.64rem;
+	line-height: 2.15;
+	padding: 0.18rem 0 0.28rem;
+}
+
+body.print-size-small.order-print-page .print-suit-classic__meta {
+	margin-top: 0.28rem;
+	padding-bottom: 0.15rem;
+}
+
+body.print-size-small.order-print-page .print-suit-classic__pockets {
+	font-size: 0.6rem;
+	line-height: 1.95;
+	padding: 0.12rem 0 0.18rem;
+}
+
+body.print-size-small.order-print-page .print-suit-classic__price {
+	font-size: 0.72rem;
+	min-width: 2.1rem;
+	line-height: 1.4;
+}
+
+body.print-size-small.order-print-page .print-suit-classic__fabric img {
+	height: 18px;
+	width: 24px;
+}
+
+/* Legacy unused hooks kept harmless */
+.print-suit-card__row,
+.print-suit-card__titles,
+.print-suit-card__badge,
 .print-suit-card__head,
 .print-suit-card__meta {
 	display: none;
@@ -3553,13 +3761,24 @@ body.order-print-page.print-size-small .print-slip-body {
 		justify-items: center;
 	}
 
-	.print-slip-info-grid {
-		grid-template-columns: 1fr;
+	.print-slip-info-grid,
+	.print-slip-info-grid--classic {
 		width: 100%;
 	}
 
-	.print-slip-money {
-		gap: 0.45rem 0.85rem;
+	.print-slip-info-row--name,
+	.print-slip-info-row--dates,
+	.print-slip-info-row--money {
+		grid-template-columns: 1fr;
+		gap: 0.3rem;
+	}
+
+	.print-slip-pair--time {
+		justify-content: flex-start;
+	}
+
+	.print-slip-pair__time {
+		text-align: right;
 	}
 
 	.print-slip-info__photo img {
@@ -3626,17 +3845,32 @@ body.order-print-page.print-size-small .print-slip-body {
 		height: 96px;
 	}
 
-	.print-slip-money {
-		gap: 0.55rem 1.6rem;
-		justify-content: center !important;
-		direction: ltr !important;
-		text-align: center !important;
+	.print-slip-info-row--name {
+		grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) !important;
+	}
+
+	.print-slip-info-row--dates {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+	}
+
+	.print-slip-info-row--money {
+		grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+	}
+
+	.print-slip-pair__time {
+		font-weight: 900 !important;
 	}
 
 	.print-slip-body {
 		display: grid !important;
-		grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-		gap: 0.55rem 0.75rem;
+		grid-template-columns: minmax(0, 0.64fr) minmax(0, 1.36fr) !important;
+		gap: 0.45rem 0.4rem !important;
+	}
+
+	.print-slip-panel--suits,
+	.print-slip-panel--suits-classic {
+		padding-left: 0.35rem !important;
+		padding-right: 0.4rem !important;
 	}
 
 	.print-slip-panel {
@@ -3658,6 +3892,7 @@ body.order-print-page.print-size-small .print-slip-body {
 	.print-slip-meas__grid {
 		display: grid !important;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+		direction: rtl !important;
 		gap: 0.22rem 0.7rem !important;
 	}
 
@@ -3686,46 +3921,72 @@ body.order-print-page.print-size-small .print-slip-body {
 		text-align: left !important;
 	}
 
+	.print-suit-card--classic,
 	.print-suit-card {
 		border: none !important;
-		border-bottom: 1px solid #e2e8f0 !important;
-		padding: 0.45rem 0.1rem 0.45rem !important;
-		margin-bottom: 0.1rem !important;
+		border-bottom: 1px dotted #555 !important;
+		padding: 0.22rem 0 0.28rem !important;
+		margin: 0 !important;
+	}
+
+	.print-suit-classic__detail {
+		font-size: 0.74rem !important;
+		line-height: 2.25 !important;
+		padding: 0.22rem 0 0.4rem !important;
+	}
+
+	.print-suit-classic__rule {
+		border-bottom: 1.5px dotted #000 !important;
+	}
+
+	.print-suit-classic__price {
+		border-bottom: 1px dotted #111 !important;
+	}
+
+	.print-suit-card__color {
+		font-weight: 900 !important;
+	}
+
+	.print-suit-classic__pockets {
+		white-space: normal !important;
+		font-size: 0.66rem !important;
+		color: #111 !important;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
 	}
 
-	.print-suit-card__row {
-		display: grid !important;
-		grid-template-columns: auto minmax(0, 1fr) auto !important;
-		gap: 0.4rem 0.7rem !important;
-		justify-content: stretch !important;
+	.print-suit-classic__note-brack {
+		font-weight: 900 !important;
+		font-size: 1.4em !important;
+		color: #000 !important;
 	}
 
-	.print-suit-card.has-fabric .print-suit-card__row {
-		grid-template-columns: auto auto minmax(0, 1fr) auto !important;
+	.print-slip-meas-note--full {
+		grid-column: 1 / -1 !important;
+		margin-top: 0.45rem !important;
 	}
 
-	.print-suit-card__price {
-		text-align: left !important;
-		min-width: 2.5rem !important;
-	}
-
-	.print-suit-card__name {
-		line-height: 1.65 !important;
-		font-size: 0.8rem !important;
-	}
-
-	.print-suit-card__pockets {
-		line-height: 1.5 !important;
-		font-size: 0.72rem !important;
-	}
-
-	.print-suit-card__badge {
-		background: #0f172a !important;
-		color: #fff !important;
+	.print-slip-meas__field--note-rule {
+		min-height: 1.2rem !important;
+		height: auto !important;
+		border-bottom: 2.5px solid #111 !important;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
+	}
+
+	.print-slip-meas__field--note-rule .print-slip-meas__note-inline {
+		white-space: normal !important;
+		overflow-wrap: anywhere !important;
+		word-break: break-word !important;
+		line-height: 1.85 !important;
+	}
+
+	body.print-size-small.order-print-page .print-suit-classic__detail {
+		font-size: 0.68rem !important;
+	}
+
+	body.print-size-small.order-print-page .print-suit-classic__pockets {
+		font-size: 0.6rem !important;
 	}
 }
 

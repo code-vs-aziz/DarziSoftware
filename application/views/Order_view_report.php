@@ -12,14 +12,16 @@ $this->load->helper('ui');
 	$ovr_mobile_no = isset($ovr_filters['mobile_no']) ? (string) $ovr_filters['mobile_no'] : '';
 	$ovr_return_from = isset($ovr_filters['return_from']) ? (string) $ovr_filters['return_from'] : '';
 	$ovr_return_to = isset($ovr_filters['return_to']) ? (string) $ovr_filters['return_to'] : '';
-	$ovr_order_from = isset($ovr_filters['order_from']) ? (string) $ovr_filters['order_from'] : '';
-	$ovr_order_to = isset($ovr_filters['order_to']) ? (string) $ovr_filters['order_to'] : '';
 	$ovr_row_limit = isset($ovr_filters['row_limit']) ? (int) $ovr_filters['row_limit'] : 500;
 	if ($ovr_row_limit < 1) {
 		$ovr_row_limit = 500;
 	}
 	if ($ovr_row_limit > 10000) {
 		$ovr_row_limit = 10000;
+	}
+	$ovr_order_status = isset($ovr_filters['order_status']) ? strtolower((string) $ovr_filters['order_status']) : 'active';
+	if (!in_array($ovr_order_status, array('active', 'deactivated', 'all'), TRUE)) {
+		$ovr_order_status = 'active';
 	}
 	$orderdata = isset($orderdata) && is_array($orderdata) ? $orderdata : array();
 ?>
@@ -28,11 +30,7 @@ $this->load->helper('ui');
 		<div class="main-content">
 			<div class="section__content section__content--p30">
 				<div class="container-fluid">
-					<?php if ($this->session->flashdata('suss') == 'yes') { ?>
-					<div class="alert alert-success" role="alert">
-						<?php echo t('master_employee_created'); ?>
-					</div>
-					<?php } ?>
+					<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
 					<div class="col-md-12">
 						<div class="dz-card erp-module-card">
 							<div class="erp-card-head">
@@ -66,23 +64,24 @@ $this->load->helper('ui');
 											<input type="date" name="return_to" class="form-control form-control-sm" value="<?php echo esc_html($ovr_return_to); ?>">
 										</div>
 										<div class="col-md-2 mb-2">
-											<label class="mb-1"><strong>Order From</strong></label>
-											<input type="date" name="order_from" class="form-control form-control-sm" value="<?php echo esc_html($ovr_order_from); ?>">
-										</div>
-										<div class="col-md-2 mb-2">
-											<label class="mb-1"><strong>Order To</strong></label>
-											<input type="date" name="order_to" class="form-control form-control-sm" value="<?php echo esc_html($ovr_order_to); ?>">
-										</div>
-										<div class="col-md-2 mb-2">
 											<label class="mb-1"><strong>Show entries</strong></label>
 											<input type="number" name="row_limit" class="form-control form-control-sm" value="<?php echo (int) $ovr_row_limit; ?>" min="1" max="10000" step="1" title="Max orders to load from database">
 										</div>
 										<div class="col-md-2 mb-2">
-											<button type="submit" class="btn btn-primary dz-btn--filled btn-sm btn-block"><?php echo t('app_submit'); ?></button>
+											<label class="mb-1"><strong><?php echo esc_html(t('order_status_filter')); ?></strong></label>
+											<select name="order_status" class="form-control form-control-sm">
+												<option value="active"<?php echo $ovr_order_status === 'active' ? ' selected' : ''; ?>><?php echo esc_html(t('order_status_active')); ?></option>
+												<option value="deactivated"<?php echo $ovr_order_status === 'deactivated' ? ' selected' : ''; ?>><?php echo esc_html(t('order_status_deactivated')); ?></option>
+												<option value="all"<?php echo $ovr_order_status === 'all' ? ' selected' : ''; ?>><?php echo esc_html(t('order_status_all')); ?></option>
+											</select>
+										</div>
+										<div class="col-md-10 mb-2">
+											<label class="mb-1 d-none d-md-block">&nbsp;</label>
+											<button type="submit" class="btn btn-primary dz-btn--filled btn-lg btn-block"><?php echo t('app_submit'); ?></button>
 										</div>
 									</div>
 								</form>
-								<p class="text-muted small mb-2">Use order date range or specific fields to filter. Last 30 days load by default.</p>
+								<p class="text-muted small mb-2">Set Return From / Return To yourself when needed, or search by customer, order #, naap, or mobile. Empty dates do not apply a date filter.</p>
 								<section>
 									<table id="example" class="display order-detail-table" style="width:100%" data-page-length="10">
 										<thead>
@@ -100,8 +99,10 @@ $this->load->helper('ui');
 											</tr>
 										</thead>
 										<tbody>
-										<?php foreach ($orderdata as $order_row) { ?>
-											<tr>
+										<?php foreach ($orderdata as $order_row) {
+											$is_deactivated = (isset($order_row->ostatus) && (string) $order_row->ostatus === '1');
+										?>
+											<tr<?php echo $is_deactivated ? ' class="table-warning"' : ''; ?>>
 												<td><?php echo $order_row->ORDERNO; ?></td>
 												<td><?php
 													$newDate1 = date('d-m-Y', strtotime($order_row->ORDERDATE));
@@ -114,9 +115,19 @@ $this->load->helper('ui');
 												<td><?php echo $order_row->name; ?></td>
 												<td><?php echo $order_row->man_napno; ?></td>
 												<td><?php echo $order_row->Phone; ?></td>
-												<td><a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Order/Order_edit/'.$order_row->ORDERNO.''); ?>" data-no-ajax="true">Edit</a></td>
 												<td>
-													<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Order/Order_deactive/'.$order_row->ORDERNO.''); ?>">Deactive</a>
+													<?php if ( ! $is_deactivated) { ?>
+													<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Order/Order_edit/'.$order_row->ORDERNO.''); ?>" data-no-ajax="true">Edit</a>
+													<?php } else { ?>
+													<span class="text-muted small"><?php echo esc_html(t('app_deactive')); ?></span>
+													<?php } ?>
+												</td>
+												<td>
+													<?php if ($is_deactivated) { ?>
+													<a class="btn btn-success dz-btn--filled btn-sm" href="<?php echo site_url('Order/Order_active/'.$order_row->ORDERNO); ?>" onclick="return confirm(<?php echo htmlspecialchars(json_encode(t('app_order_reactivate_confirm')), ENT_QUOTES, 'UTF-8'); ?>);"><?php echo esc_html(t('app_reactivate')); ?></a>
+													<?php } else { ?>
+													<a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Order/Order_deactive/'.$order_row->ORDERNO); ?>" onclick="return confirm(<?php echo htmlspecialchars(json_encode(t('app_order_deactivate_confirm')), ENT_QUOTES, 'UTF-8'); ?>);"><?php echo esc_html(t('app_deactive')); ?></a>
+													<?php } ?>
 												</td>
 												<td><a class="btn btn-primary dz-btn--filled btn-sm" href="<?php echo site_url('Order/Order_Print_det/'.$order_row->ORDERNO.''); ?>" target="_blank">View</a></td>
 												<td>

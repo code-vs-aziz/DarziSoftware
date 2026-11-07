@@ -56,15 +56,7 @@ $.fn.select2.amd.require([
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show">
-											<span class="badge badge-pill badge-success">Success</span>
-											<?php echo t('app_record_entered_short'); ?>
-											<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-												<span aria-hidden="true">×</span>
-											</button>
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>				
                      	<div class="col-md-12">
                                 <div class="card" style="background-image: url('images/bg.png'); background-repeat: no-repeat;">
                                    <!-- <div class="card-header">Employee Form</div> -->

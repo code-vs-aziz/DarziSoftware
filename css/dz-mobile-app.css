@@ -73,12 +73,18 @@
 	}
 
 	.dz-topbar-mobile__menu.hamburger,
+	.dz-topbar-mobile__back,
 	.dz-topbar-mobile__logout {
 		width: 40px !important;
 		height: 40px !important;
 		border-radius: 10px !important;
 		border: 1px solid var(--dz-outline) !important;
 		background: #fff !important;
+	}
+
+	.dz-topbar-mobile__back {
+		font-size: 1rem;
+		line-height: 1;
 	}
 
 	/* Bridge: icon-only dot on phones */

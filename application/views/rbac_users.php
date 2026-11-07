@@ -17,9 +17,7 @@ $current_user = isset($current_user) ? (string) $current_user : (string) $this->
 							<div class="erp-card-head"><h2 class="erp-module-title mb-0"><?php echo t('rbac_user_management'); ?></h2></div>
 							<div class="card-body erp-card-body">
 								<?php $this->load->view('rbac_nav'); ?>
-								<?php if ($this->session->flashdata('suss') == 'yes') { ?>
-									<div class="alert alert-success"><?php echo t('app_saved_success'); ?></div>
-								<?php } ?>
+								<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
 								<?php if ($this->session->flashdata('error')) { ?>
 									<div class="alert alert-danger"><?php echo esc_html($this->session->flashdata('error')); ?></div>
 								<?php } ?>

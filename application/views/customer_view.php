@@ -21,12 +21,7 @@ $this->load->helper('ui');
 						if ($customer_notice) { ?>
 						<div class="alert alert-warning" role="alert"><?php echo esc_html((string) $customer_notice); ?></div>
 						<?php } ?>
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 
-<div class="alert alert-success" role="alert">
-											<?php echo t('customer_created'); ?>
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('customer_created'))); ?>				
                      	<div class="col-md-12">
 						<div class="dz-card erp-module-card">
 							<div class="erp-card-head">

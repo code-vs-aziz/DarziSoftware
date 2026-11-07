@@ -27,17 +27,18 @@ $customer_add_url = site_url('Customer/Customer_add');
 								>
 							</div>
 							<div class="dz-home__actions">
-								<form id="erp-home-search-form" class="dz-home__search" autocomplete="off" onsubmit="return erpHomeSearchSubmit(event);">
+								<form id="erp-home-search-form" class="dz-home__search" action="#" method="get" autocomplete="off" data-no-ajax="true" onsubmit="return erpHomeSearchSubmit(event);">
 									<label class="sr-only" for="erp-home-search"><?php echo esc_html(t('dash_search_placeholder')); ?></label>
 									<div class="dz-home__search-shell">
 										<span class="dz-home__search-icon" aria-hidden="true"><?php echo ui_icon('search'); ?></span>
 										<input
 											class="dz-home__input"
-											type="search"
+											type="text"
 											name="search"
 											id="erp-home-search"
 											placeholder="<?php echo esc_attr(t('dash_search_placeholder')); ?>"
 											autocomplete="off"
+											inputmode="search"
 											enterkeyhint="search"
 											autofocus
 											aria-autocomplete="list"
@@ -71,21 +72,47 @@ $customer_add_url = site_url('Customer/Customer_add');
 		var emptyMsg = <?php echo json_encode(t('home_search_empty'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 		var emptyHint = <?php echo json_encode(t('home_search_empty_hint'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 		var addLabel = <?php echo json_encode(t('home_search_add_customer'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+		var viewAllLabel = <?php echo json_encode(t('home_search_view_all'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+		var scrollHint = <?php echo json_encode(t('home_search_scroll_hint'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+		var listPrefix = <?php echo json_encode($customer_search_url_prefix, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 		var input = document.getElementById('erp-home-search');
 		var box = document.getElementById('erp-home-suggest');
 		var addBtn = document.getElementById('erp-home-add-customer');
+		var home = document.querySelector('.dz-home');
 		var timer = null;
 		var lastQ = '';
 		var active = -1;
 		var items = [];
 		var reqId = 0;
+		var submitReqId = 0;
+		var submitting = false;
+
+		function setSuggestOpen(open) {
+			if (home) home.classList.toggle('is-suggest-open', !!open);
+			document.body.classList.toggle('is-home-suggest-open', !!open);
+		}
 
 		function go(url) {
+			if (!url) return;
+			// Measurement / add flows are full-page in the shell — avoid AJAX race.
+			if (window.AppAjaxShell && typeof window.AppAjaxShell.shouldSkipUrl === 'function') {
+				try {
+					var parsed = new URL(url, window.location.href);
+					if (window.AppAjaxShell.shouldSkipUrl(parsed, null)) {
+						window.location.href = url;
+						return;
+					}
+				} catch (err) { /* fall through */ }
+			}
 			if (window.AppAjaxShell && typeof window.AppAjaxShell.load === 'function') {
 				window.AppAjaxShell.load(url);
 			} else {
 				window.location.href = url;
 			}
+		}
+
+		function isEnterKey(e) {
+			return e && (e.key === 'Enter' || e.code === 'NumpadEnter' || e.keyCode === 13);
 		}
 
 		function measurementUrl(row) {
@@ -118,19 +145,27 @@ $customer_add_url = site_url('Customer/Customer_add');
 
 		function openFromSuggestOrSearch(term) {
 			if (active >= 0 && items[active] && items[active].url) {
+				submitting = false;
 				go(items[active].url);
 				return;
 			}
 			if (items.length === 1 && items[0].url) {
+				submitting = false;
 				go(items[0].url);
 				return;
 			}
+			// Invalidate in-flight typeahead so it cannot clear/replace results mid-submit.
+			var mySubmit = ++submitReqId;
+			reqId += 1;
+			clearTimeout(timer);
 			// Resolve now so number search never lands on customer hub/list first.
 			var xhr = new XMLHttpRequest();
 			xhr.open('GET', suggestUrl + '?q=' + encodeURIComponent(term), true);
 			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 			xhr.onreadystatechange = function () {
 				if (xhr.readyState !== 4) return;
+				if (mySubmit !== submitReqId) return;
+				submitting = false;
 				if (xhr.status !== 200) {
 					go(prefix + encodeURIComponent(term) + '?per_page=25');
 					return;
@@ -159,12 +194,19 @@ $customer_add_url = site_url('Customer/Customer_add');
 		}
 
 		window.erpHomeSearchSubmit = function (event) {
-			if (event && event.preventDefault) event.preventDefault();
+			if (event) {
+				if (event.preventDefault) event.preventDefault();
+				if (event.stopPropagation) event.stopPropagation();
+			}
 			var term = input ? String(input.value || '').replace(/^\s+|\s+$/g, '') : '';
 			if (!term) {
+				submitting = false;
 				alert(needTerm);
 				return false;
 			}
+			if (submitting) return false;
+			submitting = true;
+			clearTimeout(timer);
 			openFromSuggestOrSearch(term);
 			return false;
 		};
@@ -175,6 +217,7 @@ $customer_add_url = site_url('Customer/Customer_add');
 			box.innerHTML = '';
 			items = [];
 			active = -1;
+			setSuggestOpen(false);
 			if (input) input.setAttribute('aria-expanded', 'false');
 		}
 
@@ -190,7 +233,17 @@ $customer_add_url = site_url('Customer/Customer_add');
 				+ '<a class="dz-home__suggest-add" href="' + escapeHtml(href) + '">' + escapeHtml(addLabel) + '</a>'
 				+ '</div>';
 			box.hidden = false;
-			if (input) input.setAttribute('aria-expanded', 'true');
+			setSuggestOpen(true);
+			if (input) {
+				input.setAttribute('aria-expanded', 'true');
+				try {
+					if (document.activeElement !== input) {
+						input.focus({ preventScroll: true });
+					}
+				} catch (errFocus) {
+					try { input.focus(); } catch (err2) { /* ignore */ }
+				}
+			}
 		}
 
 		function render(rows) {
@@ -201,6 +254,7 @@ $customer_add_url = site_url('Customer/Customer_add');
 				renderEmpty(input ? input.value : '');
 				return;
 			}
+			var term = input ? String(input.value || '').replace(/^\s+|\s+$/g, '') : '';
 			var html = '';
 			for (var i = 0; i < items.length; i++) {
 				var r = items[i];
@@ -212,12 +266,35 @@ $customer_add_url = site_url('Customer/Customer_add');
 					+ escapeHtml(r.naap || '')
 					+ '</span></button>';
 			}
+			if (items.length > 4) {
+				html += '<div class="dz-home__suggest-empty-hint" style="padding:0.35rem 1rem 0.15rem;">'
+					+ escapeHtml(scrollHint) + '</div>';
+			}
+			if (term) {
+				html += '<a class="dz-home__suggest-more" href="'
+					+ escapeHtml(listPrefix + encodeURIComponent(term) + '?per_page=50')
+					+ '">' + escapeHtml(viewAllLabel) + ' (' + items.length + ')</a>';
+			}
 			box.innerHTML = html;
 			box.hidden = false;
-			if (input) input.setAttribute('aria-expanded', 'true');
+			setSuggestOpen(true);
+			if (input) {
+				input.setAttribute('aria-expanded', 'true');
+				// Never steal focus from the search field (Windows Chromium
+				// focuses overflow lists and then digits stop typing).
+				try {
+					if (document.activeElement !== input) {
+						input.focus({ preventScroll: true });
+					}
+				} catch (errFocus) {
+					try { input.focus(); } catch (err2) { /* ignore */ }
+				}
+			}
+			try { box.scrollTop = 0; } catch (errScroll) { /* ignore */ }
 		}
 
 		function fetchSuggest(q) {
+			if (submitting) return;
 			if (q.length < 2) {
 				hideSuggest();
 				return;
@@ -231,7 +308,7 @@ $customer_add_url = site_url('Customer/Customer_add');
 			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 			xhr.onreadystatechange = function () {
 				if (xhr.readyState !== 4) return;
-				if (myReq !== reqId) return;
+				if (myReq !== reqId || submitting) return;
 				if (xhr.status !== 200) {
 					hideSuggest();
 					return;
@@ -253,8 +330,14 @@ $customer_add_url = site_url('Customer/Customer_add');
 
 		if (input) {
 			input.addEventListener('input', function () {
+				if (submitting) return;
 				var q = String(input.value || '').replace(/^\s+|\s+$/g, '');
 				syncAddLink(q);
+				if (q.length < 2) {
+					lastQ = '';
+					hideSuggest();
+					return;
+				}
 				clearTimeout(timer);
 				timer = setTimeout(function () { fetchSuggest(q); }, 180);
 			});
@@ -263,7 +346,20 @@ $customer_add_url = site_url('Customer/Customer_add');
 					hideSuggest();
 					return;
 				}
-				if (box.hidden) return;
+				if (isEnterKey(e)) {
+					// Always own Enter/NumpadEnter so the shell cannot clear the field.
+					if (active >= 0 && items[active] && items[active].url) {
+						e.preventDefault();
+						if (e.stopPropagation) e.stopPropagation();
+						submitting = true;
+						clearTimeout(timer);
+						go(items[active].url);
+						return;
+					}
+					// Let the form submit handler run (preventDefault there).
+					return;
+				}
+				if (!box || box.hidden) return;
 				var nodes = box.querySelectorAll('.dz-home__suggest-item');
 				if (!nodes.length) return;
 				if (e.key === 'ArrowDown') {
@@ -272,10 +368,6 @@ $customer_add_url = site_url('Customer/Customer_add');
 				} else if (e.key === 'ArrowUp') {
 					e.preventDefault();
 					active = Math.max(active - 1, 0);
-				} else if (e.key === 'Enter' && active >= 0 && items[active] && items[active].url) {
-					e.preventDefault();
-					go(items[active].url);
-					return;
 				} else {
 					return;
 				}

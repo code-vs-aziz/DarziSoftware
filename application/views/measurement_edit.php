@@ -38,7 +38,7 @@ $this->load->helper('ui');
 		'waistcoat' => isset($measurement_row->remarks_waistcoat) ? (string) $measurement_row->remarks_waistcoat : '',
 	);
 ?>
-<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=9'); ?>" rel="stylesheet" media="all">
+<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=12'); ?>" rel="stylesheet" media="all">
 <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/notonastaliqurdudraft.css">
 <script>
 	function initMeasurementUrduNotes() {
@@ -60,18 +60,10 @@ $this->load->helper('ui');
 	  <?php if (!empty($return_order)) { ?>
 	  <input type="hidden" name="return_to" value="order">
 	  <?php } ?>
-            <div class="main-content">
+            <div class="main-content measurement-form-page">
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
-						<?php if($this->session->flashdata('suss') == 'yes') { ?>
-					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show measurement-alert">
-											<span class="badge badge-pill badge-success"><?php echo t('app_success'); ?></span>
-											<?php echo t('app_record_entered_short'); ?>
-											<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-												<span aria-hidden="true">×</span>
-											</button>
-										</div>
-						<?php  } ?>
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
                      	<div class="col-md-12">
                                 <div class="dz-card erp-module-card data-entry-card measurement-entry-card">
 									<div class="erp-card-head">
@@ -87,10 +79,19 @@ $this->load->helper('ui');
                               <div id="page1" style="display:block;">
 
 					<?php if ($measurement_customer) { ?>
-					<input name="customerno1" type="hidden" value="<?php echo (int) $measurement_customer->code; ?>">
+					<?php
+					$meas_customer_code = (int) $measurement_customer->code;
+					$meas_edit_return = 'Measurement/measurement_edit/'.$meas_customer_code;
+					if (!empty($return_order)) {
+						$meas_edit_return .= '?return=order';
+					}
+					$meas_customer_edit_url = site_url('Customer/customer_edit/'.$meas_customer_code).'?return_to='.rawurlencode($meas_edit_return);
+					?>
+					<input name="customerno1" type="hidden" value="<?php echo $meas_customer_code; ?>">
 					<div class="measurement-info-panel">
 						<div class="measurement-section__head">
 							<h3 class="measurement-section__title"><?php echo t('customer_title'); ?></h3>
+							<a class="btn btn-sm btn-outline-primary dz-btn--outlined" href="<?php echo esc_html($meas_customer_edit_url); ?>" data-no-ajax="true"><?php echo esc_html(t('customer_edit')); ?></a>
 						</div>
 						<div class="measurement-info-panel__grid">
 							<div class="measurement-info-panel__item">
@@ -153,12 +154,15 @@ $this->load->helper('ui');
 											
 											
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">گیرا</label>
-                                                <input id="BPL" name="geera"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->geera; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+<?php
+	$this->load->view('partials/measurement_geera_triple', array(
+		'field_name' => 'geera',
+		'field_id' => 'BPL',
+		'label' => 'گیرا',
+		'value' => isset($measurement->geera) ? $measurement->geera : '',
+	));
+?>
 						</div>
 					</div>	
 																	<div class="row">
@@ -389,43 +393,56 @@ $this->load->helper('ui');
 )); ?>
 </div>
 												<div class="tab-pane fade" id="nav-Pent" role="tabpanel" aria-labelledby="nav-Pent-tab">
+<?php
+	$mv = function () use ($measurement) {
+		$keys = func_get_args();
+		foreach ($keys as $key) {
+			if (isset($measurement->$key) && trim((string) $measurement->$key) !== '') {
+				return (string) $measurement->$key;
+			}
+		}
+		$k0 = $keys[0];
+		return isset($measurement->$k0) ? (string) $measurement->$k0 : '';
+	};
+?>
 															<div class="row">
-								 		<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">&nbsp;لمبائی </label>
-                                                <input id="PentLambai" name="PentLambai"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->PentLambai; ?>"  re>
-                                            </div>  
-											
+								 		<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">&nbsp;لمبائی </label>
+                                                <input id="PentLambai" name="PentLambai" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('PentLambai')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">کمر </label>
-                                                <input id="pentWaiste" name="pentWaiste"   type="PPoncha" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->pentWaiste; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">کمر </label>
+                                                <input id="pentWaiste" name="pentWaiste" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('pentWaiste')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">HIP</label>
-                                                <input id="HIP" name="HIP"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->HIP; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">ہپ</label>
+                                                <input id="HIP" name="HIP" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('HIP')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">پانچہ</label>
-                                                <input id="PentPoncha" name="PentPoncha"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->PentPoncha; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">پٹ</label>
+                                                <input id="PentPat" name="PentPat" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('PentPat', 'PentThai')); ?>">
+                                            </div>
 						</div>
-									<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">Thai</label>
-                                                <input id="PentThai" name="PentThai"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->PentThai; ?>"  re>
-                                            </div>  
-											
+									<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">گھٹنہ</label>
+                                                <input id="PentGhutna" name="PentGhutna" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('PentGhutna')); ?>">
+                                            </div>
 						</div>
-					</div>	
+									<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">پانچہ موری</label>
+                                                <input id="PentPonchaMori" name="PentPonchaMori" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('PentPonchaMori', 'PentPoncha')); ?>">
+                                            </div>
+						</div>
+					</div>
 												
 <?php $this->load->view('partials/measurement_garment_note', array(
 	'note_key' => 'pent',
@@ -457,12 +474,15 @@ $this->load->helper('ui');
                                             </div>  
 											
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">گیرا</label>
-                                                <input id="SGeera" name="SGeera"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->SGeera; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+<?php
+	$this->load->view('partials/measurement_geera_triple', array(
+		'field_name' => 'SGeera',
+		'field_id' => 'SGeera',
+		'label' => 'گیرا',
+		'value' => isset($measurement->SGeera) ? $measurement->SGeera : '',
+	));
+?>
 						</div>
 					</div>	
 											<div class="row">
@@ -501,64 +521,88 @@ $this->load->helper('ui');
 )); ?>
 </div>
 																								<div class="tab-pane fade" id="nav-Coat" role="tabpanel" aria-labelledby="nav-Coat-tab">
+<?php
+	if ( ! isset($mv) || ! is_callable($mv)) {
+		$mv = function () use ($measurement) {
+			$keys = func_get_args();
+			foreach ($keys as $key) {
+				if (isset($measurement->$key) && trim((string) $measurement->$key) !== '') {
+					return (string) $measurement->$key;
+				}
+			}
+			$k0 = $keys[0];
+			return isset($measurement->$k0) ? (string) $measurement->$k0 : '';
+		};
+	}
+?>
 																									<div class="row">
-								 		<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">&nbsp;لمبائی </label>
-                                                <input id="CoatLambai" name="CoatLambai"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatLambai; ?>"  re>
-                                            </div>  
-											
+								 		<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">&nbsp;لمبائی </label>
+                                                <input id="CoatLambai" name="CoatLambai" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatLambai')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">باذو</label>
-                                                <input id="CoatBazoo" name="CoatBazoo"   type="Poncha" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatBazoo; ?>"  re>
-                                            </div>  
-											
+							<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">&nbsp;چھاتی </label>
+                                                <input id="CoatChaati" name="CoatChaati" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatChaati')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">تیرا</label>
-                                                <input id="CoatTeera" name="CoatTeera"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatTeera; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">کمر </label>
+                                                <input id="CoatKamar" name="CoatKamar" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatKamar')); ?>">
+                                            </div>
 						</div>
-							<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">&nbsp;چھاتی </label>
-                                                <input id="CoatChaati" name="CoatChaati"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatChaati; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">تیرا</label>
+                                                <input id="CoatTeera" name="CoatTeera" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatTeera')); ?>">
+                                            </div>
 						</div>
-					</div>	
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">بازو</label>
+                                                <input id="CoatBazoo" name="CoatBazoo" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatBazoo')); ?>">
+                                            </div>
+						</div>
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">گلا</label>
+                                                <input id="CoatGaala" name="CoatGaala" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatGaala')); ?>">
+                                            </div>
+						</div>
+					</div>
 											<div class="row">
-								 		<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">HIP </label>
-                                                <input id="CoatChaati" name="CoatHIP"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatHIP; ?>"  re>
-                                            </div>  
-											
+								 		<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">ہپ</label>
+                                                <input id="CoatHIP" name="CoatHIP" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatHIP', 'SherwaniHIP')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">کمر </label>
-                                                <input id="CoatKamar" name="CoatKamar"   type="Poncha" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatKamar; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">ڈولا</label>
+                                                <input id="CoatDola" name="CoatDola" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatDola', 'SherwaniDola')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                             <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">گلا</label>
-                                                <input id="CoatGaala" name="CoatGaala"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->CoatGaala; ?>"  re>
-                                            </div>  
-											
+								<div class="col">
+                                             <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">بازو موری</label>
+                                                <input id="CoatBazooMori" name="CoatBazooMori" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatBazooMori', 'SherwaniBazooMori')); ?>">
+                                            </div>
 						</div>
-								<div class="col">		
-                                               <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">Cross Back</label>
-                                                <input id="crossback" name="crossback"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="<?php echo $measurement->crossback; ?>"  re>
-                                            </div> 
-											
+								<div class="col">
+                                               <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">کراس بیک</label>
+                                                <input id="crossback" name="crossback" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('crossback', 'SherwaniCrossback')); ?>">
+                                            </div>
+						</div>
+								<div class="col">
+                                               <div class="form-group" style="padding:0;margin:0;">
+                                                <label class="control-label mb-1 urd">لمبائی بیک</label>
+                                                <input id="CoatLambaiBack" name="CoatLambaiBack" type="text" class="form-control txtbox" value="<?php echo esc_html($mv('CoatLambaiBack', 'SherwaniLambaiBack')); ?>">
+                                            </div>
 						</div>
 					</div>
 							
@@ -638,8 +682,7 @@ $this->load->helper('ui');
 					</div>
 
 					<div class="measurement-submit-sticky">
-						<div class="measurement-submit-sticky__actions measurement-submit-sticky__actions--split">
-							<a href="<?php echo site_url('Measurement'); ?>" class="btn btn-lg btn-secondary btn-block" data-no-ajax="true"><?php echo t('app_back'); ?></a>
+						<div class="measurement-submit-sticky__actions">
 							<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block">
 								<span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
 								<span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>

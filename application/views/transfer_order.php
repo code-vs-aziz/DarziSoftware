@@ -60,15 +60,7 @@ $this->load->helper('ui');
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 <div class="sufee-alert alert with-close alert-success alert-dismissible fade show">
-											<span class="badge badge-pill badge-success">Success</span>
-											<?php echo sprintf(t('app_record_entered'), $last_id); ?>
-											<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-												<span aria-hidden="true">×</span>
-											</button>
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>				
 						<?php   if($this->session->flashdata('transfer_error')) { ?>
 					 <div class="sufee-alert alert with-close alert-danger alert-dismissible fade show">
 											<span class="badge badge-pill badge-danger">Error</span>
@@ -128,12 +120,10 @@ $this->load->helper('ui');
 										<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_return_date'); ?></label>
-  <input id="retrun_Date" name="retrun_Date" disabled  type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php 
+  <input id="retrun_Date" name="retrun_Date" disabled type="text" class="form-control dz-date" aria-required="true" aria-invalid="false" value="<?php 
   $originalDate1 =  $Measurement_data->RORDERDATE;
-						
-						 
-						$newDate1 = date("d-m-Y", strtotime($originalDate1));
-						echo $newDate1;
+						$newDate1 = date('d-M-Y', strtotime($originalDate1));
+						echo esc_attr($newDate1);
   
    ?>" >
   <input id="order_id" name="order_id" readonly="readonly"  type="hidden" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $Measurement_data->ORDERNO; ?>" >
@@ -144,8 +134,24 @@ $this->load->helper('ui');
 								<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('transfer_kolar_style'); ?></label>
-												<image class="form-control" style="    width: 128px;
-    height: 128px;" src="<?php echo base_url(); ?>/images/<?php echo $Measurement_data->kolor_style; ?>.jpg" >
+												<?php
+												$kolar_file = isset($Measurement_data->kolor_style) ? trim((string) $Measurement_data->kolor_style) : '';
+												$kolar_src = '';
+												if ($kolar_file !== '')
+												{
+													$kolar_abs = FCPATH.'images/'.$kolar_file.'.jpg';
+													if (is_file($kolar_abs))
+													{
+														$kolar_src = base_url('images/'.$kolar_file.'.jpg');
+													}
+												}
+												if ($kolar_src !== '')
+												{
+												?>
+												<img class="form-control" style="width:128px;height:128px;object-fit:cover;padding:0;" src="<?php echo esc_html($kolar_src); ?>" alt="">
+												<?php } else { ?>
+												<div class="form-control d-flex align-items-center justify-content-center text-muted" style="width:128px;height:128px;"><?php echo esc_html(t('app_not_selected')); ?></div>
+												<?php } ?>
                                             </div>  
 						</div> 
 						</div>

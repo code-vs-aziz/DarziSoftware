@@ -10,7 +10,6 @@ $this->load->helper('ui');
   
 ?>
 <style>
- 
 	.ur {
 		font-family: 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', sans serif;;
 	}
@@ -31,6 +30,17 @@ $this->load->helper('ui');
 		color:#4ea0e8;
 		text-decoration:none;
 	}
+	/* Show ~10 employees at once in cash employee Select2 */
+	.select2-container--open .select2-dropdown--cash-employee .select2-results__options {
+		max-height: 320px;
+	}
+	.cash-form-actions .cash-submit-btn {
+		width: 100%;
+		min-height: 52px;
+		font-size: 1.15rem;
+		font-weight: 700;
+		padding: 14px 20px;
+	}
 	</style>
 <body class="animsition erp-app erp-form-page">
     <div class="page-wrapper">
@@ -38,12 +48,7 @@ $this->load->helper('ui');
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
 						 
-						<?php   if($this->session->flashdata('suss') == 'yes') { ?>
-					 
-						<div class="alert alert-success cash-flash-alert" role="alert">
-											Cash Payment/Receipt Genrated
-										</div>
-						<?php  } ?>				
+						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>				
 						<div id="cash-entry-alert" class="alert" role="alert" style="display:none;"></div>
                      	<div class="col-md-12">
                                 <div class="dz-card erp-module-card data-entry-card cash-entry-card">
@@ -88,7 +93,7 @@ $this->load->helper('ui');
 							<option value="Inactive"<?php echo $emp_status_filter === 'Inactive' ? ' selected' : ''; ?>><?php echo t('master_employee_status_inactive'); ?></option>
 							<option value="All"<?php echo $emp_status_filter === 'All' ? ' selected' : ''; ?>><?php echo t('report_employee_status_all'); ?></option>
 						 </select>
-                                           <select id="employee" name="Employee" class="form-control" type="text" aria-required="true" aria-invalid="false">
+                                           <select id="employee" name="Employee" class="form-control" type="text" aria-required="true" aria-invalid="false" autocomplete="off" data-placeholder="Select Employee">
   <option value="">Select Employee</option>
  
  <?php 
@@ -151,27 +156,13 @@ $this->load->helper('ui');
 		 
 					</div>	
 					<div class="row cash-form-actions">
-												<div class="col">
-											 <div>
-                                                <button id="cash-back-button" type="button" onclick="window.history.back()"   class="btn btn-lg btn-secondary btn-block">
-	
-                                                    <span><?php echo t('app_back'); ?></span>
-                                                </button>
-                                            </div>
-												
-											
-											</div>
-												<div class="col">
-                                               <!-- <button id="submit-button" type="submit" name="savBtn" onclick="return valid()"  class="btn btn-lg btn-info btn-block">-->
-                                                <button id="submit-button" type="submit" name="savBtn"    class="btn btn-lg btn-primary btn-block">
-	
-                                                    <span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
-                                                    <span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
-                                                </button>
-                                            </div>
-										 
-										
-</div>
+						<div class="col-12">
+							<button id="submit-button" type="submit" name="savBtn" class="btn btn-lg btn-primary btn-block cash-submit-btn">
+								<span id="submit-button-amount"><?php echo t('app_submit'); ?></span>
+								<span id="submit-button-sending" style="display:none;"><?php echo t('app_saving'); ?></span>
+							</button>
+						</div>
+					</div>
 </div>
 						</form>
                                     </div>

@@ -37,11 +37,11 @@ $default_size = (isset($default_size) && $default_size === 'a4') ? 'a4' : 'small
 			styleEl.id = 'printPageSizeStyle';
 			document.head.appendChild(styleEl);
 		}
-		/* Width changes only — keep the same standard height (148mm). */
+		/* Width changes only — keep the same standard height (148mm). Last @page wins over older landscape rules. */
 		if (size === 'a4') {
-			styleEl.textContent = '@page { size: 210mm 148mm; margin: 0.5cm; }';
+			styleEl.textContent = '@media print { @page { size: 210mm 148mm; margin: 0.4cm; } }';
 		} else {
-			styleEl.textContent = '@page { size: 160mm 148mm; margin: 0.5cm; }';
+			styleEl.textContent = '@media print { @page { size: 160mm 148mm; margin: 0.4cm; } }';
 		}
 
 		try {

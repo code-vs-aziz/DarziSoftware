@@ -28,11 +28,8 @@ $this->load->helper('ui');
 				<div class="alert alert-success" role="alert">
 					<?php echo esc_html($ready_return_msg); ?>
 				</div>
-				<?php } elseif ($this->session->flashdata('suss') == 'yes') { ?>
-				<div class="alert alert-success" role="alert">
-					<?php echo t('order_issue_success'); ?>
-				</div>
 				<?php } ?>
+				<?php $this->load->view('partials/success_alert', array('success_default' => t('order_issue_success'))); ?>
 				<div class="col-md-12">
 					<div class="dz-card erp-module-card">
 						<div class="erp-card-head">
@@ -48,10 +45,8 @@ $this->load->helper('ui');
 							$rd_mobile_no = isset($rd_filters['mobile_no']) ? (string) $rd_filters['mobile_no'] : '';
 							$rd_return_from = isset($rd_filters['return_from']) ? (string) $rd_filters['return_from'] : '';
 							$rd_return_to = isset($rd_filters['return_to']) ? (string) $rd_filters['return_to'] : '';
-							$rd_order_from = isset($rd_filters['order_from']) ? (string) $rd_filters['order_from'] : '';
-							$rd_order_to = isset($rd_filters['order_to']) ? (string) $rd_filters['order_to'] : '';
 							$rd_has_filter = ($rd_customer !== '' || $rd_order_no !== '' || $rd_naap_no !== '' || $rd_mobile_no !== ''
-								|| $rd_return_from !== '' || $rd_return_to !== '' || $rd_order_from !== '' || $rd_order_to !== '');
+								|| $rd_return_from !== '' || $rd_return_to !== '');
 							$rd_return_query = http_build_query(array_filter(array(
 								'customer_name' => $rd_customer,
 								'order_no' => $rd_order_no,
@@ -59,8 +54,6 @@ $this->load->helper('ui');
 								'mobile_no' => $rd_mobile_no,
 								'return_from' => $rd_return_from,
 								'return_to' => $rd_return_to,
-								'order_from' => $rd_order_from,
-								'order_to' => $rd_order_to,
 							), function ($v) {
 								return trim((string) $v) !== '';
 							}));
@@ -91,25 +84,15 @@ $this->load->helper('ui');
 										<label class="mb-1"><strong>Return To</strong></label>
 										<input type="date" name="return_to" class="form-control form-control-sm" value="<?php echo esc_html($rd_return_to); ?>">
 									</div>
-									<div class="col-md-2 mb-2">
-										<label class="mb-1"><strong>Order From</strong></label>
-										<input type="date" name="order_from" class="form-control form-control-sm" value="<?php echo esc_html($rd_order_from); ?>">
-									</div>
-									<div class="col-md-2 mb-2">
-										<label class="mb-1"><strong>Order To</strong></label>
-										<input type="date" name="order_to" class="form-control form-control-sm" value="<?php echo esc_html($rd_order_to); ?>">
-									</div>
-									<div class="col-md-2 mb-2">
-										<button type="submit" class="btn btn-primary dz-btn--filled btn-sm btn-block"><?php echo t('app_search'); ?></button>
-										<?php if ($rd_has_filter) { ?>
-										<a href="<?php echo site_url('Order/order_issue'); ?>" class="btn btn-secondary dz-btn--outlined btn-sm btn-block mt-1"><?php echo t('app_clear'); ?></a>
-										<?php } ?>
+									<div class="col-md-12 mb-2">
+										<label class="mb-1 d-none d-md-block">&nbsp;</label>
+										<button type="submit" class="btn btn-primary dz-btn--filled btn-lg btn-block"><?php echo t('app_search'); ?></button>
 									</div>
 								</div>
 							</form>
 							<p class="text-muted small mb-2"><?php echo esc_html(t('order_issue_filter_hint')); ?></p>
 							<?php if ($rd_has_filter && empty($order_det)) { ?>
-							<p class="text-muted small mb-2">No ready orders match these filters. Click Clear to show all ready orders again.</p>
+							<p class="text-muted small mb-2">No ready orders match these filters. Adjust the filters and search again.</p>
 							<?php } elseif ( ! $rd_has_filter && empty($order_det)) { ?>
 							<p class="text-muted small mb-2">No orders are ready for delivery right now. Complete stitching (Pending Stitching) to add them here.</p>
 							<?php } ?>

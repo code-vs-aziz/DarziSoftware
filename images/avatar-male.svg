@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Male avatar">
+  <rect width="240" height="240" fill="#e0f2fe"/>
+  <circle cx="120" cy="120" r="112" fill="#bae6fd"/>
+  <circle cx="120" cy="96" r="44" fill="#f5d0b5"/>
+  <path d="M70 78c10-34 34-48 50-48s40 14 50 48c-12-14-28-20-50-20S82 64 70 78z" fill="#1e293b"/>
+  <path d="M72 210c10-46 28-66 48-66s38 20 48 66" fill="#1d4ed8"/>
+  <circle cx="104" cy="96" r="4" fill="#7c2d12"/>
+  <circle cx="136" cy="96" r="4" fill="#7c2d12"/>
+  <path d="M110 116c6 7 14 7 20 0" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round"/>
+</svg>

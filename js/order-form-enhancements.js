@@ -228,6 +228,20 @@
 		if (stickyBalance && balance) stickyBalance.textContent = formatMoney(balance.value || 0);
 	}
 
+	function clearKolarSelection(wrap) {
+		if (!wrap) {
+			return;
+		}
+		var options = wrap.querySelectorAll('.order-kolar-option');
+		for (var i = 0; i < options.length; i++) {
+			options[i].classList.remove('is-selected');
+			var input = options[i].querySelector('.order-kolar-option__input');
+			if (input) {
+				input.checked = false;
+			}
+		}
+	}
+
 	function enhanceKolarPickers(root) {
 		var scope = root || document;
 		var options = scope.querySelectorAll('.order-kolar-option');
@@ -239,6 +253,7 @@
 			}
 			label.setAttribute('data-kolar-bound', '1');
 			label.classList.toggle('is-selected', input.checked);
+			label.title = label.title || 'Double-click to unselect';
 			label.addEventListener('click', function () {
 				var wrap = this.closest('.order-kolar-picker');
 				if (!wrap) {
@@ -249,6 +264,16 @@
 					siblings[s].classList.remove('is-selected');
 				}
 				this.classList.add('is-selected');
+			});
+			label.addEventListener('dblclick', function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				var wrap = this.closest('.order-kolar-picker');
+				var radio = this.querySelector('.order-kolar-option__input');
+				if (!radio || !radio.checked) {
+					return;
+				}
+				clearKolarSelection(wrap);
 			});
 		}
 	}
@@ -530,6 +555,9 @@
 		var captureBtn = byId('orderCapturePhotoBtn');
 		if (captureBtn) {
 			captureBtn.addEventListener('click', function () {
+				if (window.orderAvatarModeActive) {
+					return;
+				}
 				if (typeof take_snapshot === 'function') {
 					take_snapshot();
 				}

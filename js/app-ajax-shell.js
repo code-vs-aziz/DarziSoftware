@@ -18,6 +18,7 @@
 	var MIN_LOADING_MS = 0;
 	var LOADER_SHOW_DELAY_MS = 300;
 	var loaderShowTimerId = null;
+	var ajaxHistoryDepth = 0;
 	var skippedPathParts = [
 		'/login',
 		'/logout',
@@ -82,6 +83,58 @@
 
 	function normalizePath(path) {
 		return String(path || '').toLowerCase();
+	}
+
+	function isHomePath(pathname) {
+		var path = normalizePath(pathname || '');
+		path = path.replace(/\/+$/, '');
+		if (path === '' || path === '/' || path === '/index.php') {
+			return true;
+		}
+		return /(?:^|\/)(index\.php\/)?welcome(?:\/(?:index)?)?$/.test(path);
+	}
+
+	function getHomeUrl() {
+		var back = document.querySelector('[data-dz-nav-back]');
+		if (back && back.getAttribute('data-home-url')) {
+			return back.getAttribute('data-home-url');
+		}
+		return window.location.origin + '/index.php/Welcome';
+	}
+
+	function syncMobileChrome(doc, url) {
+		var back = document.querySelector('[data-dz-nav-back]');
+		var titleEl = document.querySelector('.dz-topbar-mobile__title');
+		var incomingTitle = doc ? doc.querySelector('.dz-topbar-mobile__title') : null;
+		var home = isHomePath(url && url.pathname ? url.pathname : window.location.pathname);
+
+		if (titleEl && incomingTitle && incomingTitle.textContent) {
+			titleEl.textContent = String(incomingTitle.textContent || '').replace(/^\s+|\s+$/g, '');
+		}
+		if (document.body) {
+			document.body.classList.toggle('erp-is-home', home);
+		}
+		if (back) {
+			if (home) {
+				back.setAttribute('hidden', 'hidden');
+				back.classList.add('is-home-hidden');
+				back.setAttribute('aria-hidden', 'true');
+			} else {
+				back.removeAttribute('hidden');
+				back.classList.remove('is-home-hidden');
+				back.setAttribute('aria-hidden', 'false');
+			}
+		}
+	}
+
+	function goBack() {
+		if (ajaxHistoryDepth > 0) {
+			window.history.back();
+			return;
+		}
+		if (!isHomePath(window.location.pathname)) {
+			loadUrl(getHomeUrl(), true);
+		}
 	}
 
 	function isDataTablesControlLink(link) {
@@ -380,11 +433,50 @@
 		}
 	}
 
+	function syncBodyClasses(doc) {
+		if (!doc.body || !document.body) {
+			return;
+		}
+		var keep = ['app-ajax-loading', 'dz-nav-open', 'modal-open'];
+		var preserved = {};
+		var i;
+		for (i = 0; i < keep.length; i++) {
+			if (document.body.classList.contains(keep[i])) {
+				preserved[keep[i]] = true;
+			}
+		}
+		document.body.className = doc.body.className || '';
+		for (i = 0; i < keep.length; i++) {
+			if (preserved[keep[i]]) {
+				document.body.classList.add(keep[i]);
+			}
+		}
+	}
+
 	function injectPageStyles(doc) {
 		var $ = getJq();
 		$('style[data-app-ajax-style="true"]').remove();
+		$('link[data-app-ajax-style="true"]').remove();
 		Array.prototype.forEach.call(doc.querySelectorAll('style'), function (style) {
 			var clone = style.cloneNode(true);
+			clone.setAttribute('data-app-ajax-style', 'true');
+			document.head.appendChild(clone);
+		});
+		Array.prototype.forEach.call(doc.querySelectorAll('link[rel="stylesheet"]'), function (link) {
+			var href = link.getAttribute('href');
+			var exists = false;
+			if (!href) {
+				return;
+			}
+			Array.prototype.forEach.call(document.querySelectorAll('link[rel="stylesheet"]'), function (existing) {
+				if (existing.getAttribute('href') === href) {
+					exists = true;
+				}
+			});
+			if (exists) {
+				return;
+			}
+			var clone = link.cloneNode(true);
 			clone.setAttribute('data-app-ajax-style', 'true');
 			document.head.appendChild(clone);
 		});
@@ -423,7 +515,8 @@
 	}
 
 	function isDataEntryFormPage(path) {
-		return /\/(suit_add|suit_edit|style_add|style_edit|embroidery_add|embroidery_edit|employee_add|employee_edit|customer_add|customer_edit|measurement_add|measurement_edit|order_edit)\/?$/i.test(path);
+		// Allow /measurement_edit/123 — old regex only matched bare /measurement_edit
+		return /\/(suit_add|suit_edit|style_add|style_edit|embroidery_add|embroidery_edit|employee_add|employee_edit|customer_add|customer_edit|measurement_add|measurement_edit|order_edit|order_add1|order_add2)(\/|$)/i.test(path);
 	}
 
 	function scheduleDataTableInit() {
@@ -545,13 +638,20 @@
 			document.documentElement.lang = doc.documentElement.lang || document.documentElement.lang;
 			document.documentElement.dir = doc.documentElement.dir || document.documentElement.dir;
 		}
+		syncBodyClasses(doc);
 		if (pushHistory) {
 			window.history.pushState({ appAjax: true, url: url.href }, '', url.href);
+			if (isHomePath(url.pathname)) {
+				ajaxHistoryDepth = 0;
+			} else {
+				ajaxHistoryDepth += 1;
+			}
 		}
 		if (currentSelector === contentSelector) {
 			updateActiveLink(url);
 			closeMobileMenu();
 		}
+		syncMobileChrome(doc, url);
 		injectPageStyles(doc);
 		executeInlineScripts(doc);
 		clearLegacyLoaders();
@@ -643,6 +743,7 @@
 	function onDocumentClick(event) {
 		var link = event.target.closest ? event.target.closest('a[href]') : null;
 		var url;
+		var hrefAttr;
 
 		if (!link) {
 			return;
@@ -651,6 +752,11 @@
 			return;
 		}
 		if (link.target && link.target !== '_self') {
+			return;
+		}
+		hrefAttr = link.getAttribute('href') || '';
+		// In-page tabs/anchors (#nav-Pajama etc.) — never force full reload.
+		if (hrefAttr.charAt(0) === '#' || link.getAttribute('data-toggle') === 'tab' || link.getAttribute('data-toggle') === 'pill') {
 			return;
 		}
 		if (link.getAttribute('data-app-logout') === 'true' || link.getAttribute('data-app-modal-nav') === 'true') {
@@ -665,7 +771,10 @@
 			return;
 		}
 
-		url = new URL(link.getAttribute('href'), window.location.href);
+		url = new URL(hrefAttr, window.location.href);
+		if (url.hash && url.pathname === window.location.pathname && url.search === window.location.search) {
+			return;
+		}
 		if (isDataTableListPage(normalizePath(url.pathname)) || isDataEntryFormPage(normalizePath(url.pathname))) {
 			forceFullPageNavigation(link, event);
 			return;
@@ -728,17 +837,32 @@
 		suppressPop = true;
 		window.history.replaceState({ appAjax: true, url: window.location.href }, '', window.location.href);
 		suppressPop = false;
+		ajaxHistoryDepth = 0;
 		clearLegacyLoaders();
+		syncMobileChrome(document, window.location);
 		initPlugins();
 	}
 
+	document.addEventListener('click', function (event) {
+		var back = event.target && event.target.closest ? event.target.closest('[data-dz-nav-back]') : null;
+		if (!back) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		goBack();
+	}, true);
+
 	document.addEventListener('click', onDocumentClick, true);
-	document.addEventListener('submit', onDocumentSubmit, true);
+	// Bubble phase (not capture): custom onsubmit handlers must run first and
+	// call preventDefault so we do not race them (e.g. home customer search).
+	document.addEventListener('submit', onDocumentSubmit, false);
 
 	window.addEventListener('popstate', function () {
 		if (suppressPop) {
 			return;
 		}
+		ajaxHistoryDepth = Math.max(0, ajaxHistoryDepth - 1);
 		loadUrl(window.location.href, false);
 	});
 
@@ -766,6 +890,7 @@
 		load: function (url) {
 			loadUrl(url, true);
 		},
+		back: goBack,
 		reinit: initPlugins,
 		shouldSkipUrl: shouldSkipUrl
 	};

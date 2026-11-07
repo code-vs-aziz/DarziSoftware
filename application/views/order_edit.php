@@ -7,7 +7,7 @@ $this->load->helper('ui');
  
   
 ?>
-	<link href="<?php echo base_url('css/order-form-enhancements.css?v=7'); ?>" rel="stylesheet" media="all">
+	<link href="<?php echo base_url('css/order-form-enhancements.css?v=9'); ?>" rel="stylesheet" media="all">
 <body class="animsition erp-app erp-form-page order-form-page">
 <div class="page-wrapper">
  <style>
@@ -89,10 +89,34 @@ $this->load->helper('ui');
             <div class="main-content">
                 <div class="section__content section__content--p30">
                     <div class="container-fluid">
-						<?php if ($this->session->flashdata('suss') == 'yes') { ?>
+						<?php
+						$order_edit_suss = app_take_flash('suss');
+						$order_edit_msg = app_take_flash('success_msg');
+						if ($order_edit_msg !== NULL && $order_edit_msg !== '') {
+						?>
+						<div class="alert alert-success" role="alert"><?php echo esc_html((string) $order_edit_msg); ?></div>
+						<?php } elseif ($order_edit_suss === 'yes') { ?>
 						<div class="alert alert-success" role="alert"><?php echo sprintf(t('app_record_entered'), $edit_trnno); ?></div>
-						<?php } elseif ($this->session->flashdata('suss') == 'incomplete') { ?>
+						<?php } elseif ($order_edit_suss === 'incomplete') { ?>
 						<div class="alert alert-danger" role="alert"><?php echo t('order_edit_save_failed'); ?></div>
+						<?php } elseif ($order_edit_suss === 'booking_limit') { ?>
+						<div class="alert alert-danger" role="alert"><?php
+							$bli = app_take_flash('booking_limit_info');
+							if (is_array($bli))
+							{
+								echo esc_html(sprintf(
+									t('order_flash_booking_limit'),
+									isset($bli['return_date']) ? $bli['return_date'] : '',
+									isset($bli['limit']) ? (int) $bli['limit'] : 0,
+									isset($bli['booked']) ? (int) $bli['booked'] : 0,
+									isset($bli['remaining']) ? (int) $bli['remaining'] : 0
+								));
+							}
+							else
+							{
+								echo t('order_flash_booking_limit_generic');
+							}
+						?></div>
 						<?php } ?>
                      	<div class="col-md-12">
                                 <div class="dz-card erp-module-card data-entry-card">
@@ -133,13 +157,13 @@ $this->load->helper('ui');
 									<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_current_date'); ?></label>
-  <input id="current" name="current"   type="date" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo $order_mst_row->EDATE; ?>" re>
+  <input id="current" name="current" type="text" class="form-control dz-date" aria-required="true" aria-invalid="false" value="<?php echo esc_attr(date('d-M-Y', strtotime($order_mst_row->EDATE))); ?>" autocomplete="off" placeholder="dd-Mon-yyyy">
                                             </div>  
 						</div>
 										<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_return_date'); ?></label>
-  <input id="retrun_Date" name="retrun_Date"   type="date" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_mst_row->RDATE; ?>" >
+  <input id="retrun_Date" name="retrun_Date" type="text" class="form-control dz-date" aria-required="true" aria-invalid="false" value="<?php echo esc_attr(date('d-M-Y', strtotime($order_mst_row->RDATE))); ?>" autocomplete="off" placeholder="dd-Mon-yyyy">
                                             </div>  
 						</div>
 														<div class="col">		
@@ -147,6 +171,12 @@ $this->load->helper('ui');
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('app_quantity'); ?></label>
   <input id="Quantity" name="Quantity"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_mst_row->qty; ?>" >
                                             </div>  
+						</div>
+						<div class="col-12">
+							<div id="order-booking-limit-alert" class="sufee-alert alert with-close alert-danger fade show d-none" role="alert" style="display:none;">
+								<span class="order-booking-limit-alert__text"></span>
+								<button type="button" class="close" aria-label="Close" onclick="document.getElementById('order-booking-limit-alert').classList.add('d-none');document.getElementById('order-booking-limit-alert').style.display='none';return false;"><span aria-hidden="true">×</span></button>
+							</div>
 						</div>
 						 
 					</div>	
@@ -483,6 +513,52 @@ function myFunction() {
 				$(remarks).setUrduInput();
 			}
 		}
+
+		var excludeOrder = <?php echo (int) $edit_trnno; ?>;
+		function editLang(key, fallback) {
+			return (window.APP_LANG && APP_LANG[key]) ? APP_LANG[key] : fallback;
+		}
+		function showEditBookingLimit(msg) {
+			var box = document.getElementById('order-booking-limit-alert');
+			if (!box) return;
+			var text = box.querySelector('.order-booking-limit-alert__text');
+			if (text) text.textContent = msg || '';
+			box.classList.remove('d-none');
+			box.style.display = '';
+		}
+		function clearEditBookingLimit() {
+			var box = document.getElementById('order-booking-limit-alert');
+			if (!box) return;
+			box.classList.add('d-none');
+			box.style.display = 'none';
+		}
+		function checkEditBookingLimit() {
+			var q = parseInt($('#Quantity').val(), 10) || 0;
+			var rdate = String($('#retrun_Date').val() || '').trim();
+			if (q < 1 || !rdate) {
+				clearEditBookingLimit();
+				return;
+			}
+			$.ajax({
+				type: 'POST',
+				url: '<?php echo site_url('Order/booking_limit_check'); ?>',
+				dataType: 'json',
+				data: { qty: q, return_date: rdate, exclude_order: excludeOrder },
+				success: function (res) {
+					if (res && res.ok === false) {
+						var fmt = editLang('booking_limit_reached', 'Booking limit full for return date %1$s. Limit: %2$d, already booked: %3$d, remaining: %4$d. Reduce quantity or change return date.');
+						showEditBookingLimit(fmt
+							.replace('%1$s', res.return_date || '')
+							.replace('%2$d', String(res.limit != null ? res.limit : 0))
+							.replace('%3$d', String(res.booked != null ? res.booked : 0))
+							.replace('%4$d', String(res.remaining != null ? res.remaining : 0)));
+					} else {
+						clearEditBookingLimit();
+					}
+				}
+			});
+		}
+		$(document).on('change blur', '#Quantity, #retrun_Date', checkEditBookingLimit);
 	});
  </script>
 <?php $this->load->view('partials/order_copy_suit_line_js'); ?>
