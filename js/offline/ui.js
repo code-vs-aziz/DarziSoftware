@@ -159,8 +159,9 @@
 			(p.conflicts || 0) + ' ' + t('offline_sync_conflicts', 'conflicts'),
 			t('offline_last_synced', 'Last synced') + ': ' + formatTime(summary.at)
 		];
+		// Toast only — do not auto-open Sync status panel (it was popping up
+		// during unrelated online actions like WhatsApp PDF send).
 		toast(parts.join(' · '), 'synced');
-		openPanel(summary);
 	}
 
 	function openPanel(summary) {

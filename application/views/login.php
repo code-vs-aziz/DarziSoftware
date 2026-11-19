@@ -17,13 +17,21 @@ $flash_error = $this->session->flashdata('error');
 	<meta name="mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="default">
 	<meta name="apple-mobile-web-app-title" content="DarziERP">
+	<?php
+	$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
+	if ($offline_desk_enabled) {
+	?>
 	<link rel="manifest" href="<?php echo base_url('manifest.webmanifest'); ?>">
+	<?php } ?>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
 	<link href="<?php echo base_url(); ?>vendor/bootstrap-4.1/bootstrap.min.css" rel="stylesheet" media="all">
 	<link href="<?php echo base_url(); ?>vendor/font-awesome-5/css/fontawesome-all.min.css?v=5154" rel="stylesheet" media="all">
 	<link href="<?php echo base_url(); ?>css/login.css?v=5" rel="stylesheet" media="all">
+	<?php if ( ! $offline_desk_enabled) { ?>
+	<script src="<?php echo base_url(); ?>js/offline-kill.js?v=1"></script>
+	<?php } ?>
 	<?php $this->load->view('partials/csrf_bootstrap'); ?>
 </head>
 <body class="login-advanced">

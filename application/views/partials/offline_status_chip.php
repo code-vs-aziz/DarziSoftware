@@ -1,8 +1,13 @@
 <?php
 /**
  * Global offline / sync status chip (header).
+ * Hidden while Offline Desk is temporarily disabled.
  */
 if (!$this->session->userdata('user')) {
+	return;
+}
+$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
+if ( ! $offline_desk_enabled) {
 	return;
 }
 $offline_variant = isset($offline_indicator_variant) ? $offline_indicator_variant : 'desktop';

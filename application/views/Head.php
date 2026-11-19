@@ -49,10 +49,15 @@ else
 	<meta name="mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="default">
 	<meta name="apple-mobile-web-app-title" content="DarziERP">
+	<?php
+	$offline_desk_enabled_head = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
+	if ($offline_desk_enabled_head) {
+	?>
 	<link rel="manifest" href="<?php echo base_url('manifest.webmanifest'); ?>?v=4">
+	<?php } ?>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Urdu:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
 <?php $erp_light_page = !empty($erp_light_page); ?>
 <?php if (!$erp_light_page) { ?>
 <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>/css/jquery.dataTables.css">
@@ -82,7 +87,7 @@ else
 
     <!-- Main CSS-->
     <link href="<?php echo base_url(); ?>css/theme.css" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=82" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=88" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/app-unified-theme.css?v=11" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/erp-form-enhancements.css?v=5" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/dz-responsive.css?v=6" rel="stylesheet" media="all">
@@ -128,26 +133,32 @@ else
 	<script src="<?php echo base_url(); ?>js/order-detail-datatable.js?v=11"></script>
 	<script src="<?php echo base_url(); ?>js/master-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/customer-list-datatable.js?v=1"></script>
-	<script src="<?php echo base_url(); ?>js/cash-entry.js?v=3"></script>
+	<script src="<?php echo base_url(); ?>js/cash-entry.js?v=4"></script>
 	<script src="<?php echo base_url(); ?>js/order-status-deliver.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/config-predefined.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/transfer-bulk-table.js?v=7"></script>
 	<script src="<?php echo base_url(); ?>js/app-datatables-init.js?v=1"></script>
 <?php } ?>
 	<script src="<?php echo base_url(); ?>js/dz-open-nav.js?v=1"></script>
-	<script src="<?php echo base_url(); ?>js/app-ajax-shell.js?v=29"></script>
+	<script src="<?php echo base_url(); ?>js/app-ajax-shell.js?v=30"></script>
 	<script src="<?php echo base_url(); ?>js/dz-responsive-shell.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/dz-date-picker.js?v=2"></script>
 	<script src="<?php echo base_url(); ?>js/app-notifications.js?v=3"></script>
 	<script>window.APP_LANG = <?php echo json_encode(app_lang_js_strings(), JSON_UNESCAPED_UNICODE); ?>;</script>
 	<script src="<?php echo base_url(); ?>js/bridge-status-indicator.js?v=3"></script>
-	<?php if ($this->session->userdata('user')) { ?>
+	<?php
+	// Temporary kill-switch: Offline Desk / PWA off until shops are ready.
+	$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
+	?>
+	<?php if ( ! $offline_desk_enabled) { ?>
+	<script src="<?php echo base_url(); ?>js/offline-kill.js?v=1"></script>
+	<?php } elseif ($this->session->userdata('user')) { ?>
 	<script>
 	window.DARZI_OFFLINE_CFG = <?php echo json_encode(array(
 		'enabled' => TRUE,
 		'apiBase' => site_url('api/erp_sync'),
 		'healthUrl' => site_url('api/erp_sync/health'),
-		'swUrl' => base_url('sw.js'),
+		'swUrl' => base_url('sw.js?v=7'),
 		'swScope' => base_url(),
 		'homeUrl' => site_url('Welcome'),
 		'loginUrl' => site_url('Login'),
@@ -165,7 +176,7 @@ else
 	<script src="<?php echo base_url(); ?>js/offline/sync-engine.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/offline/desk-ops.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=3"></script>
+	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=4"></script>
 	<script src="<?php echo base_url(); ?>js/offline/bootstrap.js?v=3"></script>
 	<?php } ?>
 	<?php $this->load->view('partials/csrf_bootstrap'); ?>
