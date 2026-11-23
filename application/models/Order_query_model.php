@@ -1528,11 +1528,28 @@ class Order_query_model extends CI_Model
     $exact = $this->db->escape($q);
     $like = $this->db->escape($esc.'%');
     $like_both = $this->db->escape('%'.$esc.'%');
+    // PK mobile variants: 03XXXXXXXXX and without leading 0.
+    $phone_variants = array();
+    if ($digits !== '')
+    {
+      $phone_variants[$digits] = TRUE;
+      if (substr($digits, 0, 1) === '0' && strlen($digits) >= 10)
+      {
+        $phone_variants[substr($digits, 1)] = TRUE;
+      }
+      elseif (substr($digits, 0, 1) !== '0' && strlen($digits) >= 10)
+      {
+        $phone_variants['0'.$digits] = TRUE;
+      }
+    }
 
     $this->db->group_start();
     if ($digits !== '' && ctype_digit($digits) && substr($digits, 0, 1) !== '0')
     {
       $this->db->or_where('order_mst.trnno', (int) $digits);
+      // Measurement code (internal naap key) when user types the number.
+      $this->db->or_where('order_mst.naap_no', (int) $digits);
+      $this->db->or_where('measurement.code', (int) $digits);
     }
     if ($this->_order_mst_has_column('snap_man_napno'))
     {
@@ -1545,8 +1562,13 @@ class Order_query_model extends CI_Model
     $this->db->or_where('(customer.man_napno = '.$exact.' OR customer.man_napno LIKE '.$like.')', NULL, FALSE);
     if ($digits !== '')
     {
-      $this->db->or_where('customer.Phone', $digits);
-      $this->db->or_like('customer.Phone', $this->db->escape_like_str($digits), 'both');
+      $this->db->or_where('customer.man_napno', $digits);
+      $this->db->or_like('customer.man_napno', $this->db->escape_like_str($digits), 'after');
+    }
+    foreach (array_keys($phone_variants) as $phone)
+    {
+      $this->db->or_where('customer.Phone', $phone);
+      $this->db->or_like('customer.Phone', $this->db->escape_like_str($phone), 'both');
     }
     $this->db->or_where('customer.Phone', $q);
     $this->db->or_like('customer.Phone', $esc, 'after');
@@ -1555,12 +1577,12 @@ class Order_query_model extends CI_Model
     // Employee name / phone (karigar on current transfer line).
     $emp_sql = 'EXISTS (SELECT 1 FROM employee e WHERE e.empno = transfer_mst.empno AND ('
       .'e.name = '.$exact.' OR e.name LIKE '.$like_both;
-    if ($digits !== '')
+    foreach (array_keys($phone_variants) as $phone)
     {
-      $emp_sql .= ' OR e.phone = '.$this->db->escape($digits)
-        .' OR e.phone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($digits).'%')
-        .' OR e.emergencyphone = '.$this->db->escape($digits)
-        .' OR e.emergencyphone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($digits).'%');
+      $emp_sql .= ' OR e.phone = '.$this->db->escape($phone)
+        .' OR e.phone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($phone).'%')
+        .' OR e.emergencyphone = '.$this->db->escape($phone)
+        .' OR e.emergencyphone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($phone).'%');
     }
     $emp_sql .= '))';
     $this->db->or_where($emp_sql, NULL, FALSE);
@@ -1902,6 +1924,8 @@ class Order_query_model extends CI_Model
 		NULL,
 		FALSE
 	);
+	// Current tab never includes already-delivered lines (Delivered tab only).
+	$this->db->where("UPPER(TRIM(transfer_mst.status)) <> 'DELIVER'", NULL, FALSE);
 	$this->_apply_order_status_detail_filters($filters);
 	// Exact lookup (order # / phone / naap): also show deactivated — otherwise staff
 	// think the order "vanished" when it was only soft-deactivated.
@@ -1926,8 +1950,8 @@ class Order_query_model extends CI_Model
 	}
 	elseif ($has_lookup)
 	{
-		// Lookup: show latest row even if CANCEL / CANCEL_READY / DELIVER.
-		// No Active-only filter — deactivated orders must still be findable.
+		// Lookup: show latest row even if CANCEL / CANCEL_READY so staff can
+		// still find soft-deactivated suits. DELIVER already excluded above.
 	}
 	else
 	{
@@ -1947,12 +1971,22 @@ class Order_query_model extends CI_Model
 	{
 		$row_limit = min(5000, (int) $filters['row_limit']);
 	}
+	// Lookups (phone / naap / order #) need a wider cap so every open suit shows.
+	if ($has_lookup && ( ! isset($filters['row_limit']) || (int) $filters['row_limit'] <= 0))
+	{
+		$row_limit = 2000;
+	}
 	$this->db->limit($row_limit);
 	 
 	$q = $this->db->get();
 	$data = array();
 	foreach ($this->_query_result_rows($q) as $row)
 	{
+		$st = isset($row->status) ? strtoupper(trim((string) $row->status)) : '';
+		if ($st === 'DELIVER')
+		{
+			continue;
+		}
 		$data[] = $row;
 	}
 	return $data;

@@ -183,8 +183,9 @@
 		});
 	}
 
-	function matchOrderStatusRow(row, filters) {
+	function matchOrderStatusRow(row, filters, scope) {
 		filters = filters || {};
+		scope = scope === 'delivered' ? 'delivered' : 'current';
 		function has(hay, needle) {
 			if (!needle) {
 				return true;
@@ -195,6 +196,14 @@
 		}
 		function digits(s) {
 			return String(s || '').replace(/\D+/g, '');
+		}
+		// Current tab never shows already-delivered suits (Delivered tab only).
+		if (scope === 'current') {
+			var xs = String((row && row.xfer_status) || '').toUpperCase();
+			var label = liveStatusLabel(row || {}).toUpperCase();
+			if (xs === 'DELIVER' || label === 'DELIVERED') {
+				return false;
+			}
 		}
 		if (filters.dt_q) {
 			var dq = String(filters.dt_q).toLowerCase();
@@ -319,6 +328,11 @@
 				continue;
 			}
 			var scrapedStatus = String(cells[9].textContent || '').trim();
+			var mapped = liveStatusLabel({ status_label: scrapedStatus, stage: scrapedStatus });
+			// Never cache Delivered rows under Current scope.
+			if (scope === 'current' && String(mapped).toUpperCase() === 'DELIVERED') {
+				continue;
+			}
 			rows.push({
 				order_no: parseInt(String(text).split('-')[0], 10) || 0,
 				order_display: text,
@@ -330,8 +344,9 @@
 				customer: String(cells[6].textContent || '').trim(),
 				naap_no: String(cells[7].textContent || '').trim(),
 				remarks: String(cells[8].textContent || '').trim(),
-				status_label: liveStatusLabel({ status_label: scrapedStatus, stage: scrapedStatus }),
-				stage: scrapedStatus
+				status_label: mapped,
+				stage: scrapedStatus,
+				xfer_status: mapped === 'Delivered' ? 'DELIVER' : ''
 			});
 		}
 		if (!rows.length) {
@@ -342,6 +357,13 @@
 			var existing = Array.isArray(lists.order_status[scope]) ? lists.order_status[scope].slice() : [];
 			var byKey = {};
 			existing.forEach(function (r) {
+				if (scope === 'current') {
+					var lab = liveStatusLabel(r || {}).toUpperCase();
+					var xs = String((r && r.xfer_status) || '').toUpperCase();
+					if (xs === 'DELIVER' || lab === 'DELIVERED') {
+						return;
+					}
+				}
 				byKey[String(r.order_display || r.order_no)] = r;
 			});
 			rows.forEach(function (r) {
@@ -475,7 +497,7 @@
 		var keepSearch = opts.keepSearch != null ? String(opts.keepSearch) : '';
 		orderStatusRows(scope).then(function (rows) {
 			var filtered = rows.filter(function (r) {
-				return matchOrderStatusRow(r, filters || {});
+				return matchOrderStatusRow(r, filters || {}, scope);
 			});
 			if ($.fn.DataTable && $.fn.DataTable.isDataTable(table)) {
 				try {

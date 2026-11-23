@@ -121,6 +121,8 @@ class Transfer extends MY_Controller {
 			$status_filters['return_to'] = '';
 			$status_filters['order_from'] = '';
 			$status_filters['order_to'] = '';
+			// Full open pipeline for this customer / order / naap / phone.
+			$status_filters['row_limit'] = '2000';
 		}
 		if ($status_filters['return_from'] === '' && $this->input->get('fromdate', TRUE) !== NULL && ! $has_lookup)
 		{
@@ -154,6 +156,21 @@ class Transfer extends MY_Controller {
 		else
 		{
 			$data['orderdata'] = $this->order_query->order_Status($status_filters);
+			// Belt-and-suspenders: Current never renders DELIVER rows.
+			if (is_array($data['orderdata']) && ! empty($data['orderdata']))
+			{
+				$kept = array();
+				foreach ($data['orderdata'] as $row)
+				{
+					$st = isset($row->status) ? strtoupper(trim((string) $row->status)) : '';
+					if ($st === 'DELIVER')
+					{
+						continue;
+					}
+					$kept[] = $row;
+				}
+				$data['orderdata'] = $kept;
+			}
 		}
 		if (empty($data['orderdata']))
 		{

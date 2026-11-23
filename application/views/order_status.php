@@ -71,6 +71,7 @@ $this->load->helper('ui');
 									</style>
 									<form method="get" id="os-status-filter-form" class="mb-3" action="<?php echo site_url('transfer/order_Status'); ?>">
 										<input type="hidden" name="scope" id="os-scope-input" value="<?php echo esc_attr($os_scope); ?>">
+										<input type="hidden" name="dt_q" id="os-dt-q-input" value="<?php echo esc_attr($os_via_dt ? $os_dt_seed : ''); ?>">
 										<div class="os-scope-toggle" role="group" aria-label="Order status scope">
 											<button type="submit" class="btn btn-primary dz-btn--filled btn-sm<?php echo $os_is_delivered_scope ? '' : ' os-scope-active'; ?>" data-os-scope="current" onclick="document.getElementById('os-scope-input').value='current';"><?php echo esc_html(t('order_status_current')); ?></button>
 											<button type="submit" class="btn btn-primary dz-btn--filled btn-sm<?php echo $os_is_delivered_scope ? ' os-scope-active' : ''; ?>" data-os-scope="delivered" onclick="document.getElementById('os-scope-input').value='delivered';"><?php echo esc_html(t('order_status_delivered_tab')); ?></button>
@@ -128,6 +129,12 @@ $this->load->helper('ui');
 				$order = 0 ;
 				$sr = 1 ;
 			 foreach($orderdata as $orderdata){
+			 $xfer_status = isset($orderdata->status) ? trim((string) $orderdata->status) : '';
+			 // Current tab: never show Delivered (use Delivered tab for those).
+			 if ( ! $os_is_delivered_scope && strtoupper($xfer_status) === 'DELIVER')
+			 {
+				 continue;
+			 }
 				 if($orderdata->ostatus == 0)
 				 {
 		if($orderdata->ORDERNO != $order  )
@@ -140,10 +147,9 @@ $this->load->helper('ui');
 			 {
 				 $sr = $sr + 1;
 			 }
-			 $xfer_status = isset($orderdata->status) ? (string) $orderdata->status : '';
 			 $is_deactivated = (isset($orderdata->ostatus) && (int) $orderdata->ostatus === 1)
 			 	|| $xfer_status === 'CANCEL' || $xfer_status === 'CANCEL_READY';
-			 $is_delivered = ($xfer_status === 'DELIVER');
+			 $is_delivered = (strtoupper($xfer_status) === 'DELIVER');
 			 // Ready 4 Deliver = stitching complete (STIT + Deactive). Deliver only on those rows.
 			 $is_ready = ( ! $is_delivered && ! $is_deactivated && isset($orderdata->dept) && $orderdata->dept === 'STIT' && $xfer_status === 'Deactive');
 			 $show_deliver = $is_ready;

@@ -77,7 +77,10 @@
 	}
 
 	/**
-	 * Bind real-time client filter + server dt_q lookup when no local matches.
+	 * Bind real-time client filter + server dt_q lookup.
+	 * By default server lookup runs when local matches === 0.
+	 * Order Status sets forceServerLookup so every naap/phone hit reloads
+	 * the full server set (e.g. Booking + Ready for same customer).
 	 */
 	function bindUniversalSearch(opts) {
 		opts = opts || {};
@@ -88,6 +91,7 @@
 		var buildLookupUrl = opts.buildLookupUrl;
 		var buildClearUrl = opts.buildClearUrl;
 		var offlineLookup = opts.offlineLookup;
+		var forceServerLookup = !!opts.forceServerLookup;
 		if (!dt || !$filter || !$filter.length) {
 			return;
 		}
@@ -196,20 +200,23 @@
 				applyClientSearch('');
 				return;
 			}
-			var matched = applyClientSearch(raw);
+			applyClientSearch(raw);
 			var lookup = isUniversalLookupQuery(raw);
 			if (!lookup || sameAsCurrentSeed(lookup)) {
 				return;
 			}
-			if (matched === 0) {
+			// Order Status: always hit server so phone/naap/order # returns the
+			// full open pipeline (Booking…Ready), not only rows in the default page.
+			var delay = isOfflineNow() ? 80 : forceServerLookup ? 280 : 450;
+			if (forceServerLookup || dt.rows({ search: 'applied' }).count() === 0) {
 				lookupTimer = window.setTimeout(function () {
 					var latest = String($filter.val() || '').replace(/^\s+|\s+$/g, '');
 					var latestLookup = isUniversalLookupQuery(latest);
-					if (!latestLookup) {
+					if (!latestLookup || sameAsCurrentSeed(latestLookup)) {
 						return;
 					}
 					goLookup(latestLookup);
-				}, isOfflineNow() ? 120 : 450);
+				}, delay);
 			}
 		});
 
@@ -421,6 +428,26 @@
 			searchDelay: 10000
 		});
 
+		// Current tab safety net: drop any Delivered rows the server/cache still sent.
+		if (orderStatusScope() === 'current') {
+			var deliveredIndexes = [];
+			dt.rows({ search: 'none' }).every(function () {
+				var node = this.node();
+				if (!node || !node.cells || node.cells.length < 10) {
+					return;
+				}
+				var statusText = String(node.cells[9].textContent || '')
+					.replace(/\s+/g, ' ')
+					.replace(/^\s+|\s+$/g, '');
+				if (/^delivered$/i.test(statusText)) {
+					deliveredIndexes.push(this.index());
+				}
+			});
+			if (deliveredIndexes.length) {
+				dt.rows(deliveredIndexes).remove().draw(false);
+			}
+		}
+
 		var $filter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
 		var effectiveSeed = seed || (viaDt ? seed : '');
 		if (preserveVal !== '' && !effectiveSeed) {
@@ -435,6 +462,7 @@
 			$filter: $filter,
 			seed: viaDt ? seed : '',
 			formSelector: '#os-status-filter-form',
+			forceServerLookup: true,
 			offlineLookup: function (lookup) {
 				if (
 					window.DarziOffline &&
