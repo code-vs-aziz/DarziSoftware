@@ -15,7 +15,7 @@
 	<link rel="stylesheet" href="/css/dz-design-system.css?v=88">
 	<link rel="stylesheet" href="/css/app-unified-theme.css?v=11">
 	<link rel="stylesheet" href="/css/dz-mobile-app.css?v=6">
-	<link rel="stylesheet" href="/css/offline-erp.css?v=3">
+	<link rel="stylesheet" href="/css/offline-erp.css?v=8">
 	<link rel="stylesheet" href="/css/offline-desk.css?v=5">
 	<link rel="stylesheet" href="/css/measurement-form-enhancements.css?v=13">
 	<script>
@@ -23,13 +23,47 @@
 		enabled: true,
 		apiBase: '/index.php/api/erp_sync',
 		healthUrl: '/index.php/api/erp_sync/health',
-		swUrl: '/sw.js?v=15',
+		swUrl: '/sw.js?v=34',
 		swScope: '/',
 		homeUrl: '/index.php/Welcome',
 		loginUrl: '/index.php/Login',
-		offlineApp: true
+		offlineApp: true,
+		expectedCachePrefix: 'darzi-erp-safe-v34'
 	};
 	window.APP_LANG = window.APP_LANG || {};
+	// Force SW upgrade off legacy desks (e.g. darzi-erp-offline-v2) so reliability fixes activate.
+	(function () {
+		if (!('serviceWorker' in navigator) || !('caches' in window)) {
+			return;
+		}
+		var expected = 'darzi-erp-safe-v34';
+		caches.keys().then(function (keys) {
+			var stale = (keys || []).some(function (k) {
+				return k.indexOf('darzi-erp-') === 0 && k.indexOf(expected) !== 0;
+			});
+			return navigator.serviceWorker.getRegistrations().then(function (regs) {
+				var chain = Promise.resolve();
+				(regs || []).forEach(function (reg) {
+					chain = chain.then(function () {
+						return reg.update().catch(function () { return null; }).then(function () {
+							if (reg.waiting) {
+								reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+							}
+							return null;
+						});
+					});
+				});
+				return chain.then(function () {
+					if (!stale || sessionStorage.getItem('darzi_sw_v34_reloaded') === '1') {
+						return null;
+					}
+					sessionStorage.setItem('darzi_sw_v34_reloaded', '1');
+					window.location.reload();
+					return null;
+				});
+			});
+		}).catch(function () { /* ignore */ });
+	})();
 	</script>
 </head>
 <body class="animsition erp-app erp-home offline-erp-body">

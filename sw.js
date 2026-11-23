@@ -249,6 +249,10 @@ function offlineFallback(request) {
 
 self.addEventListener('message', function (event) {
 	var data = event.data || {};
+	if (data.type === 'SKIP_WAITING') {
+		self.skipWaiting();
+		return;
+	}
 	if (data.type === 'darzi-prefetch' && data.urls && data.urls.length) {
 		event.waitUntil(prefetchUrls(data.urls));
 	}
