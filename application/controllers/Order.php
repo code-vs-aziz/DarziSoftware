@@ -999,6 +999,10 @@ img { max-width: 48px; }
 		{
 			redirect('Login');
 		}
+		// Never serve a stale Ready list after a delivery (SW / browser cache).
+		$this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+		$this->output->set_header('Pragma: no-cache');
+		$this->output->set_header('Expires: 0');
 		$ready_filters = $this->_ready_deliver_filters_from_request();
 		if ($this->order_query->has_order_status_detail_filters($ready_filters))
 		{

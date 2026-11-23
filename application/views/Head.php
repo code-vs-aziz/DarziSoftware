@@ -120,7 +120,7 @@ else
 		'loadingHtml' => '<p class="text-center text-muted py-3 mb-0">'.t('app_loading').'</p>',
 	), JSON_UNESCAPED_UNICODE); ?>;</script>
 	<script src="<?php echo base_url(); ?>js/order-lifecycle-modal.js?v=1"></script>
-	<script src="<?php echo base_url(); ?>js/order-detail-datatable.js?v=17"></script>
+	<script src="<?php echo base_url(); ?>js/order-detail-datatable.js?v=18"></script>
 	<script src="<?php echo base_url(); ?>js/master-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/customer-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/cash-entry.js?v=4"></script>
@@ -146,7 +146,7 @@ else
 		'enabled' => TRUE,
 		'apiBase' => site_url('api/erp_sync'),
 		'healthUrl' => site_url('api/erp_sync/health'),
-		'swUrl' => base_url('sw.js?v=36'),
+		'swUrl' => base_url('sw.js?v=37'),
 		'swScope' => base_url(),
 		'homeUrl' => site_url('Welcome'),
 		'loginUrl' => site_url('Login'),
@@ -166,7 +166,7 @@ else
 	<script src="<?php echo base_url(); ?>js/offline/search.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/offline/lists.js?v=8"></script>
 	<script src="<?php echo base_url(); ?>js/offline/nav.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=8"></script>
+	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=9"></script>
 	<script src="<?php echo base_url(); ?>js/offline/prefetch.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/offline/desk-ops.js?v=8"></script>
 	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=18"></script>

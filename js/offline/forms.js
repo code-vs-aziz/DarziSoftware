@@ -426,7 +426,82 @@
 		var m = action.match(/process_del\/(\d+)/i) || window.location.pathname.match(/\/(\d+)\/?$/);
 		var orderId = m ? parseInt(m[1], 10) : parseInt(payload.order_id || '0', 10);
 		payload.order_id = orderId;
-		return enqueueLocal('delivery', 'create', payload, 'DEL');
+		return enqueueLocal('delivery', 'create', payload, 'DEL').then(function (rec) {
+			rec = rec || {};
+			rec.order_id = orderId;
+			return rec;
+		});
+	}
+
+	function rememberDeliveredOrder(orderId) {
+		orderId = parseInt(orderId, 10) || 0;
+		if (!orderId) {
+			return;
+		}
+		var key = 'darzi_just_delivered_orders';
+		var list = [];
+		try {
+			list = JSON.parse(sessionStorage.getItem(key) || '[]');
+		} catch (e) {
+			list = [];
+		}
+		if (!Array.isArray(list)) {
+			list = [];
+		}
+		if (list.indexOf(orderId) === -1) {
+			list.push(orderId);
+		}
+		try {
+			sessionStorage.setItem(key, JSON.stringify(list));
+		} catch (e2) {
+			/* ignore quota */
+		}
+	}
+
+	function invalidateReadyListCache() {
+		if (!('serviceWorker' in navigator)) {
+			return;
+		}
+		var msg = {
+			type: 'INVALIDATE_PAGES',
+			paths: ['/Order/order_issue', '/order/order_issue']
+		};
+		try {
+			if (navigator.serviceWorker.controller) {
+				navigator.serviceWorker.controller.postMessage(msg);
+			}
+			navigator.serviceWorker.ready.then(function (reg) {
+				if (reg && reg.active) {
+					reg.active.postMessage(msg);
+				}
+			}).catch(function () { /* ignore */ });
+		} catch (e) {
+			/* ignore */
+		}
+		if ('caches' in window) {
+			caches.keys().then(function (names) {
+				return Promise.all(
+					(names || []).map(function (name) {
+						if (String(name).indexOf('darzi-erp-') !== 0 || String(name).indexOf('-pages') === -1) {
+							return null;
+						}
+						return caches.open(name).then(function (cache) {
+							return cache.keys().then(function (keys) {
+								return Promise.all(
+									keys.map(function (req) {
+										var u = String(req.url || '');
+										if (/\/Order\/order_issue/i.test(u) || /\/order\/order_issue/i.test(u)) {
+											return cache.delete(req);
+										}
+										return null;
+									})
+								);
+							});
+						});
+					})
+				);
+			}).catch(function () { /* ignore */ });
+		}
 	}
 
 	function saveTransferProcess(form, payload) {
@@ -499,6 +574,20 @@
 			url = cfg().cashUrl || window.location.pathname.replace(/\/process.*/, '') || url;
 		} else if (kind === 'delivery.create') {
 			url = cfg().deliveryUrl || cfg().homeUrl || url;
+			var deliveredId =
+				(record && record.order_id) ||
+				(record && record.payload && record.payload.order_id) ||
+				0;
+			rememberDeliveredOrder(deliveredId);
+			invalidateReadyListCache();
+			// Bust SW/page cache so Ready list does not show the just-delivered order.
+			try {
+				var u = new URL(url, window.location.href);
+				u.searchParams.set('_', String(Date.now()));
+				url = u.href;
+			} catch (eUrl) {
+				url += (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+			}
 		} else if (kind.indexOf('transfer') === 0) {
 			url = cfg().transferUrl || cfg().homeUrl || url;
 		}
@@ -511,7 +600,8 @@
 				window.DarziOffline.nav.open(url);
 				return;
 			}
-			window.location.href = url;
+			// Full navigation with cache-bust — avoid stale AJAX/SW Ready list.
+			window.location.replace(url);
 		}, 600);
 	}
 

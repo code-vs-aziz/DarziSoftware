@@ -141,6 +141,11 @@ $this->load->helper('ui');
 		if (!$table.length || !$.fn.DataTable) {
 			return;
 		}
+		// Prefer shared init (strips just-delivered rows + universal search).
+		if (typeof window.initOrderReadyDataTable === 'function') {
+			window.initOrderReadyDataTable();
+			return;
+		}
 		if ($.fn.DataTable.isDataTable($table[0])) {
 			$table.DataTable().destroy();
 		}
@@ -151,6 +156,20 @@ $this->load->helper('ui');
 			lengthChange: false,
 			dom: 'frtip'
 		});
+		// Fallback: hide orders just delivered this session (before shared init loads).
+		try {
+			var delivered = JSON.parse(sessionStorage.getItem('darzi_just_delivered_orders') || '[]');
+			if (Array.isArray(delivered) && delivered.length) {
+				var want = {};
+				delivered.forEach(function (id) { want[String(parseInt(id, 10) || 0)] = true; });
+				var removeIdx = [];
+				dt.rows().every(function () {
+					var orderText = String((this.node().cells[0] && this.node().cells[0].textContent) || '').replace(/\D+/g, '');
+					if (want[orderText]) { removeIdx.push(this.index()); }
+				});
+				if (removeIdx.length) { dt.rows(removeIdx).remove().draw(false); }
+			}
+		} catch (eStrip) { /* ignore */ }
 		var $wrapper = $table.closest('.dataTables_wrapper');
 		$wrapper.find('.order-ready-length').remove();
 		var $ctrl = $('<div class="dataTables_length order-ready-length"><label>Show <input type="number" min="1" max="10000" step="1" class="form-control form-control-sm" style="width:5rem;display:inline-block;"> entries</label></div>');

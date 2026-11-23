@@ -4,7 +4,7 @@
  * 3) Mutating GETs: network-only — never Welcome / stale page substitute.
  */
 /* eslint-disable no-restricted-globals */
-var CACHE_VERSION = 'darzi-erp-safe-v36';
+var CACHE_VERSION = 'darzi-erp-safe-v37';
 var SHELL_CACHE = CACHE_VERSION + '-shell';
 var PAGE_CACHE = CACHE_VERSION + '-pages';
 var OFFLINE_APP = '/offline-app.html';
@@ -25,7 +25,7 @@ var SHELL_URLS = [
 	'/css/erp-form-enhancements.css?v=5',
 	'/js/jquery-3.3.1.js',
 	'/js/transfer-bulk-table.js?v=10',
-	'/js/order-detail-datatable.js?v=17',
+	'/js/order-detail-datatable.js?v=18',
 	'/js/app-datatables-init.js?v=3',
 	'/js/offline/db.js?v=7',
 	'/js/offline/connectivity.js?v=6',
@@ -35,7 +35,7 @@ var SHELL_URLS = [
 	'/js/offline/ui.js?v=18',
 	'/js/app-ajax-shell.js?v=35',
 	'/js/offline/nav.js?v=3',
-	'/js/offline/forms.js?v=8',
+	'/js/offline/forms.js?v=9',
 	'/js/offline/bootstrap.js?v=20',
 	'/js/offline/prefetch.js?v=5',
 	'/js/offline/desk-ops.js?v=8',
@@ -255,6 +255,25 @@ self.addEventListener('message', function (event) {
 	}
 	if (data.type === 'darzi-prefetch' && data.urls && data.urls.length) {
 		event.waitUntil(prefetchUrls(data.urls));
+	}
+	// Drop specific ERP list pages (e.g. Ready list after a delivery).
+	if (data.type === 'INVALIDATE_PAGES' && data.paths && data.paths.length) {
+		event.waitUntil(
+			caches.open(PAGE_CACHE).then(function (cache) {
+				return cache.keys().then(function (keys) {
+					return Promise.all(
+						keys.map(function (req) {
+							var u = String(req.url || '');
+							var hit = data.paths.some(function (p) {
+								return p && u.indexOf(p) !== -1;
+							});
+							return hit ? cache.delete(req) : null;
+						})
+					);
+				});
+			})
+		);
+		return;
 	}
 	// Sign-out: drop cached ERP HTML so next user/session never sees previous pages.
 	if (data.type === 'darzi-logout-clear') {

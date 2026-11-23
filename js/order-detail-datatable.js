@@ -339,6 +339,54 @@
 		}
 	};
 
+	/**
+	 * After a delivery, sessionStorage keeps order ids so Ready list can drop
+	 * them even if SW/server still briefly returns the old row.
+	 */
+	function stripJustDeliveredReadyRows(dt, $table) {
+		var key = 'darzi_just_delivered_orders';
+		var list = [];
+		try {
+			list = JSON.parse(sessionStorage.getItem(key) || '[]');
+		} catch (e) {
+			list = [];
+		}
+		if (!Array.isArray(list) || !list.length) {
+			return;
+		}
+		var want = {};
+		list.forEach(function (id) {
+			want[String(parseInt(id, 10) || 0)] = true;
+		});
+		delete want['0'];
+		if (!Object.keys(want).length) {
+			return;
+		}
+		var removeIdx = [];
+		if (dt && dt.rows) {
+			dt.rows({ search: 'none' }).every(function () {
+				var node = this.node();
+				if (!node || !node.cells || !node.cells.length) {
+					return;
+				}
+				var orderText = String(node.cells[0].textContent || '').replace(/\D+/g, '');
+				if (want[orderText]) {
+					removeIdx.push(this.index());
+				}
+			});
+			if (removeIdx.length) {
+				dt.rows(removeIdx).remove().draw(false);
+			}
+		} else if ($table && $table.length) {
+			$table.find('tbody tr').each(function () {
+				var orderText = String($(this).find('td').first().text() || '').replace(/\D+/g, '');
+				if (want[orderText]) {
+					$(this).remove();
+				}
+			});
+		}
+	}
+
 	window.initOrderReadyDataTable = function () {
 		var $table = $('table#example.order-ready-table');
 		if (!$table.length || !$.fn.DataTable) {
@@ -359,6 +407,7 @@
 			searching: true,
 			searchDelay: 10000
 		});
+		stripJustDeliveredReadyRows(dt, $table);
 		var $filter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
 		if (preserveVal !== '' && !seed) {
 			seed = preserveVal;
