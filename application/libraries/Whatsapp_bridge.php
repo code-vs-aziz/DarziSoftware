@@ -71,10 +71,11 @@ class Whatsapp_bridge
 		$state = $this->circuit_state();
 		$failures = isset($state['failures']) ? ((int) $state['failures'] + 1) : 1;
 		$open_until = 0;
-		// Open quickly — PHP built-in server freezes while waiting on a dead bridge.
-		if ($failures >= 2)
+		// Need several misses before cool-down — a single slow Chromium tick
+		// must not make the whole shop see "Bridge down".
+		if ($failures >= 4)
 		{
-			$open_until = time() + 30;
+			$open_until = time() + 20;
 			$failures = 0;
 		}
 		@file_put_contents($this->circuit_file(), json_encode(array(
@@ -96,12 +97,17 @@ class Whatsapp_bridge
 		}
 		if ($this->is_circuit_open())
 		{
-			return array('ok' => FALSE, 'ready' => FALSE, 'error' => 'circuit_open');
+			return array(
+				'ok' => FALSE,
+				'ready' => FALSE,
+				'state' => 'recovering',
+				'error' => 'circuit_open',
+			);
 		}
 
 		$cache_file = APPPATH.'cache/whatsapp_bridge_status.json';
-		// Only cache a ready/healthy status briefly. Never cache "stuck starting" without QR.
-		if (is_file($cache_file) && (time() - (int) filemtime($cache_file)) < 8)
+		// Cache healthy status a bit longer to ride out brief Chromium stalls.
+		if (is_file($cache_file) && (time() - (int) filemtime($cache_file)) < 20)
 		{
 			$cached = json_decode((string) @file_get_contents($cache_file), TRUE);
 			if (is_array($cached) && ! empty($cached['ready']))
@@ -117,7 +123,8 @@ class Whatsapp_bridge
 			return array('ok' => FALSE, 'ready' => FALSE, 'error' => 'bridge_unreachable');
 		}
 
-		$response = $this->request('GET', '/status', array(), 1);
+		// 3s — 1s was too tight when Chromium is busy (false "Bridge down").
+		$response = $this->request('GET', '/status', array(), 3);
 		if (!$response['ok'])
 		{
 			$this->circuit_record_failure(isset($response['error']) ? (string) $response['error'] : 'bridge_unreachable');
@@ -591,7 +598,7 @@ class Whatsapp_bridge
 		}
 
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 400);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 800);
 		curl_setopt($ch, CURLOPT_TIMEOUT, max(1, (int) $timeout));
 		// Helps CURLOPT_TIMEOUT actually fire if the bridge event-loop stalls.
 		if (defined('CURLOPT_NOSIGNAL'))

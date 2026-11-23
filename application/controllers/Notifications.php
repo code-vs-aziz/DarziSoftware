@@ -154,7 +154,7 @@ class Notifications extends MY_Controller
 				'status' => array(
 					'ok' => FALSE,
 					'ready' => FALSE,
-					'state' => 'disconnected',
+					'state' => 'recovering',
 					'has_qr' => FALSE,
 					'error' => 'circuit_open',
 				),

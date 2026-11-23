@@ -135,7 +135,7 @@ else
 	<script src="<?php echo base_url(); ?>js/dz-date-picker.js?v=2"></script>
 	<script src="<?php echo base_url(); ?>js/app-notifications.js?v=3"></script>
 	<script>window.APP_LANG = <?php echo json_encode(app_lang_js_strings(), JSON_UNESCAPED_UNICODE); ?>;</script>
-	<script src="<?php echo base_url(); ?>js/bridge-status-indicator.js?v=3"></script>
+	<script src="<?php echo base_url(); ?>js/bridge-status-indicator.js?v=4"></script>
 	<?php
 	// Reliable offline: same ERP UI + IndexedDB queue. Safe SW never intercepts POST.
 	$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', TRUE) : TRUE;

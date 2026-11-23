@@ -1,15 +1,24 @@
 /**
  * Global WhatsApp bridge status indicator (header chip + break banner).
+ * Debounces transient /status failures so the banner does not flap.
  */
 (function () {
 	'use strict';
 
-	var POLL_OK_MS = 60000;
-	var POLL_BAD_MS = 30000;
+	var POLL_OK_MS = 90000;
+	var POLL_BAD_MS = 45000;
+	var POLL_SOFT_MS = 15000;
+	/** Consecutive bad polls required before showing Bridge down. */
+	var BAD_STREAK_NEEDED = 3;
 	var lastMode = '';
 	var timer = null;
 	var bannerEl = null;
 	var bannerShownForBreak = false;
+	var bannerDismissedUntil = 0;
+	var badStreak = 0;
+	var softFailStreak = 0;
+	var lastGoodAt = 0;
+	var pollGen = 0;
 
 	function t(key, fallback) {
 		var lang = window.APP_LANG || {};
@@ -40,11 +49,16 @@
 		bannerEl.querySelector('.dz-bridge-break-banner__close').addEventListener('click', function () {
 			bannerEl.hidden = true;
 			bannerShownForBreak = true;
+			// Stay dismissed for 10 minutes unless user opens Notifications.
+			bannerDismissedUntil = Date.now() + 10 * 60 * 1000;
 		});
 		return bannerEl;
 	}
 
 	function showBreakBanner(fixUrl, mode) {
+		if (Date.now() < bannerDismissedUntil) {
+			return;
+		}
 		var el = ensureBanner();
 		var link = el.querySelector('.dz-bridge-break-banner__link');
 		var text = el.querySelector('.dz-bridge-break-banner__text');
@@ -70,6 +84,7 @@
 			bannerEl.hidden = true;
 		}
 		bannerShownForBreak = false;
+		bannerDismissedUntil = 0;
 	}
 
 	function applyMode(mode, err) {
@@ -105,14 +120,18 @@
 		if (mode === 'ok') {
 			hideBreakBanner();
 		} else if (mode === 'wait' || mode === 'off') {
-			if (lastMode === 'ok' || lastMode === 'checking' || lastMode === '') {
+			// Only re-open banner on a real transition to wait/off after being healthy,
+			// not on every soft poll while already bad.
+			if (lastMode === 'ok' || lastMode === '') {
 				bannerShownForBreak = false;
 			}
 			showBreakBanner(fixUrl, mode);
 		}
 
 		lastMode = mode;
-		schedule(mode === 'ok' ? POLL_OK_MS : POLL_BAD_MS);
+		var next =
+			mode === 'ok' ? POLL_OK_MS : mode === 'checking' ? POLL_SOFT_MS : POLL_BAD_MS;
+		schedule(next);
 	}
 
 	function schedule(ms) {
@@ -120,6 +139,66 @@
 			clearTimeout(timer);
 		}
 		timer = setTimeout(poll, ms);
+	}
+
+	function mapStatus(st) {
+		st = st || {};
+		var err = String(st.error || '');
+		if (st.ready) {
+			return { mode: 'ok', err: '' };
+		}
+		// Cool-down / heal — not a hard outage for the banner.
+		if (
+			err === 'circuit_open' ||
+			err === 'bridge_session_recovering' ||
+			st.state === 'starting' ||
+			st.state === 'restarting' ||
+			st.state === 'recovering'
+		) {
+			return { mode: 'checking', err: err };
+		}
+		if (st.ok || st.has_qr || st.state === 'qr') {
+			return { mode: 'wait', err: err };
+		}
+		return { mode: 'off', err: err };
+	}
+
+	function acceptMapped(mapped) {
+		if (mapped.mode === 'ok') {
+			badStreak = 0;
+			softFailStreak = 0;
+			lastGoodAt = Date.now();
+			applyMode('ok', '');
+			return;
+		}
+		if (mapped.mode === 'wait') {
+			badStreak = 0;
+			softFailStreak = 0;
+			applyMode('wait', mapped.err);
+			return;
+		}
+		if (mapped.mode === 'checking') {
+			softFailStreak += 1;
+			// Keep last good chip briefly while bridge is healing.
+			if (lastMode === 'ok' && Date.now() - lastGoodAt < 120000) {
+				applyMode('checking', mapped.err);
+				return;
+			}
+			if (lastMode === 'ok' || lastMode === 'checking' || lastMode === '') {
+				applyMode('checking', mapped.err);
+				return;
+			}
+			applyMode(lastMode === 'wait' ? 'wait' : 'checking', mapped.err);
+			return;
+		}
+		// Hard off — require a streak so one slow /status does not flash the banner.
+		badStreak += 1;
+		softFailStreak = 0;
+		if (badStreak < BAD_STREAK_NEEDED && (lastMode === 'ok' || lastMode === 'checking' || lastMode === '')) {
+			applyMode(lastMode === 'ok' ? 'checking' : lastMode || 'checking', mapped.err);
+			return;
+		}
+		applyMode('off', mapped.err);
 	}
 
 	function poll() {
@@ -132,6 +211,7 @@
 			return;
 		}
 
+		var myGen = ++pollGen;
 		fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
 			credentials: 'same-origin',
 			cache: 'no-store',
@@ -141,24 +221,30 @@
 				return r.json();
 			})
 			.then(function (data) {
+				if (myGen !== pollGen) {
+					return;
+				}
 				if (!data || data.message === 'session_expired') {
-					applyMode('off', '');
+					acceptMapped({ mode: 'off', err: '' });
 					return;
 				}
-				var st = data.status || {};
-				if (st.ready) {
-					applyMode('ok', '');
-					return;
-				}
-				// QR ready counts as wait — never show "Bridge down" while has_qr.
-				if (st.ok || st.has_qr || st.state === 'qr' || st.state === 'starting' || st.state === 'restarting') {
-					applyMode('wait', st.error || '');
-					return;
-				}
-				applyMode('off', st.error || '');
+				acceptMapped(mapStatus(data.status || {}));
 			})
 			.catch(function () {
-				applyMode('off', '');
+				if (myGen !== pollGen) {
+					return;
+				}
+				// Network blip / aborted nav — soft fail, do not scream Bridge down.
+				softFailStreak += 1;
+				if (lastMode === 'ok' && softFailStreak < BAD_STREAK_NEEDED) {
+					applyMode('checking', '');
+					return;
+				}
+				if (softFailStreak < BAD_STREAK_NEEDED) {
+					applyMode(lastMode === 'off' ? 'off' : 'checking', '');
+					return;
+				}
+				acceptMapped({ mode: 'off', err: '' });
 			});
 	}
 
