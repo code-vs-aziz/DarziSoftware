@@ -491,6 +491,8 @@ $config['csrf_exclude_uris'] = array(
 	'api/content/.+',
 	'api/shop/.+',
 	'api/erp_sync/.+',
+	// DataTables SSP — session-authenticated; CSRF meta can go stale after print/redirect tabs.
+	'[tT]ransfer/transfer_table_data(/.*)?',
 );
 
 /*

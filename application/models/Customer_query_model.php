@@ -69,7 +69,8 @@ class Customer_query_model extends CI_Model
     {
       return array();
     }
-    $this->db->select('customer_code, MIN(code) AS measurement_code', FALSE);
+    // Latest measurement wins (MIN buried older/wrong rows when duplicates exist).
+    $this->db->select('customer_code, MAX(code) AS measurement_code', FALSE);
     $this->db->from('measurement');
     $this->db->where_in('customer_code', $codes);
     $this->db->group_by('customer_code');
@@ -108,6 +109,31 @@ class Customer_query_model extends CI_Model
       return array();
     }
     return $q->result();
+  }
+
+  /**
+   * Normalize common Arabic/Urdu letter variants so search matches utf8mb4_bin names.
+   */
+  protected function _normalize_urdu_search_term($term)
+  {
+    $term = trim((string) $term);
+    if ($term === '')
+    {
+      return '';
+    }
+    return strtr($term, array(
+      'ي' => 'ی',
+      'ى' => 'ی',
+      'ك' => 'ک',
+      'ک' => 'ک',
+      'ة' => 'ہ',
+      'ۀ' => 'ہ',
+      'ه' => 'ہ',
+      'ؤ' => 'و',
+      'إ' => 'ا',
+      'أ' => 'ا',
+      'آ' => 'آ',
+    ));
   }
 
   /**
@@ -163,29 +189,36 @@ class Customer_query_model extends CI_Model
     {
       return;
     }
+    $term_raw = $this->_normalize_urdu_search_term($term_raw);
     $p = (string) $prefix;
     $digits = preg_replace('/\D+/', '', $term_raw);
     $esc = $this->db->escape_like_str($term_raw);
+    // Phone/cnic are latin1 — comparing them to Urdu literals causes SQL 500
+    // (Illegal mix of collations). Arabic/Urdu terms only search `name`.
+    $is_arabic = (bool) preg_match('/\p{Arabic}/u', $term_raw);
 
     if ($wrap_group)
     {
       $this->db->group_start();
     }
 
-    $this->db->or_where($p.'man_napno', $term_raw);
-    $this->db->or_where($p.'Phone', $term_raw);
-    if ($include_cnic)
-    {
-      $this->db->or_where($p.'cnic', $term_raw);
-    }
-
-    // Contains match on raw text (name + ids + phone as typed)
-    $this->db->or_like($p.'man_napno', $esc, 'both');
-    $this->db->or_like($p.'Phone', $esc, 'both');
+    // Always match customer name (utf8mb4_bin)
     $this->db->or_like($p.'name', $esc, 'both');
-    if ($include_cnic)
+
+    if ( ! $is_arabic)
     {
-      $this->db->or_like($p.'cnic', $esc, 'both');
+      $this->db->or_where($p.'man_napno', $term_raw);
+      $this->db->or_where($p.'Phone', $term_raw);
+      if ($include_cnic)
+      {
+        $this->db->or_where($p.'cnic', $term_raw);
+      }
+      $this->db->or_like($p.'man_napno', $esc, 'both');
+      $this->db->or_like($p.'Phone', $esc, 'both');
+      if ($include_cnic)
+      {
+        $this->db->or_like($p.'cnic', $esc, 'both');
+      }
     }
 
     if ($digits !== '')
@@ -261,15 +294,83 @@ class Customer_query_model extends CI_Model
     return (int) $this->db->count_all_results();
   }
 
-  function search_customers_paged($term, $limit, $offset)
+  /**
+   * Exact Naap (man_napno) matches only — used so Measurement No search is not buried
+   * under partial phone / naap LIKE hits.
+   */
+  function find_customers_by_exact_naap($term)
   {
-    if (trim((string) $term) === '')
+    $term = trim((string) $term);
+    if ($term === '')
     {
       return array();
     }
+    $digits = preg_replace('/\D+/', '', $term);
     $this->db->select('code, name, Phone, man_napno, DOB');
     $this->db->from('customer');
+    $this->db->group_start();
+    $this->db->where('CAST(man_napno AS CHAR) = '.$this->db->escape($term), NULL, FALSE);
+    if ($digits !== '' && $digits !== $term)
+    {
+      $this->db->or_where('CAST(man_napno AS CHAR) = '.$this->db->escape($digits), NULL, FALSE);
+    }
+    $this->db->group_end();
+    $this->db->order_by('code', 'DESC');
+    $this->db->limit(20);
+    $q = $this->db->get();
+    return $q->num_rows() > 0 ? $q->result() : array();
+  }
+
+  /**
+   * Rank exact Naap / phone / code above partial contains matches.
+   */
+  protected function _customer_search_rank_sql($term)
+  {
+    $term = trim((string) $term);
+    $digits = preg_replace('/\D+/', '', $term);
+    $esc_term = $this->db->escape($term);
+    $is_arabic = (bool) preg_match('/\p{Arabic}/u', $term);
+    $parts = array();
+    // Phone/cnic are latin1 — never compare them to Urdu literals (SQL 500).
+    if ( ! $is_arabic)
+    {
+      $parts[] = 'WHEN CAST(man_napno AS CHAR) = '.$esc_term.' THEN 0';
+      $parts[] = 'WHEN CONVERT(Phone USING utf8mb4) = '.$esc_term.' THEN 1';
+      $parts[] = 'WHEN CAST(code AS CHAR) = '.$esc_term.' THEN 2';
+    }
+    else
+    {
+      $parts[] = 'WHEN name LIKE CONCAT(\'%\', '.$esc_term.', \'%\') THEN 0';
+    }
+    if ($digits !== '')
+    {
+      $esc_d = $this->db->escape($digits);
+      if ($digits !== $term)
+      {
+        $parts[] = 'WHEN CAST(man_napno AS CHAR) = '.$esc_d.' THEN 0';
+        $parts[] = 'WHEN CONVERT(Phone USING utf8mb4) = '.$esc_d.' THEN 1';
+        $parts[] = 'WHEN CAST(code AS CHAR) = '.$esc_d.' THEN 2';
+      }
+      $parts[] = 'WHEN CAST(man_napno AS CHAR) LIKE CONCAT('.$esc_d.', \'%\') THEN 3';
+      $phone_digits = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(CONVERT(Phone USING utf8mb4),''),'-',''),' ',''),'+',''),'.',''),'(','')";
+      $phone_digits = "REPLACE(".$phone_digits.",')','')";
+      $parts[] = 'WHEN '.$phone_digits.' LIKE CONCAT('.$esc_d.', \'%\') THEN 4';
+    }
+    return '(CASE '.implode(' ', $parts).' ELSE 5 END)';
+  }
+
+  function search_customers_paged($term, $limit, $offset)
+  {
+    $term = trim((string) $term);
+    if ($term === '')
+    {
+      return array();
+    }
+    $rank_sql = $this->_customer_search_rank_sql($term);
+    $this->db->select('code, name, Phone, man_napno, DOB, '.$rank_sql.' AS search_rank', FALSE);
+    $this->db->from('customer');
     $this->_apply_customer_search($term);
+    $this->db->order_by('search_rank', 'ASC', FALSE);
     $this->db->order_by('code', 'DESC');
     $this->db->limit((int) $limit, (int) $offset);
     $q = $this->db->get();

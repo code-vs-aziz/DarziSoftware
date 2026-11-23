@@ -10,21 +10,29 @@ foreach ($order as $orders) {
 			$fabric_src = $candidate;
 		}
 	}
+	$type_raw_early = isset($orders->garment_type) ? trim((string) $orders->garment_type) : '';
+	if ($type_raw_early === '' && isset($orders->type)) {
+		$type_raw_early = trim((string) $orders->type);
+	}
+	// Pockets only for قمیض شلوار / پاجامہ — not ویسکوٹ or other types.
+	$show_pockets = in_array($type_raw_early, array('Kurta', 'Pajama'), TRUE);
 	$pocket_parts = array();
-	if (empty($orders->fpocket)) {
-		$pocket_parts[] = '(فرنٹ پاکٹ X)';
-	} else {
-		$pocket_parts[] = '(فرنٹ پاکٹ '.$orders->fpocket.')';
-	}
-	if (empty($orders->spocket)) {
-		$pocket_parts[] = '(سائیڈ پاکٹ X)';
-	} else {
-		$pocket_parts[] = '(سائیڈ پاکٹ '.$orders->spocket.')';
-	}
-	if (empty($orders->Shawlarpocket)) {
-		$pocket_parts[] = '(شلوار پاکٹ X)';
-	} else {
-		$pocket_parts[] = '(شلوار پاکٹ '.$orders->Shawlarpocket.')';
+	if ($show_pockets) {
+		if (empty($orders->fpocket)) {
+			$pocket_parts[] = '(فرنٹ پاکٹ X)';
+		} else {
+			$pocket_parts[] = '(فرنٹ پاکٹ '.$orders->fpocket.')';
+		}
+		if (empty($orders->spocket)) {
+			$pocket_parts[] = '(سائیڈ پاکٹ X)';
+		} else {
+			$pocket_parts[] = '(سائیڈ پاکٹ '.$orders->spocket.')';
+		}
+		if (empty($orders->Shawlarpocket)) {
+			$pocket_parts[] = '(شلوار پاکٹ X)';
+		} else {
+			$pocket_parts[] = '(شلوار پاکٹ '.$orders->Shawlarpocket.')';
+		}
 	}
 	$suit_note = ! empty($orders->order_remarks) ? trim((string) $orders->order_remarks) : '';
 	$suit_note = preg_replace('/^سوٹ\s*تفصیل\s*[-–—:٫.\s]*/u', '', $suit_note);
@@ -48,22 +56,13 @@ foreach ($order as $orders) {
 	} elseif ($style_body !== '') {
 		$detail_html = esc_html($style_body);
 	}
-	$type_raw = isset($orders->type) ? trim((string) $orders->type) : '';
-	$type_note_map = array(
-		'Kurta' => 'remarks_kurta',
-		'Pajama' => 'remarks_pajama',
-		'Pent' => 'remarks_pent',
-		'Shirt' => 'remarks_shirt',
-		'Coat' => 'remarks_coat',
-		'Waistcoat' => 'remarks_waistcoat',
-	);
-	$nap_note = '';
-	if (isset($type_note_map[$type_raw]) && isset($orders->{$type_note_map[$type_raw]})) {
-		$nap_note = trim((string) $orders->{$type_note_map[$type_raw]});
+	$type_raw = isset($orders->garment_type) ? trim((string) $orders->garment_type) : '';
+	if ($type_raw === '' && isset($orders->type)) {
+		$type_raw = trim((string) $orders->type);
 	}
-	if ($nap_note === '' && isset($orders->MREMARKS)) {
-		$nap_note = trim((string) $orders->MREMARKS);
-	}
+	$nap_note = function_exists('measurement_garment_note_for_type')
+		? measurement_garment_note_for_type($orders, $type_raw)
+		: '';
 	if ($nap_note !== '' && $suit_note !== '' && mb_stripos($suit_note, $nap_note) !== FALSE) {
 		$nap_note = '';
 	}
@@ -91,9 +90,12 @@ foreach ($order as $orders) {
 	<tr>
 		<td class="i-price val" style="width:14mm;border-bottom:1px dotted #111;color:#111;"><?php echo esc_html($price_text); ?></td>
 		<td class="i-img" style="width:16mm;border-bottom:1px dotted #111;">
-			<?php if ($fabric_src !== '') { ?><img src="<?php echo $fabric_src; ?>" style="height:28px;max-width:48px;"><?php } ?>
+			<?php if ($fabric_src !== '') { ?><img src="<?php echo $fabric_src; ?>" width="30" height="22" style="width:30px;height:22px;max-width:30px;max-height:22px;"><?php } ?>
 		</td>
 		<td class="lbl" style="border-bottom:1px dotted #111;direction:rtl;text-align:right;color:#111;font-weight:bold;"><?php echo esc_html($pocket_text); ?></td>
+	</tr>
+	<tr>
+		<td colspan="3" style="border-bottom:2.5px solid #000;height:0;padding:0;line-height:0;font-size:0;">&nbsp;</td>
 	</tr>
 </table>
 <?php } ?>

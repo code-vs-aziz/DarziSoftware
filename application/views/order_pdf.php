@@ -74,7 +74,7 @@ $has_customer_photo = ($customer_photo !== '');
 <tr>
 <?php if ($has_customer_photo) { ?>
 <td width="18%" align="center" valign="top" style="padding:2px 6px 2px 0;">
-	<img src="<?php echo esc_html($customer_photo); ?>" style="height:70px;width:70px;object-fit:cover;border:1px solid #111;" alt="">
+	<img src="<?php echo esc_html($customer_photo); ?>" width="48" height="48" style="width:48px;height:48px;max-width:48px;max-height:48px;object-fit:cover;border:1px solid #111;" alt="">
 </td>
 <?php } ?>
 <td align="right">
@@ -109,7 +109,7 @@ $has_customer_photo = ($customer_photo !== '');
 		<td class="i-val"><?php echo number_format(round((float) $orders->qty), 0, '.', ','); ?></td>
 		<th class="i-lbl">ایڈوانس</th>
 		<td class="i-val"><?php echo number_format(round((float) $orders->advance), 0, '.', ','); ?></td>
-		<th class="i-lbl">بقایا</th>
+		<th class="i-lbl">رقم</th>
 		<td class="i-val"><?php echo number_format(round((float) $balance), 0, '.', ','); ?></td>
 	</tr>
 	<tr><td colspan="6" class="i-gap">&nbsp;</td></tr>

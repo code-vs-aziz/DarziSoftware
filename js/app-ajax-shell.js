@@ -43,6 +43,9 @@
 		'/predefined_add',
 		'/predefined_delete',
 		'/predefined_reseed',
+		'/booking_limit_delete',
+		'/booking_limit_save',
+		'/configuration/',
 		'/process_edit',
 		'/employee_edit',
 		'/customer_edit',
@@ -565,7 +568,7 @@
 					$field.data('urduBound', 1);
 				}
 			});
-			$('.suit-urdu-field, .master-urdu-field, .customer-urdu-field, .order-filter-urdu-field').each(function () {
+			$('.suit-urdu-field, .master-urdu-field, .customer-urdu-field, .order-filter-urdu-field, #erp-home-search.dz-home__input').each(function () {
 				var $field = $(this);
 				if (!$field.data('urduBound')) {
 					$field.setUrduInput();
@@ -672,6 +675,69 @@
 		replaceContent(html, url, pushHistory);
 	}
 
+	function isAppOffline() {
+		return !!(
+			window.DarziOffline &&
+			window.DarziOffline.connectivity &&
+			typeof window.DarziOffline.connectivity.isOnline === 'function' &&
+			!window.DarziOffline.connectivity.isOnline()
+		);
+	}
+
+	function matchCachedHtml(urlObj) {
+		if (!('caches' in window) || !urlObj) {
+			return Promise.resolve(null);
+		}
+		var candidates = [urlObj.href, urlObj.origin + urlObj.pathname];
+		try {
+			var path = urlObj.pathname;
+			if (/\/transfer\//i.test(path)) {
+				candidates.push(urlObj.origin + path.replace(/\/transfer\//i, '/Transfer/'));
+				candidates.push(urlObj.origin + path.replace(/\/Transfer\//i, '/transfer/'));
+			}
+			if (/order_Status/i.test(path)) {
+				candidates.push(urlObj.origin + path.replace(/order_Status/i, 'order_status'));
+				candidates.push(urlObj.origin + path.replace(/order_status/i, 'order_Status'));
+			}
+		} catch (e) {
+			/* ignore */
+		}
+		function tryNext(i) {
+			if (i >= candidates.length) {
+				return Promise.resolve(null);
+			}
+			return caches.match(candidates[i]).then(function (res) {
+				if (!res) {
+					return tryNext(i + 1);
+				}
+				return res.text().then(function (html) {
+					return html && html.length > 40 ? html : tryNext(i + 1);
+				});
+			});
+		}
+		return tryNext(0);
+	}
+
+	function showOfflineNavFail(urlObj) {
+		loadingActive = false;
+		stopProgressLoop();
+		document.body.classList.remove('app-ajax-loading');
+		var overlay = el('app-ajax-overlay');
+		if (overlay) {
+			overlay.setAttribute('aria-hidden', 'true');
+		}
+		var msg =
+			'Page not ready offline yet. Stay online a minute and tap Sync Now — pages download automatically.';
+		if (window.DarziOffline && window.DarziOffline.ui && typeof window.DarziOffline.ui.toast === 'function') {
+			window.DarziOffline.ui.toast(msg, 'pending');
+		} else {
+			window.alert(msg);
+		}
+		if (urlObj && urlObj.href) {
+			/* stay on current page — do NOT full-navigate (causes black timeout screen) */
+		}
+	}
+
 	function ajaxRequest(options) {
 		var $ = getJq();
 		if (activeRequest && activeRequest.readyState !== 4) {
@@ -680,10 +746,13 @@
 
 		setLoading(true);
 
+		var offline = isAppOffline();
+		var reqTimeout = offline ? 4000 : 45000;
+
 		activeRequest = $.ajax($.extend({
 			headers: { 'X-Requested-With': 'XMLHttpRequest' },
 			dataType: 'html',
-			timeout: 45000,
+			timeout: reqTimeout,
 			xhr: function () {
 				var xhr = new window.XMLHttpRequest();
 				xhr.addEventListener('progress', function (evt) {
@@ -698,12 +767,25 @@
 			var responseUrl = xhr.responseURL ? new URL(xhr.responseURL, window.location.href) : options.urlObj;
 			handleAjaxResponse(html, responseUrl, options.pushHistory !== false);
 		}).fail(function (xhr, status) {
-			if (status !== 'abort') {
+			if (status === 'abort') {
+				return;
+			}
+			// Offline / timed out: prefer cached HTML instead of hanging full reload.
+			matchCachedHtml(options.urlObj).then(function (html) {
+				if (html) {
+					handleAjaxResponse(html, options.urlObj, options.pushHistory !== false);
+					setLoading(false);
+					return;
+				}
+				if (offline || status === 'timeout' || status === 'error') {
+					showOfflineNavFail(options.urlObj);
+					return;
+				}
 				loadingActive = false;
 				stopProgressLoop();
 				document.body.classList.remove('app-ajax-loading');
 				window.location.href = options.fallbackUrl || options.urlObj.href;
-			}
+			});
 		}).always(function (_xhr, status) {
 			if (status !== 'abort') {
 				setLoading(false);
@@ -714,6 +796,25 @@
 
 	function loadUrl(rawUrl, pushHistory) {
 		var url = new URL(rawUrl, window.location.href);
+		// Offline: serve from Cache API immediately — no 90% hang waiting on network.
+		if (isAppOffline()) {
+			setLoading(true);
+			matchCachedHtml(url).then(function (html) {
+				if (html) {
+					handleAjaxResponse(html, url, pushHistory !== false);
+					setLoading(false);
+					return;
+				}
+				ajaxRequest({
+					url: url.href,
+					method: 'GET',
+					urlObj: url,
+					fallbackUrl: url.href,
+					pushHistory: pushHistory
+				});
+			});
+			return;
+		}
 		ajaxRequest({
 			url: url.href,
 			method: 'GET',
@@ -759,7 +860,11 @@
 		if (hrefAttr.charAt(0) === '#' || link.getAttribute('data-toggle') === 'tab' || link.getAttribute('data-toggle') === 'pill') {
 			return;
 		}
-		if (link.getAttribute('data-app-logout') === 'true' || link.getAttribute('data-app-modal-nav') === 'true') {
+		// Logout: dedicated offline/bootstrap handler (revoke + clear page cache). Do not steal the click.
+		if (link.getAttribute('data-app-logout') === 'true') {
+			return;
+		}
+		if (link.getAttribute('data-app-modal-nav') === 'true') {
 			forceFullPageNavigation(link, event);
 			return;
 		}
@@ -890,8 +995,14 @@
 		load: function (url) {
 			loadUrl(url, true);
 		},
+		applyHtml: function (html, url, pushHistory) {
+			var u = typeof url === 'string' ? new URL(url, window.location.href) : url;
+			handleAjaxResponse(html, u, pushHistory !== false);
+		},
 		back: goBack,
 		reinit: initPlugins,
-		shouldSkipUrl: shouldSkipUrl
+		shouldSkipUrl: shouldSkipUrl,
+		matchCachedHtml: matchCachedHtml,
+		isOffline: isAppOffline
 	};
 })(window, document);

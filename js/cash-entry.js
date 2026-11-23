@@ -82,6 +82,11 @@
 					$form.find('input[name="paid"], input[name="Remarks"], input[name="order_number"]').val('');
 					$('#order_window').hide();
 					$('#twages').val('');
+					// Always reset to Payment so a Receipt entry is not reused by mistake.
+					var $type = $('#cash_entry_type');
+					if ($type.length) {
+						$type.val('1');
+					}
 					// Force re-select employee for the next payment.
 					var $employee = $('#employee');
 					if ($employee.length) {

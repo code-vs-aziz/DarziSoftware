@@ -86,9 +86,9 @@ $receivable = $opening + $debit_total - $credit_total;
 	.report-field label { display: block; font-weight: 700; margin-bottom: 5px; }
 	.report-field input, .report-field select { width: 100%; border: 1px solid #d7e0ea; border-radius: 8px; padding: 9px 10px; }
 	.report-table-wrap { padding: 18px 24px 24px; }
-	.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-	.report-table th { background: #1f9faa; color: #fff; padding: 9px; border: 1px solid #128995; text-align: center; }
-	.report-table td { padding: 8px; border: 1px solid #dde6ef; }
+	.report-table { width: 100%; border-collapse: collapse; font-size: 16px; line-height: 1.45; }
+	.report-table th { background: #1f9faa; color: #fff; padding: 12px 10px; border: 1px solid #128995; text-align: center; font-size: 16px; font-weight: 800; }
+	.report-table td { padding: 11px 10px; border: 1px solid #dde6ef; font-size: 16px; font-weight: 600; color: #111827; vertical-align: middle; }
 	.report-table .num { text-align: right; }
 	.report-table .center { text-align: center; }
 	.report-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }

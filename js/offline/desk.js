@@ -6,12 +6,13 @@
 
 	var DEFAULT_CFG = {
 		enabled: true,
-		apiBase: './index.php/api/erp_sync',
-		healthUrl: './index.php/api/erp_sync/health',
-		swUrl: './sw.js',
-		swScope: './',
-		homeUrl: './index.php/Welcome',
-		loginUrl: './index.php/Login',
+		// Absolute paths — relative ./index.php/... becomes /index.php/index.php/... under CI URLs.
+		apiBase: '/index.php/api/erp_sync',
+		healthUrl: '/index.php/api/erp_sync/health',
+		swUrl: '/sw.js?v=15',
+		swScope: '/',
+		homeUrl: '/index.php/Welcome',
+		loginUrl: '/index.php/Login',
 		offlineApp: true
 	};
 
@@ -48,13 +49,33 @@
 		});
 	}
 
+	var VIEW_TITLES = {
+		home: 'Home',
+		customers: 'Customer',
+		measurement: 'Measurement',
+		orders: 'Order',
+		cash: 'Cash',
+		delivery: 'Delivery',
+		transfer: 'Transfer',
+		queue: 'Sync Queue'
+	};
+
+	var currentCustomer = null;
+	var currentMeasurement = null;
+
 	function setStatus(text, mode) {
 		var el = $('#desk-status');
 		if (!el) {
 			return;
 		}
-		el.textContent = text;
-		el.className = 'desk-status is-' + (mode || 'offline');
+		var label = el.querySelector('.dz-offline-chip__label');
+		if (label) {
+			label.textContent = text;
+		} else {
+			el.textContent = text;
+		}
+		el.className =
+			'dz-offline-chip dz-offline-chip--desktop desk-status is-' + (mode || 'offline');
 	}
 
 	function showView(name) {
@@ -62,8 +83,26 @@
 			v.hidden = v.getAttribute('data-desk-view') !== name;
 		});
 		$all('[data-desk-nav]').forEach(function (b) {
-			b.classList.toggle('is-active', b.getAttribute('data-desk-nav') === name);
+			var active = b.getAttribute('data-desk-nav') === name;
+			b.classList.toggle('is-active', active);
+			var li = b.closest ? b.closest('.dz-nav__item') : null;
+			if (li) {
+				li.classList.toggle('is-active', active);
+			}
 		});
+		var title = VIEW_TITLES[name] || name;
+		var heading = $('#desk-heading');
+		var crumb = $('#desk-page-title');
+		if (heading) {
+			heading.textContent = title;
+		}
+		if (crumb) {
+			crumb.textContent = title;
+		}
+		document.body.classList.toggle('erp-home', name === 'home');
+		document.body.classList.toggle('erp-form-page', name !== 'home');
+		document.body.classList.toggle('measurement-form-page', name === 'measurement');
+
 		if (name === 'customers') {
 			refreshCustomers();
 		}
@@ -71,12 +110,206 @@
 			refreshOrders();
 			fillCustomerSelects();
 			fillMeasurementSelect();
+			if (currentCustomer && currentCustomer.code) {
+				var oc = $('#order-customer');
+				if (oc) {
+					oc.value = String(currentCustomer.code);
+				}
+			}
+			if (currentMeasurement && (currentMeasurement.server_id || currentMeasurement.code)) {
+				var on = $('#order-naap');
+				if (on) {
+					on.value = String(currentMeasurement.server_id || currentMeasurement.code);
+				}
+			}
 		}
 		if (name === 'cash' || name === 'delivery' || name === 'transfer') {
 			fillCustomerSelects();
 		}
 		if (name === 'queue') {
 			refreshQueue();
+		}
+	}
+
+	function setField(id, value) {
+		var el = $('#' + id);
+		if (el) {
+			el.value = value == null ? '' : String(value);
+		}
+	}
+
+	function pickMeas(raw, key) {
+		if (!raw) {
+			return '';
+		}
+		if (raw[key] != null && raw[key] !== '') {
+			return raw[key];
+		}
+		return '';
+	}
+
+	function openMeasurementForCustomer(row) {
+		currentCustomer = row || null;
+		var code = row && row.code ? String(row.code) : '';
+		// Prefer real Full ERP measurement page when it was cached online.
+		if (code && row && row.has_measurement) {
+			window.location.href = '/index.php/Measurement/measurement_edit/' + code + '?return=order';
+			return;
+		}
+		if (code) {
+			window.location.href = '/index.php/Measurement/measurement_add/' + code + '?return=order';
+			return;
+		}
+		setField('meas-customer-code', code);
+		var nameEl = $('#meas-cust-name');
+		var phoneEl = $('#meas-cust-phone');
+		var naapEl = $('#meas-cust-naap');
+		if (nameEl) nameEl.textContent = (row && row.name) || '—';
+		if (phoneEl) phoneEl.textContent = (row && row.phone) || '—';
+		if (naapEl) naapEl.textContent = (row && row.naap) || '—';
+		var naapLabel = $('#meas-naap-label');
+		if (naapLabel) {
+			naapLabel.textContent = row && row.naap ? 'Naap: ' + row.naap : '';
+		}
+
+		window.DarziOffline.db.getAll('measurements').then(function (rows) {
+			var match = null;
+			(rows || []).forEach(function (m) {
+				if (String(m.customer_code || '') === code) {
+					if (!match || String(m.server_id || '') > String(match.server_id || '')) {
+						match = m;
+					}
+				}
+			});
+			currentMeasurement = match;
+			var raw = (match && (match.raw || match.payload)) || {};
+			setField('meas-server-id', match && match.server_id ? match.server_id : '');
+			setField('meas-KL', pickMeas(raw, 'KL'));
+			setField('meas-Teera', pickMeas(raw, 'Teera'));
+			setField('meas-BL', pickMeas(raw, 'BL'));
+			setField('meas-Chaati', pickMeas(raw, 'Chaati'));
+			setField('meas-Gala', pickMeas(raw, 'Gala'));
+			setField('meas-geera', pickMeas(raw, 'geera'));
+			setField('meas-Shalwar_Lenght', pickMeas(raw, 'Shalwar_Lenght'));
+			setField('meas-Poncha', pickMeas(raw, 'Poncha'));
+			setField(
+				'meas-RemarksKurta',
+				pickMeas(raw, 'RemarksKurta') || pickMeas(raw, 'remarks_kurta') || pickMeas(raw, 'remarks')
+			);
+			showView('measurement');
+		});
+	}
+
+	function renderHomeSuggest(results, q) {
+		var box = $('#erp-home-suggest');
+		var home = document.querySelector('.dz-home');
+		var input = $('#erp-home-search');
+		if (!box) {
+			return;
+		}
+		if (!results.length) {
+			box.innerHTML =
+				'<div class="dz-home__suggest-empty">' +
+				'<div class="dz-home__suggest-empty-title">No customer found</div>' +
+				'<div class="dz-home__suggest-empty-hint">Create a new customer, then add measurement.</div>' +
+				'<button type="button" class="dz-home__suggest-add" data-desk-nav="customers">+ Create New Customer</button>' +
+				'</div>';
+			box.hidden = false;
+			if (home) home.classList.add('is-suggest-open');
+			if (input) input.setAttribute('aria-expanded', 'true');
+			return;
+		}
+		box.innerHTML = results
+			.map(function (r, idx) {
+				return (
+					'<button type="button" class="dz-home__suggest-item" role="option" data-suggest-idx="' +
+					idx +
+					'">' +
+					'<span class="dz-home__suggest-name">' +
+					escapeHtml(r.name || '—') +
+					'</span>' +
+					'<span class="dz-home__suggest-meta">' +
+					escapeHtml((r.phone || '') + (r.naap ? ' · Naap ' + r.naap : '')) +
+					(r.has_measurement ? ' · Measurement' : ' · New measurement') +
+					'</span>' +
+					'</button>'
+				);
+			})
+			.join('');
+		box.hidden = false;
+		if (home) home.classList.add('is-suggest-open');
+		if (input) input.setAttribute('aria-expanded', 'true');
+		box._results = results;
+	}
+
+	function bindHomeSearch() {
+		var form = $('#erp-home-search-form');
+		var input = $('#erp-home-search');
+		var box = $('#erp-home-suggest');
+		var timer = null;
+		if (!form || !input) {
+			return;
+		}
+
+		function runSearch(term) {
+			var q = String(term || '').trim();
+			if (q.length < 2) {
+				if (box) {
+					box.hidden = true;
+					box.innerHTML = '';
+				}
+				var home = document.querySelector('.dz-home');
+				if (home) home.classList.remove('is-suggest-open');
+				return;
+			}
+			var searchFn =
+				window.DarziOffline.search && window.DarziOffline.search.searchCustomers
+					? window.DarziOffline.search.searchCustomers
+					: null;
+			if (!searchFn) {
+				toast('Offline search is not ready. Open Full ERP online once.', 'sync_failed');
+				return;
+			}
+			searchFn(q, 50).then(function (rows) {
+				renderHomeSuggest(rows || [], q);
+			});
+		}
+
+		input.addEventListener('input', function () {
+			window.clearTimeout(timer);
+			timer = window.setTimeout(function () {
+				runSearch(input.value);
+			}, 180);
+		});
+
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			runSearch(input.value);
+			var results = (box && box._results) || [];
+			if (results.length === 1) {
+				openMeasurementForCustomer(results[0]);
+			}
+		});
+
+		if (box) {
+			box.addEventListener('click', function (e) {
+				var btn = e.target && e.target.closest ? e.target.closest('[data-suggest-idx]') : null;
+				if (!btn) {
+					return;
+				}
+				var idx = parseInt(btn.getAttribute('data-suggest-idx'), 10);
+				var results = box._results || [];
+				if (results[idx]) {
+					openMeasurementForCustomer(results[idx]);
+				}
+			});
+		}
+
+		var addBtn = $('#erp-home-add-customer');
+		if (addBtn) {
+			addBtn.addEventListener('click', function () {
+				showView('customers');
+			});
 		}
 	}
 
@@ -90,7 +323,7 @@
 				return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
 			});
 			if (!rows.length) {
-				list.innerHTML = '<p class="desk-empty">Abhi koi customer cache/pending nahi. Naya add karo.</p>';
+				list.innerHTML = '<p class="desk-empty">No customers cached yet. Add one above.</p>';
 				return;
 			}
 			list.innerHTML = rows
@@ -124,7 +357,7 @@
 				return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
 			});
 			if (!rows.length) {
-				list.innerHTML = '<p class="desk-empty">Koi order nahi. Naya order banao.</p>';
+				list.innerHTML = '<p class="desk-empty">No orders yet. Create one above.</p>';
 				return;
 			}
 			list.innerHTML = rows
@@ -155,7 +388,7 @@
 				countEl.textContent = String(ops.length);
 			}
 			if (!ops.length) {
-				list.innerHTML = '<p class="desk-empty">Queue khali — sab sync ho chuka ya abhi kuch save nahi.</p>';
+				list.innerHTML = '<p class="desk-empty">Queue is empty — nothing pending to sync.</p>';
 				return;
 			}
 			list.innerHTML = ops
@@ -226,6 +459,35 @@
 	}
 
 	function bindForms() {
+		var measForm = $('#form-measurement');
+		if (measForm) {
+			measForm.addEventListener('submit', function (e) {
+				e.preventDefault();
+				var fd = new FormData(measForm);
+				var payload = {};
+				fd.forEach(function (v, k) {
+					payload[k] = v;
+				});
+				window.DarziOffline.deskOps
+					.saveMeasurement(payload)
+					.then(function (rec) {
+						currentMeasurement = rec;
+						toast('Measurement saved offline', 'pending');
+						refreshQueue();
+						updatePendingBadge();
+					})
+					.catch(function (err) {
+						toast('Measurement save failed: ' + ((err && err.message) || 'error'), 'sync_failed');
+					});
+			});
+		}
+		var toOrder = $('#meas-to-order-btn');
+		if (toOrder) {
+			toOrder.addEventListener('click', function () {
+				showView('orders');
+			});
+		}
+
 		var custForm = $('#form-customer');
 		if (custForm) {
 			custForm.addEventListener('submit', function (e) {
@@ -247,6 +509,18 @@
 						refreshCustomers();
 						refreshQueue();
 						updatePendingBadge();
+						if (rec && rec.server_id) {
+							openMeasurementForCustomer({
+								code: parseInt(rec.server_id, 10) || 0,
+								name: rec.name || '',
+								phone: rec.Phone || '',
+								naap: rec.man_napno || '',
+								has_measurement: false
+							});
+						} else {
+							showView('home');
+							toast('Customer queued. After Sync, search again for measurement.', 'pending');
+						}
 					})
 					.catch(function (err) {
 						toast('Save failed: ' + ((err && err.message) || 'error'), 'sync_failed');
@@ -424,7 +698,7 @@
 		if (syncBtn) {
 			syncBtn.addEventListener('click', function () {
 				if (!window.DarziOffline.connectivity.isOnline()) {
-					toast('Server abhi offline hai — pehle local save raho, baad mein Sync.', 'offline');
+					toast('Server is offline. Keep saving locally, then Sync later.', 'offline');
 					return;
 				}
 				setStatus('Syncing…', 'syncing');
@@ -441,8 +715,8 @@
 					.catch(function (err) {
 						var msg = (err && err.message) || 'sync_failed';
 						if (msg === 'login_required' || msg.indexOf('unauthorized') !== -1) {
-							toast('Sync ke liye pehle full ERP login chahiye. Local data safe hai.', 'sync_failed');
-							setStatus('Online · Login needed for sync', 'pending');
+							toast('Sign in to Full ERP once online, then Sync. Local data is safe.', 'sync_failed');
+							setStatus('Online · Login needed', 'pending');
 						} else {
 							toast('Sync failed: ' + msg, 'sync_failed');
 							setStatus('Sync failed', 'offline');
@@ -452,15 +726,16 @@
 			});
 		}
 
+		// Full ERP / Login are real links — SW serves cached Full ERP pages when offline.
 		var openErp = $('#btn-open-erp');
-		if (openErp) {
+		if (openErp && openErp.tagName !== 'A') {
 			openErp.addEventListener('click', function () {
 				window.location.href = cfg.homeUrl || DEFAULT_CFG.homeUrl;
 			});
 		}
 
 		var openLogin = $('#btn-open-login');
-		if (openLogin) {
+		if (openLogin && openLogin.tagName !== 'A') {
 			openLogin.addEventListener('click', function () {
 				window.location.href = cfg.loginUrl || DEFAULT_CFG.loginUrl;
 			});
@@ -480,18 +755,22 @@
 			})
 			.then(function (cfg) {
 				bindChrome(cfg);
+				bindHomeSearch();
 				bindForms();
+				if (window.DarziOffline.search && window.DarziOffline.search.bind) {
+					window.DarziOffline.search.bind();
+				}
 				showView('home');
 				updatePendingBadge();
 
 				window.DarziOffline.connectivity.onChange(function (st) {
 					if (st.status === 'online') {
-						setStatus('Online — Sync Now se pending bhejo', 'online');
+						setStatus('Online · Ready to sync', 'online');
 						tryOpenFullErp(cfg);
 					} else if (st.status === 'checking') {
-						setStatus('Checking server…', 'checking');
+						setStatus('Checking…', 'checking');
 					} else {
-						setStatus('Offline mode — server ke baghair kaam chal raha hai', 'offline');
+						setStatus('Offline · Working locally', 'offline');
 					}
 					updatePendingBadge();
 				});

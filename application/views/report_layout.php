@@ -151,9 +151,9 @@ if ($export_mode === 'excel') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title><?php echo esc_html($report_title); ?></title>
-<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>?v=portrait-a4-2">
+<link rel="stylesheet" href="<?php echo base_url('css/report-print-landscape.css'); ?>?v=report-font-5">
 <style>
-	body.report-body { background: #f4f7fb; color: #1f2933; font-family: Arial, sans-serif; }
+	body.report-body { background: #f4f7fb; color: #1f2933; font-family: Arial, 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', sans-serif; }
 	.report-shell { max-width: 1180px; margin: 18px auto; padding: 0 14px; }
 	.report-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; box-shadow: 0 10px 30px rgba(15, 35, 65, .08); overflow: hidden; }
 	.report-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; padding: 12px 16px; background: #eef7f8; border-bottom: 1px solid #dcebee; }
@@ -176,25 +176,35 @@ if ($export_mode === 'excel') {
 	.report-preset-btn:hover { border-color: #16a1ad; color: #0f766e; }
 	.report-field label { display: block; font-weight: 700; margin-bottom: 5px; }
 	.report-field input, .report-field select { width: 100%; border: 1px solid #d7e0ea; border-radius: 8px; padding: 9px 10px; box-sizing: border-box; }
-	.report-table-wrap { padding: 18px 24px 24px; }
+	.report-table-wrap { padding: 18px 24px 24px; overflow-x: auto; }
 	.report-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0 0 16px; }
 	.report-summary div { background: #f7fbfc; border: 1px solid #dfecef; border-radius: 10px; padding: 12px; }
-	.report-summary span { display: block; color: #52616d; font-size: 12px; }
-	.report-summary strong { font-size: 18px; }
-	.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-	.report-table th { background: #1f9faa; color: #fff; padding: 9px; border: 1px solid #128995; text-align: center; }
-	.report-table td { padding: 8px; border: 1px solid #dde6ef; }
-	.report-table .num { text-align: right; }
+	.report-summary span { display: block; color: #52616d; font-size: 13px; }
+	.report-summary strong { font-size: 20px; }
+	/* Clear, large table type — screen + generate view (like measurement values). */
+	.report-table { width: 100%; border-collapse: collapse; font-size: 16px; line-height: 1.45; }
+	.report-table th {
+		background: #1f9faa; color: #fff; padding: 12px 10px; border: 1px solid #128995;
+		text-align: center; font-size: 16px; font-weight: 800; letter-spacing: 0.01em;
+	}
+	.report-table td {
+		padding: 11px 10px; border: 1px solid #dde6ef;
+		font-size: 16px; font-weight: 600; color: #111827; vertical-align: middle;
+	}
+	.report-table tbody tr:nth-child(even) td { background: #f8fafc; }
+	.report-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 	.report-table .center { text-align: center; }
 	.report-table .text-left { text-align: left; }
 	.report-table.align-center th,
 	.report-table.align-center td { text-align: center !important; }
 	.report-table.align-left th,
 	.report-table.align-left td { text-align: left !important; }
-	.report-table .col-date { white-space: nowrap; width: 1%; min-width: 92px; text-align: center; }
+	.report-table .col-date { white-space: nowrap; width: 1%; min-width: 110px; text-align: center; }
+	.report-table .col-phone { white-space: nowrap; min-width: 120px; }
+	.report-table .col-order { white-space: nowrap; min-width: 88px; }
 	.report-footer-note { background: #d9d9d9; padding: 8px 20px; display: flex; justify-content: space-between; gap: 10px; font-weight: 700; }
 	.signature-line { margin: 45px 24px 22px; width: 280px; border-top: 1px dotted #222; text-align: center; padding-top: 5px; }
-	.empty-state { padding: 24px; color: #687782; text-align: center; }
+	.empty-state { padding: 24px; color: #687782; text-align: center; font-size: 16px; }
 	.text-right { text-align: right; }
 </style>
 </head>
@@ -212,6 +222,14 @@ if ($export_mode === 'excel') {
 			<a class="report-btn secondary" href="<?php echo $report_pdf_url; ?>" target="_blank"><?php echo t('report_open_pdf'); ?></a>
 			<?php } ?>
 		</div>
+		<?php
+		$report_flash_err = $this->session->flashdata('transfer_error');
+		if ($report_flash_err) {
+		?>
+		<div class="print-hide" style="margin:12px 24px 0;padding:12px 14px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-weight:600;">
+			<?php echo esc_html((string) $report_flash_err); ?>
+		</div>
+		<?php } ?>
 		<?php } ?>
 		<?php $this->load->view('report_print_header'); ?>
 		<div class="report-title">
@@ -288,25 +306,33 @@ if ($export_mode === 'excel') {
 
 			var form = document.getElementById('report-filter-form');
 			var resultBase = form ? String(form.getAttribute('data-result-base') || '') : '';
+
+			function buildResultUrlFromForm() {
+				if (!form || !resultBase) return '';
+				var fromEl = form.querySelector('[name="fromdate"]');
+				var toEl = form.querySelector('[name="todate"]');
+				var from = fromEl ? String(fromEl.value || '').trim() : '';
+				var to = toEl ? String(toEl.value || '').trim() : '';
+				if (!from || !to) return '';
+				var url = resultBase + '/' + encodeURIComponent(from) + '/' + encodeURIComponent(to);
+				var extraNames = ['emp_type', 'stage', 'employee', 'group', 'rtype'];
+				for (var i = 0; i < extraNames.length; i++) {
+					var el = form.querySelector('[name="' + extraNames[i] + '"]');
+					if (!el) continue;
+					var v = String(el.value || '').trim();
+					if (v !== '') {
+						url += '/' + encodeURIComponent(v);
+						break;
+					}
+				}
+				return url;
+			}
+
 			if (form && resultBase) {
 				form.addEventListener('submit', function (e) {
 					e.preventDefault();
-					var fromEl = form.querySelector('[name="fromdate"]');
-					var toEl = form.querySelector('[name="todate"]');
-					var from = fromEl ? String(fromEl.value || '').trim() : '';
-					var to = toEl ? String(toEl.value || '').trim() : '';
-					if (!from || !to) { return; }
-					var url = resultBase + '/' + encodeURIComponent(from) + '/' + encodeURIComponent(to);
-					var extraNames = ['emp_type', 'stage', 'employee', 'group', 'rtype'];
-					for (var i = 0; i < extraNames.length; i++) {
-						var el = form.querySelector('[name="' + extraNames[i] + '"]');
-						if (!el) continue;
-						var v = String(el.value || '').trim();
-						if (v !== '') {
-							url += '/' + encodeURIComponent(v);
-							break;
-						}
-					}
+					var url = buildResultUrlFromForm();
+					if (!url) return;
 					window.location.href = url;
 				});
 			}
@@ -318,8 +344,10 @@ if ($export_mode === 'excel') {
 				try {
 					var st = history.state || {};
 					if (!st.dzReportResult) {
+						// Capture result URL BEFORE replaceState — replaceState changes location.href.
+						var resultUrl = window.location.href;
 						history.replaceState({ dzReportFilter: true }, '', filterUrl);
-						history.pushState({ dzReportResult: true }, '', window.location.href);
+						history.pushState({ dzReportResult: true }, '', resultUrl);
 					}
 				} catch (errHist) { /* ignore */ }
 				window.addEventListener('popstate', function (ev) {
@@ -328,6 +356,21 @@ if ($export_mode === 'excel') {
 						window.location.replace(filterUrl);
 					}
 				});
+			} else if (!hasReport && form && resultBase) {
+				// Recovery only on browser refresh of a filter URL that already has dates
+				// (old history bug left filter URL in the address bar). Do not run on
+				// intentional "Back to filters" navigation.
+				var navEntry = (window.performance && performance.getEntriesByType)
+					? performance.getEntriesByType('navigation')[0]
+					: null;
+				var isReload = (navEntry && navEntry.type === 'reload')
+					|| (window.performance && performance.navigation && performance.navigation.type === 1);
+				if (isReload) {
+					var recoveryUrl = buildResultUrlFromForm();
+					if (recoveryUrl) {
+						window.location.replace(recoveryUrl);
+					}
+				}
 			}
 		})();
 		</script>

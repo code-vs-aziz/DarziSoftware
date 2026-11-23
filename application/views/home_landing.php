@@ -32,10 +32,12 @@ $customer_add_url = site_url('Customer/Customer_add');
 									<div class="dz-home__search-shell">
 										<span class="dz-home__search-icon" aria-hidden="true"><?php echo ui_icon('search'); ?></span>
 										<input
-											class="dz-home__input"
+											class="dz-home__input customer-urdu-field"
 											type="text"
 											name="search"
 											id="erp-home-search"
+											dir="ltr"
+											lang="ur"
 											placeholder="<?php echo esc_attr(t('dash_search_placeholder')); ?>"
 											autocomplete="off"
 											inputmode="search"
@@ -94,6 +96,14 @@ $customer_add_url = site_url('Customer/Customer_add');
 
 		function go(url) {
 			if (!url) return;
+			// Offline: open measurement/order from cache/template (no full reload → Welcome).
+			var offlineNow = window.DarziOffline &&
+				window.DarziOffline.connectivity &&
+				!window.DarziOffline.connectivity.isOnline();
+			if (offlineNow && window.DarziOffline.nav && typeof window.DarziOffline.nav.open === 'function') {
+				window.DarziOffline.nav.open(url);
+				return;
+			}
 			// Measurement / add flows are full-page in the shell — avoid AJAX race.
 			if (window.AppAjaxShell && typeof window.AppAjaxShell.shouldSkipUrl === 'function') {
 				try {
@@ -258,7 +268,9 @@ $customer_add_url = site_url('Customer/Customer_add');
 			var html = '';
 			for (var i = 0; i < items.length; i++) {
 				var r = items[i];
-				html += '<button type="button" class="dz-home__suggest-item" role="option" data-idx="' + i + '">'
+				html += '<button type="button" class="dz-home__suggest-item" role="option" data-idx="' + i + '"'
+					+ ' data-meas-url="' + escapeHtml(r.url || '') + '"'
+					+ ' data-customer-code="' + escapeHtml(String(r.code || '')) + '">'
 					+ '<span class="dz-home__suggest-name">' + escapeHtml(r.name) + '</span>'
 					+ '<span class="dz-home__suggest-meta">'
 					+ escapeHtml(r.phone || '')
@@ -321,6 +333,14 @@ $customer_add_url = site_url('Customer/Customer_add');
 						rows[i].name = rows[i].name || ('#' + rows[i].code);
 					}
 					render(rows);
+					// Online: quietly cache these measurement pages for offline order-taking.
+					if (window.DarziOffline && window.DarziOffline.nav && window.DarziOffline.nav.warmUrls) {
+						var warm = [];
+						for (var w = 0; w < rows.length; w++) {
+							if (rows[w].url) warm.push(rows[w].url);
+						}
+						window.DarziOffline.nav.warmUrls(warm);
+					}
 				} catch (e) {
 					hideSuggest();
 				}
@@ -328,18 +348,35 @@ $customer_add_url = site_url('Customer/Customer_add');
 			xhr.send();
 		}
 
+		function bindUrduHomeSearch() {
+			if (!window.jQuery || !jQuery.fn.setUrduInput || !input) return;
+			var $field = jQuery(input);
+			if ($field.data('urduBound')) return;
+			$field.setUrduInput();
+			$field.data('urduBound', 1);
+		}
+		bindUrduHomeSearch();
+		if (window.jQuery) {
+			jQuery(document).on('app:ajax-loaded', bindUrduHomeSearch);
+		}
+
 		if (input) {
+			// Read value AFTER setUrduInput converts Latin→Urdu on the same keystroke.
+			// Reading synchronously can capture English letters and abort/skip suggest.
 			input.addEventListener('input', function () {
 				if (submitting) return;
-				var q = String(input.value || '').replace(/^\s+|\s+$/g, '');
-				syncAddLink(q);
-				if (q.length < 2) {
-					lastQ = '';
-					hideSuggest();
-					return;
-				}
 				clearTimeout(timer);
-				timer = setTimeout(function () { fetchSuggest(q); }, 180);
+				timer = setTimeout(function () {
+					if (submitting) return;
+					var q = String(input.value || '').replace(/^\s+|\s+$/g, '');
+					syncAddLink(q);
+					if (q.length < 2) {
+						lastQ = '';
+						hideSuggest();
+						return;
+					}
+					fetchSuggest(q);
+				}, 180);
 			});
 			input.addEventListener('keydown', function (e) {
 				if (e.key === 'Escape') {

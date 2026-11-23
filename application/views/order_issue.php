@@ -39,65 +39,42 @@ $this->load->helper('ui');
 							<?php
 							$rd_tab = ($this->uri->segment(3) === 'D') ? 'D' : 'C';
 							$rd_filters = isset($ready_filters) && is_array($ready_filters) ? $ready_filters : array();
-							$rd_customer = isset($rd_filters['customer_name']) ? (string) $rd_filters['customer_name'] : '';
-							$rd_order_no = isset($rd_filters['order_no']) ? (string) $rd_filters['order_no'] : '';
-							$rd_naap_no = isset($rd_filters['naap_no']) ? (string) $rd_filters['naap_no'] : '';
-							$rd_mobile_no = isset($rd_filters['mobile_no']) ? (string) $rd_filters['mobile_no'] : '';
+							$rd_dt_q = isset($rd_filters['dt_q']) ? (string) $rd_filters['dt_q'] : '';
 							$rd_return_from = isset($rd_filters['return_from']) ? (string) $rd_filters['return_from'] : '';
 							$rd_return_to = isset($rd_filters['return_to']) ? (string) $rd_filters['return_to'] : '';
-							$rd_has_filter = ($rd_customer !== '' || $rd_order_no !== '' || $rd_naap_no !== '' || $rd_mobile_no !== ''
-								|| $rd_return_from !== '' || $rd_return_to !== '');
+							$rd_has_filter = ($rd_dt_q !== '' || $rd_return_from !== '' || $rd_return_to !== '');
 							$rd_return_query = http_build_query(array_filter(array(
-								'customer_name' => $rd_customer,
-								'order_no' => $rd_order_no,
-								'naap_no' => $rd_naap_no,
-								'mobile_no' => $rd_mobile_no,
+								'dt_q' => $rd_dt_q,
 								'return_from' => $rd_return_from,
 								'return_to' => $rd_return_to,
 							), function ($v) {
 								return trim((string) $v) !== '';
 							}));
 							?>
-							<form method="get" class="mb-3" action="<?php echo site_url('Order/order_issue/'.$rd_tab); ?>">
+							<form method="get" id="rd-ready-filter-form" class="mb-3" action="<?php echo site_url('Order/order_issue/'.$rd_tab); ?>" data-no-ajax="true">
+								<input type="hidden" name="dt_q" id="rd-dt-q" value="<?php echo esc_attr($rd_dt_q); ?>">
 								<div class="row align-items-end">
-									<div class="col-md-2 mb-2">
-										<label class="mb-1"><strong>Customer</strong></label>
-										<input type="text" name="customer_name" class="form-control form-control-sm order-filter-urdu-field customer-urdu-field" dir="rtl" lang="ur" placeholder="<?php echo esc_html(t('customer_name')); ?>" value="<?php echo esc_html($rd_customer); ?>" autocomplete="off">
-									</div>
-									<div class="col-md-2 mb-2">
-										<label class="mb-1"><strong>Order #</strong></label>
-										<input type="text" name="order_no" class="form-control form-control-sm" placeholder="Order number" value="<?php echo esc_html($rd_order_no); ?>" autocomplete="off">
-									</div>
-									<div class="col-md-2 mb-2">
-										<label class="mb-1"><strong>Naap #</strong></label>
-										<input type="text" name="naap_no" class="form-control form-control-sm" placeholder="Naap number" value="<?php echo esc_html($rd_naap_no); ?>" autocomplete="off">
-									</div>
-									<div class="col-md-2 mb-2">
-										<label class="mb-1"><strong>Mobile #</strong></label>
-										<input type="text" name="mobile_no" class="form-control form-control-sm" placeholder="Mobile number" value="<?php echo esc_html($rd_mobile_no); ?>" autocomplete="off">
-									</div>
-									<div class="col-md-2 mb-2">
+									<div class="col-md-4 mb-2">
 										<label class="mb-1"><strong>Return From</strong></label>
 										<input type="date" name="return_from" class="form-control form-control-sm" value="<?php echo esc_html($rd_return_from); ?>">
 									</div>
-									<div class="col-md-2 mb-2">
+									<div class="col-md-4 mb-2">
 										<label class="mb-1"><strong>Return To</strong></label>
 										<input type="date" name="return_to" class="form-control form-control-sm" value="<?php echo esc_html($rd_return_to); ?>">
 									</div>
 									<div class="col-md-12 mb-2">
-										<label class="mb-1 d-none d-md-block">&nbsp;</label>
 										<button type="submit" class="btn btn-primary dz-btn--filled btn-lg btn-block"><?php echo t('app_search'); ?></button>
 									</div>
 								</div>
 							</form>
-							<p class="text-muted small mb-2"><?php echo esc_html(t('order_issue_filter_hint')); ?></p>
+							<p class="text-muted small mb-2"><?php echo esc_html(t('order_issue_filter_hint')); ?> Use the table Search box for order #, naap, phone, or customer.</p>
 							<?php if ($rd_has_filter && empty($order_det)) { ?>
 							<p class="text-muted small mb-2">No ready orders match these filters. Adjust the filters and search again.</p>
 							<?php } elseif ( ! $rd_has_filter && empty($order_det)) { ?>
 							<p class="text-muted small mb-2">No orders are ready for delivery right now. Complete stitching (Pending Stitching) to add them here.</p>
 							<?php } ?>
 							<section>
-								<table id="example" class="display order-ready-table" style="width:100%" data-page-length="10">
+								<table id="example" class="display order-ready-table" style="width:100%" data-page-length="10" data-universal-search="1" data-search-form="#rd-ready-filter-form" data-od-dt-seed="<?php echo esc_attr($rd_dt_q); ?>">
 									<thead>
 										<tr>
 											<th>Order #</th>

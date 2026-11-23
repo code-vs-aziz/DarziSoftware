@@ -30,6 +30,7 @@ $lang['report_hub_hint_delivery'] = 'ورقة الطلبات المسلّمة';
 $lang['report_hub_hint_customer_sale'] = 'إجمالي البيع لكل عميل';
 $lang['report_hub_hint_employee_report'] = 'ملخص نشاط الموظف';
 $lang['report_hub_hint_booking'] = 'تقرير ملخص الحجز';
+$lang['report_booking_range_limit'] = 'نطاق تاريخ تقرير الحجز كبير جداً (الحد الأقصى %s يوماً). اختر فترة أقصر — مثلاً شهر واحد — لتجنب انتهاء المهلة.';
 $lang['report_sales'] = 'تقرير المبيعات';
 $lang['report_expense'] = 'مصروف';
 $lang['report_booking'] = 'الحجز';

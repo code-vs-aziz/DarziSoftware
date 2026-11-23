@@ -124,8 +124,11 @@ class employee_rep extends MY_Controller {
 			redirect('Login');
 			return;
 		}
-		$date = $this->uri->segment(3);
-		$date1 = $this->uri->segment(4);
+		@set_time_limit(300);
+		@ini_set('memory_limit', '512M');
+
+		$date = trim((string) $this->uri->segment(3));
+		$date1 = trim((string) $this->uri->segment(4));
 		$stage = rawurldecode(trim((string) $this->uri->segment(5)));
 		if ($stage === '' && $this->input->get('stage', TRUE) !== NULL)
 		{
@@ -156,6 +159,20 @@ class employee_rep extends MY_Controller {
 		{
 			$stage = '';
 		}
+
+		// Allow multi-year ranges (5–10 yrs). Swap inverted dates only.
+		if ($date !== '' && $date1 !== '')
+		{
+			$ts_from = strtotime($date);
+			$ts_to = strtotime($date1);
+			if ($ts_from !== FALSE && $ts_to !== FALSE && $ts_to < $ts_from)
+			{
+				$tmp = $date;
+				$date = $date1;
+				$date1 = $tmp;
+			}
+		}
+
 		$data['stage_filter'] = $stage;
 		$data['payment'] = ($date !== '' && $date1 !== '') ? $this->order_query->get_booking_status_report($date, $date1) : array();
 		$this->load->view('rep_booking', $data);
@@ -312,6 +329,14 @@ class employee_rep extends MY_Controller {
 		if ($stage === '' || strtolower($stage) === 'all')
 		{
 			$stage = 'all';
+		}
+		$ts_from = strtotime($fromdate);
+		$ts_to = strtotime($todate);
+		if ($ts_from !== FALSE && $ts_to !== FALSE && $ts_to < $ts_from)
+		{
+			$tmp = $fromdate;
+			$fromdate = $todate;
+			$todate = $tmp;
 		}
 		// Keep URL segment space-free (e.g. Ready4Del).
 		$stage = str_replace(array(' ', '+'), '', $stage);

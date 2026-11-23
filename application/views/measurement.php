@@ -12,7 +12,7 @@ $this->load->helper('ui');
 		}
 	}
 ?>
-<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=12'); ?>" rel="stylesheet" media="all">
+<link href="<?php echo base_url('css/measurement-form-enhancements.css?v=13'); ?>" rel="stylesheet" media="all">
 <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/notonastaliqurdudraft.css">
 <script>
 	function initMeasurementUrduNotes() {
@@ -40,10 +40,22 @@ $this->load->helper('ui');
 						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_record_entered_short'))); ?>
                      	<div class="col-md-12">
                                 <div class="dz-card erp-module-card data-entry-card measurement-entry-card">
+									<?php
+					$meas_customer_edit_url = '';
+					if ($measurement_customer) {
+						$meas_customer_code = (int) $measurement_customer->code;
+						$meas_add_return = 'Measurement/measurement_add/'.$meas_customer_code;
+						if (!empty($return_order)) {
+							$meas_add_return .= '?return=order';
+						}
+						$meas_customer_edit_url = site_url('Customer/customer_edit/'.$meas_customer_code).'?return_to='.rawurlencode($meas_add_return);
+					}
+									?>
 									<div class="erp-card-head">
 										<h2 class="erp-module-title mb-0"><?php echo t('measurement_form'); ?></h2>
 										<?php if ($measurement_customer) { ?>
-										<div class="erp-card-actions">
+										<div class="erp-card-actions" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+											<a class="btn btn-sm btn-primary" href="<?php echo esc_html($meas_customer_edit_url); ?>" data-no-ajax="true"><?php echo esc_html(t('customer_edit')); ?></a>
 											<span class="erp-entry-number"><?php echo t('customer_manual_naap'); ?> : <?php echo esc_html((string) $measurement_customer->man_napno); ?></span>
 										</div>
 										<?php } ?>
@@ -53,15 +65,7 @@ $this->load->helper('ui');
                               <div id="page1" style="display:block;">
 
 					<?php if ($measurement_customer) { ?>
-					<?php
-					$meas_customer_code = (int) $measurement_customer->code;
-					$meas_add_return = 'Measurement/measurement_add/'.$meas_customer_code;
-					if (!empty($return_order)) {
-						$meas_add_return .= '?return=order';
-					}
-					$meas_customer_edit_url = site_url('Customer/customer_edit/'.$meas_customer_code).'?return_to='.rawurlencode($meas_add_return);
-					?>
-					<input name="customerno1" type="hidden" value="<?php echo $meas_customer_code; ?>">
+					<input name="customerno1" type="hidden" value="<?php echo (int) $measurement_customer->code; ?>">
 					<div class="measurement-info-panel">
 						<div class="measurement-section__head">
 							<h3 class="measurement-section__title"><?php echo t('customer_title'); ?></h3>
@@ -87,18 +91,19 @@ $this->load->helper('ui');
 
 					<div class="measurement-section">
 						<div class="measurement-section__head">
-							<h3 class="measurement-section__title"><?php echo t('measurement_section_garments'); ?></h3>
+							<h3 class="measurement-section__title">Garment measurements</h3>
 						</div>
 		 <div class="measurement-tab-body">
 										<div class="default-tab">
 											<nav>
 												<div class="nav nav-tabs" id="nav-tab" role="tablist">
-													<a class="nav-item nav-link active" id="nav-home-Kurta" data-toggle="tab" href="#nav-Kurta" role="tab" aria-controls="nav-Kurta" aria-selected="true"><?php echo t('measurement_tab_kurta'); ?></a>
-													<a class="nav-item nav-link" id="nav-Pajama-tab" data-toggle="tab" href="#nav-Pajama" role="tab" aria-controls="nav-Pajama" aria-selected="false"><?php echo t('measurement_tab_pajama'); ?></a>
-													<a class="nav-item nav-link" id="nav-Pent-tab" data-toggle="tab" href="#nav-Pent" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_pent'); ?></a>
-													<a class="nav-item nav-link" id="nav-Shrit-tab" data-toggle="tab" href="#nav-Shrit" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_shirt'); ?></a>
-													<a class="nav-item nav-link" id="nav-Coat-tab" data-toggle="tab" href="#nav-Coat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_coat'); ?></a>
-													<a class="nav-item nav-link" id="nav-Waistcoat-tab" data-toggle="tab" href="#nav-Waistcoat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t('measurement_tab_waistcoat'); ?></a>
+													<a class="nav-item nav-link active urd" id="nav-home-Kurta" data-toggle="tab" href="#nav-Kurta" role="tab" aria-controls="nav-Kurta" aria-selected="true"><?php echo t_urdu('measurement_tab_kurta'); ?></a>
+													<a class="nav-item nav-link urd" id="nav-Pajama-tab" data-toggle="tab" href="#nav-Pajama" role="tab" aria-controls="nav-Pajama" aria-selected="false"><?php echo t_urdu('measurement_tab_pajama'); ?></a>
+													<a class="nav-item nav-link urd" id="nav-Pent-tab" data-toggle="tab" href="#nav-Pent" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t_urdu('measurement_tab_pent'); ?></a>
+													<a class="nav-item nav-link urd" id="nav-Shrit-tab" data-toggle="tab" href="#nav-Shrit" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t_urdu('measurement_tab_shirt'); ?></a>
+													<a class="nav-item nav-link urd" id="nav-Coat-tab" data-toggle="tab" href="#nav-Coat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t_urdu('measurement_tab_coat'); ?></a>
+													<a class="nav-item nav-link urd" id="nav-PentCoat-tab" data-toggle="tab" href="#nav-PentCoat" role="tab" aria-controls="nav-PentCoat" aria-selected="false"><?php echo t_urdu('measurement_tab_pentcoat'); ?></a>
+													<a class="nav-item nav-link urd" id="nav-Waistcoat-tab" data-toggle="tab" href="#nav-Waistcoat" role="tab" aria-controls="nav-contact" aria-selected="false"><?php echo t_urdu('measurement_tab_waistcoat'); ?></a>
 												</div>
 											</nav>
 											<div class="tab-content" id="nav-tabContent">
@@ -149,8 +154,8 @@ $this->load->helper('ui');
 						</div>
 						<div class="col">		
                                              <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">پیٹ</label>
-                                                <input id="CKC" name="pait"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="" re>
+                                                <label for="pait" class="control-label mb-1 urd">پیٹ</label>
+                                                <input id="pait" name="pait"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="" re>
                                             </div>  
 											
 						</div>
@@ -249,15 +254,15 @@ $this->load->helper('ui');
 						</div>
 							<div class="col">		
                                              <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">کمر (ویسٹ)</label>
-                                                <input id="CKC" name="WASIT"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="" re>
+                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">کہنی</label>
+                                                <input id="Moda" name="FRONT_Pocket_Size"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="" re>
                                             </div>  
 											
 						</div>
 								<div class="col">		
                                              <div class="form-group" style="    padding: 0px 0px 0px 0px;    margin: 0px 0px 0px 0px;">
-                                                <label for="emp-EMPNAME" class="control-label mb-1 urd">فرنٹ پاکٹ سائز</label>
-                                                <input id="Moda" name="FRONT_Pocket_Size"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="" re>
+                                                <label for="WASIT" class="control-label mb-1 urd">کمر (ویسٹ)</label>
+                                                <input id="WASIT" name="WASIT"   type="text" class="form-control txtbox" aria-required="true" aria-invalid="false" value="" re>
                                             </div>  
 											
 						</div>
@@ -277,14 +282,8 @@ $this->load->helper('ui');
                                             </div>  
 											
 						</div>
-								<div class="col">		
-                                         
-											
-						</div>
-								<div class="col">		
-                                      
-											
-						</div>
+								<div class="col"></div>
+								<div class="col"></div>
 					</div>						
 							
 <?php $this->load->view('partials/measurement_garment_note', array(
@@ -559,6 +558,12 @@ $this->load->helper('ui');
 	'note_key' => 'coat',
 	'note_name' => 'RemarksCoat',
 	'note_id' => 'RemarksCoat',
+	'note_value' => '',
+)); ?>
+</div>
+												<div class="tab-pane fade" id="nav-PentCoat" role="tabpanel" aria-labelledby="nav-PentCoat-tab">
+<?php $this->load->view('partials/measurement_pentcoat_fields', array(
+	'measurement' => (object) array(),
 	'note_value' => '',
 )); ?>
 </div>

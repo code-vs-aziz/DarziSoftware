@@ -278,8 +278,6 @@ class Notification_model extends CI_Model
 
 	protected function default_settings()
 	{
-		$footer = "© {year} {shop_name}\nPowered by Aziz ur Rehman · DarziSoftware";
-
 		return array(
 			'id' => 1,
 			'enabled_order_booked' => 1,
@@ -289,10 +287,10 @@ class Notification_model extends CI_Model
 			'auto_open_whatsapp' => 1,
 			'dispatch_mode' => 'whatsapp_bridge',
 			'payment_reminder_days_before' => 1,
-			'template_order_booked' => "*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nآپ کا آرڈر کامیابی سے رجسٹر ہو گیا۔\n\n📋 *Order Details*\nOrder No: #{order_no}\nTotal Suits: {suit_count}\nTotal Bill: Rs {bill_total}\nAdvance Paid: Rs {advance}\nBalance: Rs {balance}\nReturn Date: {return_date}\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}",
-			'template_order_ready' => "*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nآپ کا آرڈر *تیار* ہے — آج وصول کر لیں۔\n\nOrder #: {order_no}\nSuits: {suit_count} | Bill: Rs {bill_total}\nBalance: Rs {balance}\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}",
-			'template_payment_reminder' => "*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nیاد دہانی: Order #{order_no} پر بقایا رقم باقی ہے۔\n\nPending Balance: Rs {balance}\nDue Date: {due_date}\nSuits: {suit_count} | Total Bill: Rs {bill_total}\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}",
-			'template_delivery_confirm' => "*{shop_name}*\n━━━━━━━━━━━━━━\nAssalam-o-Alaikum {customer_name},\n\nشکریہ! Order #{order_no} کامیابی سے deliver ہو گیا۔\n\nSuits: {suit_count} | Bill: Rs {bill_total}\nAdvance: Rs {advance} | Balance: Rs {balance}\n\nدوبارہ تشریف لائیں — خوشی ہوگی۔\n\n📍 {shop_address}\n📞 {shop_phone}\n\n{copyright}",
+			'template_order_booked' => "*{shop_name}*\n━━━━━━━━━━━━━━\nالسلام علیکم {customer_name},\n\nآپ کا آرڈر کامیابی سے رجسٹر ہو گیا۔\n\n📋 *Order Details*\nOrder No: #{order_no}\nNap #: {naap_no}\n{order_items}\nTotal Bill: Rs {bill_total}\nAdvance Paid: Rs {advance}\nBalance: Rs {balance}\nReturn Date: {return_date}\n\n📍 {shop_address}\n📞 {shop_phone}\n🌐 {shop_website}\n\n{copyright}",
+			'template_order_ready' => "*{shop_name}*\n━━━━━━━━━━━━━━\nالسلام علیکم {customer_name},\n\nآپ کا آرڈر *تیار* ہے — وصول کر لیں۔\n\nOrder #: {order_no}\nNap #: {naap_no}\n{order_items} | Bill: Rs {bill_total}\nTotal price: Rs {bill_total}\n\n📍 {shop_address}\n📞 {shop_phone}\n🌐 {shop_website}\n\n{copyright}",
+			'template_payment_reminder' => "*{shop_name}*\n━━━━━━━━━━━━━━\nالسلام علیکم {customer_name},\n\nیاد دہانی: Order #{order_no} پر بقایا رقم باقی ہے۔\n\nNap #: {naap_no}\nPending Balance: Rs {balance}\nDue Date: {due_date}\n{order_items} | Total Bill: Rs {bill_total}\n\n📍 {shop_address}\n📞 {shop_phone}\n🌐 {shop_website}\n\n{copyright}",
+			'template_delivery_confirm' => "*{shop_name}*\n━━━━━━━━━━━━━━\nالسلام علیکم {customer_name},\n\nشکریہ! Order #{order_no} کامیابی سے deliver ہو گیا۔\n\nNap #: {naap_no}\n{order_items} | Bill: Rs {bill_total}\nAdvance: Rs {advance} | Balance: Rs {balance}\n\nدوبارہ تشریف لائیں — خوشی ہوگی۔\n\n📍 {shop_address}\n📞 {shop_phone}\n🌐 {shop_website}\n\n{copyright}",
 		);
 	}
 }

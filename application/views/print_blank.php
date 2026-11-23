@@ -113,7 +113,7 @@
 						</tr>
 						<tr>
 							<td class="print-blank-info-table__value ur urd"><?php echo esc_html((string) $blank_balance); ?></td>
-							<th class="print-blank-info-table__label ur urd">بقایا</th>
+							<th class="print-blank-info-table__label ur urd">رقم</th>
 							<td class="print-blank-info-table__value ur urd"><?php echo esc_html(isset($orders->advance) ? $orders->advance : ''); ?></td>
 							<th class="print-blank-info-table__label ur urd">ایڈوانس</th>
 							<td class="print-blank-info-table__value ur urd"><?php echo esc_html(isset($orders->qty) ? $orders->qty : ''); ?></td>

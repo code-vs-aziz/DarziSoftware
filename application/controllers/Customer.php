@@ -197,9 +197,11 @@ class Customer extends MY_Controller {
 			return;
 		}
 
-		$q = trim((string) $this->input->get('q', TRUE));
+		// Do not XSS-clean: it can mangle Urdu/Arabic letters in names.
+		$q = trim((string) $this->input->get('q', FALSE));
+		$q = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $q);
 		$results = array();
-		if (mb_strlen($q) >= 2)
+		if (mb_strlen($q, 'UTF-8') >= 2)
 		{
 			$rows = $this->customer_query->search_customers_paged($q, 50, 0);
 			$codes = array();
@@ -287,6 +289,24 @@ class Customer extends MY_Controller {
 
 		$enc_term = rawurlencode($term);
 		$total_rows = $this->customer_query->count_search_customers($term);
+
+		// Exact Measurement/Naap No (unique): open that customer even if phone LIKE also matches others.
+		if ($offset === 0)
+		{
+			$exact_naap = $this->customer_query->find_customers_by_exact_naap($term);
+			if (count($exact_naap) === 1 && ! empty($exact_naap[0]->code))
+			{
+				$code = (int) $exact_naap[0]->code;
+				$meas_map = $this->customer_query->get_primary_measurement_codes_for_codes(array($code));
+				$meas_code = isset($meas_map[$code]) ? (int) $meas_map[$code] : 0;
+				if ($meas_code > 0)
+				{
+					redirect('Measurement/measurement_edit/'.$code.'?return=order');
+				}
+				redirect('Measurement/measurement_add/'.$code.'?return=order');
+				return;
+			}
+		}
 
 		// Exact / single match from home search: open measurement → order, skip list.
 		if ($total_rows === 1 && $offset === 0)

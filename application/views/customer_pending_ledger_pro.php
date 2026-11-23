@@ -60,9 +60,9 @@ foreach ($payment as $payments) {
 	.report-summary div { background: #f7fbfc; border: 1px solid #dfecef; border-radius: 10px; padding: 12px; }
 	.report-summary span { display: block; color: #52616d; font-size: 12px; }
 	.report-summary strong { font-size: 18px; }
-	.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-	.report-table th { background: #1f9faa; color: #fff; padding: 9px; border: 1px solid #128995; text-align: center; }
-	.report-table td { padding: 8px; border: 1px solid #dde6ef; }
+	.report-table { width: 100%; border-collapse: collapse; font-size: 16px; line-height: 1.45; }
+	.report-table th { background: #1f9faa; color: #fff; padding: 12px 10px; border: 1px solid #128995; text-align: center; font-size: 16px; font-weight: 800; }
+	.report-table td { padding: 11px 10px; border: 1px solid #dde6ef; font-size: 16px; font-weight: 600; color: #111827; vertical-align: middle; }
 	.report-table .num { text-align: right; }
 	.report-table .center { text-align: center; }
 	.report-footer-note { background: #d9d9d9; padding: 8px 20px; display: flex; justify-content: space-between; gap: 10px; font-weight: 700; }

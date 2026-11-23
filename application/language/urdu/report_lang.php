@@ -30,6 +30,7 @@ $lang['report_hub_hint_delivery'] = 'ڈیلیور شدہ آرڈرز';
 $lang['report_hub_hint_customer_sale'] = 'ہر کسٹمر کی کل سیل';
 $lang['report_hub_hint_employee_report'] = 'ملازم کی سرگرمی کا خلاصہ';
 $lang['report_hub_hint_booking'] = 'بکنگ خلاصہ رپورٹ';
+$lang['report_booking_range_limit'] = 'بکنگ رپورٹ کی تاریخ کی حد بہت بڑی ہے (زیادہ سے زیادہ %s دن)۔ مختصر عرصہ چنیں — مثلاً ایک مہینہ — تاکہ ٹائم آؤٹ نہ آئے۔';
 $lang['report_sales'] = 'سیلز رپورٹ';
 $lang['report_expense'] = 'اخراجات';
 $lang['report_booking'] = 'بکنگ';

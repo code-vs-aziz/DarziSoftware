@@ -22,6 +22,7 @@ $lang['menu_embroidery'] = 'التطريز';
 $lang['menu_button'] = 'الزر';
 $lang['menu_blank_print'] = 'طباعة فارغة';
 $lang['menu_configuration'] = 'الإعدادات';
+$lang['menu_device_security'] = 'أمان الأجهزة';
 $lang['menu_customer_messages'] = 'رسائل العملاء';
 $lang['menu_website'] = 'إدارة الموقع';
 $lang['menu_rbac'] = 'إدارة المستخدمين';

@@ -93,6 +93,96 @@ class Erp_sync_service
 		return array('ok' => TRUE);
 	}
 
+	/**
+	 * Mark server conflict rows resolved after staff chooses Keep Local / Keep Server.
+	 * Does not delete local or server business rows.
+	 */
+	public function resolve_conflict($device_id, $user_name, array $input)
+	{
+		$entity_type = isset($input['entity_type']) ? trim((string) $input['entity_type']) : '';
+		$server_entity_id = isset($input['server_entity_id']) ? trim((string) $input['server_entity_id']) : '';
+		$resolution = isset($input['resolution']) ? trim((string) $input['resolution']) : '';
+		if ($entity_type === '' || ($resolution !== 'keep_local' && $resolution !== 'keep_server'))
+		{
+			return array('ok' => FALSE, 'error' => 'invalid_resolution');
+		}
+		if ($resolution === 'keep_local' && in_array($entity_type, array('delivery', 'cash'), TRUE))
+		{
+			return array('ok' => FALSE, 'error' => 'keep_local_not_allowed', 'conflict' => TRUE);
+		}
+		$updated = $this->CI->erp_sync_model->resolve_open_conflicts(
+			$device_id,
+			$entity_type,
+			$server_entity_id,
+			$resolution,
+			$user_name
+		);
+		return array(
+			'ok' => TRUE,
+			'resolution' => $resolution,
+			'entity_type' => $entity_type,
+			'server_entity_id' => $server_entity_id,
+			'updated' => $updated,
+		);
+	}
+
+	/**
+	 * Report whether offline sync columns/tables exist (additive ensure already ran).
+	 */
+	public function schema_status()
+	{
+		$this->CI->erp_sync_model->ensure_schema();
+		$tables = array(
+			'erp_sync_devices',
+			'erp_sync_tokens',
+			'erp_sync_ops',
+			'erp_sync_conflicts',
+			'erp_sync_id_map',
+		);
+		$columns = array(
+			'customer' => array('client_uuid', 'row_version', 'updated_at'),
+			'measurement' => array('client_uuid', 'row_version', 'updated_at'),
+			'order_mst' => array('client_uuid', 'row_version', 'updated_at'),
+		);
+		$table_ok = array();
+		foreach ($tables as $t)
+		{
+			$table_ok[$t] = $this->CI->db->table_exists($t);
+		}
+		$column_ok = array();
+		$missing = array();
+		foreach ($columns as $table => $cols)
+		{
+			$column_ok[$table] = array();
+			foreach ($cols as $col)
+			{
+				$exists = $this->CI->db->table_exists($table) && $this->CI->db->field_exists($col, $table);
+				$column_ok[$table][$col] = $exists;
+				if ( ! $exists)
+				{
+					$missing[] = $table.'.'.$col;
+				}
+			}
+		}
+		$ready = empty($missing);
+		foreach ($table_ok as $ok)
+		{
+			if ( ! $ok)
+			{
+				$ready = FALSE;
+				break;
+			}
+		}
+		return array(
+			'ok' => TRUE,
+			'ready' => $ready,
+			'tables' => $table_ok,
+			'columns' => $column_ok,
+			'missing' => $missing,
+			'server_time' => date('c'),
+		);
+	}
+
 	public function bootstrap($limit_customers = 300)
 	{
 		$customers = $this->CI->erp_sync_model->recent_customers($limit_customers);
@@ -124,10 +214,10 @@ class Erp_sync_service
 		{
 			$codes[] = (int) $c['code'];
 		}
-		// Also refresh a small recent set when since is empty.
+		// Full snapshot when since is empty (first offline prepare).
 		if ($since === NULL || $since === '')
 		{
-			return $this->bootstrap(300);
+			return $this->bootstrap(1500);
 		}
 		$measurements = $this->CI->erp_sync_model->measurements_for_customers($codes, 500);
 		return array(
@@ -145,7 +235,9 @@ class Erp_sync_service
 	{
 		return array(
 			'fully_offline' => array(
-				'customer.create', 'customer.update', 'order.create',
+				'customer.create', 'customer.update',
+				'measurement.create', 'measurement.update',
+				'order.create',
 				'cash.create', 'cash.pending_pay',
 				'delivery.create',
 				'transfer.process', 'transfer.process_bulk',
@@ -249,15 +341,34 @@ class Erp_sync_service
 		$existing = $this->CI->erp_sync_model->find_op($device_id, $idem);
 		if ($existing)
 		{
-			$decoded = json_decode((string) $existing['result_json'], TRUE);
-			return array(
-				'ok' => ($existing['status'] === 'applied'),
-				'duplicate' => TRUE,
-				'op_id' => $op_id,
-				'idempotency_key' => $idem,
-				'server_entity_id' => $existing['server_entity_id'],
-				'result' => is_array($decoded) ? $decoded : array(),
-			);
+			// Failed ops must remain retriable. Older builds persisted them and the client
+			// treated duplicate as success — that silently dropped unsynced work.
+			if (isset($existing['status']) && $existing['status'] === 'failed')
+			{
+				$this->CI->erp_sync_model->delete_failed_op($device_id, $idem);
+			}
+			else
+			{
+				$decoded = json_decode((string) $existing['result_json'], TRUE);
+				$out = array(
+					'ok' => ($existing['status'] === 'applied'),
+					'duplicate' => TRUE,
+					'op_id' => $op_id,
+					'idempotency_key' => $idem,
+					'server_entity_id' => $existing['server_entity_id'],
+					'result' => is_array($decoded) ? $decoded : array(),
+				);
+				if ($existing['status'] === 'conflict')
+				{
+					$out['conflict'] = TRUE;
+					$out['error'] = 'conflict';
+					if (is_array($decoded) && ! empty($decoded['conflict_fields']))
+					{
+						$out['conflict_fields'] = $decoded['conflict_fields'];
+					}
+				}
+				return $out;
+			}
 		}
 
 		$this->CI->db->trans_start();
@@ -266,21 +377,26 @@ class Erp_sync_service
 			$result = $this->_dispatch($device_id, $user_name, $entity_type, $op_type, $entity_client_id, $payload);
 			$status = ! empty($result['ok']) ? 'applied' : ( ! empty($result['conflict']) ? 'conflict' : 'failed');
 			$server_id = isset($result['server_entity_id']) ? (string) $result['server_entity_id'] : '';
-			$this->CI->erp_sync_model->save_op(array(
-				'device_id' => $device_id,
-				'idempotency_key' => $idem,
-				'op_id' => $op_id,
-				'entity_type' => $entity_type,
-				'entity_client_id' => $entity_client_id,
-				'op_type' => $op_type,
-				'request_json' => json_encode($op, JSON_UNESCAPED_UNICODE),
-				'result_json' => json_encode($result, JSON_UNESCAPED_UNICODE),
-				'status' => $status,
-				'server_entity_id' => $server_id,
-				'error_message' => isset($result['error']) ? substr((string) $result['error'], 0, 500) : '',
-				'created_at' => date('Y-m-d H:i:s'),
-				'applied_at' => date('Y-m-d H:i:s'),
-			));
+			// Persist only terminal outcomes. Transient failures stay out of erp_sync_ops
+			// so the same idempotency key can retry cleanly after deps (id_map) resolve.
+			if ($status === 'applied' || $status === 'conflict')
+			{
+				$this->CI->erp_sync_model->save_op(array(
+					'device_id' => $device_id,
+					'idempotency_key' => $idem,
+					'op_id' => $op_id,
+					'entity_type' => $entity_type,
+					'entity_client_id' => $entity_client_id,
+					'op_type' => $op_type,
+					'request_json' => json_encode($op, JSON_UNESCAPED_UNICODE),
+					'result_json' => json_encode($result, JSON_UNESCAPED_UNICODE),
+					'status' => $status,
+					'server_entity_id' => $server_id,
+					'error_message' => isset($result['error']) ? substr((string) $result['error'], 0, 500) : '',
+					'created_at' => date('Y-m-d H:i:s'),
+					'applied_at' => date('Y-m-d H:i:s'),
+				));
+			}
 			$this->CI->db->trans_complete();
 			if ($this->CI->db->trans_status() === FALSE)
 			{
@@ -306,6 +422,10 @@ class Erp_sync_service
 				return $this->_customer_create($device_id, $entity_client_id, $payload);
 			case 'customer.update':
 				return $this->_customer_update($device_id, $entity_client_id, $payload);
+			case 'measurement.create':
+				return $this->_measurement_create($device_id, $entity_client_id, $payload);
+			case 'measurement.update':
+				return $this->_measurement_update($device_id, $entity_client_id, $payload);
 			case 'order.create':
 				return $this->_order_create($device_id, $user_name, $entity_client_id, $payload);
 			case 'cash.create':
@@ -420,9 +540,16 @@ class Erp_sync_service
 		$base_version = isset($payload['base_row_version']) ? (int) $payload['base_row_version'] : 0;
 		$server_version = isset($current['row_version']) ? (int) $current['row_version'] : 1;
 		$incoming = $this->_customer_payload_fields($payload);
+		$force_keep_local = ! empty($payload['force_keep_local']);
 
+		// Missing base version is treated as stale when the server row already advanced —
+		// otherwise concurrent edits silently last-write-wins.
 		$conflict_fields = array();
-		if ($base_version > 0 && $server_version > $base_version)
+		$should_check_conflict = ! $force_keep_local && (
+			($base_version > 0 && $server_version > $base_version)
+			|| ($base_version < 1 && $server_version > 1)
+		);
+		if ($should_check_conflict)
 		{
 			foreach ($this->customer_conflict_fields as $field)
 			{
@@ -457,6 +584,7 @@ class Erp_sync_service
 				'conflict' => TRUE,
 				'server_entity_id' => (string) $server_id,
 				'conflict_fields' => $conflict_fields,
+				'server_snapshot' => $current,
 				'error' => 'conflict',
 			);
 		}
@@ -479,6 +607,293 @@ class Erp_sync_service
 			'server_entity_id' => (string) $server_id,
 			'row_version' => $server_version + 1,
 		);
+	}
+
+	/**
+	 * Build measurement row from offline form payload (same fields as Measurement::process).
+	 */
+	private function _measurement_row_from_payload(array $payload, $customer_code)
+	{
+		$pick = function ($keys, $default = '') use ($payload) {
+			foreach ((array) $keys as $k)
+			{
+				if (isset($payload[$k]) && $payload[$k] !== NULL && $payload[$k] !== '')
+				{
+					return is_string($payload[$k]) ? trim($payload[$k]) : $payload[$k];
+				}
+			}
+			return $default;
+		};
+
+		$join_triple = function ($prefix) use ($payload, $pick) {
+			$top = $pick(array($prefix.'_upar'));
+			$mid = $pick(array($prefix.'_darmiyan'));
+			$bot = $pick(array($prefix.'_neeche'));
+			if ($top === '' && $mid === '' && $bot === '')
+			{
+				return $pick(array($prefix));
+			}
+			if (function_exists('measurement_join_triple'))
+			{
+				return measurement_join_triple($top, $mid, $bot);
+			}
+			$parts = array_filter(array($top, $mid, $bot), function ($v) {
+				return $v !== '' && $v !== NULL;
+			});
+			return implode('/', $parts);
+		};
+
+		$row = array(
+			'EDATE' => date('Y-m-d'),
+			'customer_code' => (int) $customer_code,
+			'KL' => $pick(array('KL')),
+			'FPL' => $pick(array('FPL')),
+			'BL' => $pick(array('BL')),
+			'Teera' => $pick(array('Teera')),
+			'BP' => $pick(array('BP')),
+			'CL' => $pick(array('CL')),
+			'Chaati' => $pick(array('Chaati')),
+			'Gala' => $pick(array('Gala')),
+			'Poncha_Chorai' => $pick(array('Poncha_Chorai')),
+			'Poncha_Choraic' => $pick(array('Poncha_Choraic')),
+			'Shalwar_Lenght' => $pick(array('Shalwar_Lenght')),
+			'Asan' => $pick(array('Asan')),
+			'Side_Pocket_Size' => $pick(array('Side_Pocket_Size')),
+			'SC' => $pick(array('SC')),
+			'BG' => $pick(array('BG')),
+			'Lambai' => $pick(array('Lambai')),
+			'Poncha' => $pick(array('Poncha')),
+			'shalwar_Asan' => $pick(array('shalwar_Asan')),
+			'Peeir' => $pick(array('Peeir')),
+			'PLambai' => $pick(array('PLambai')),
+			'PPoncha' => $pick(array('PPoncha')),
+			'PAsan' => $pick(array('PAsan')),
+			'PPeeir' => $pick(array('PPeeir')),
+			'PentLambai' => $pick(array('PentLambai')),
+			'pentWaiste' => $pick(array('pentWaiste')),
+			'HIP' => $pick(array('HIP')),
+			'PentPat' => $pick(array('PentPat')),
+			'PentThai' => $pick(array('PentThai', 'PentPat')),
+			'PentGhutna' => $pick(array('PentGhutna')),
+			'PentPonchaMori' => $pick(array('PentPonchaMori')),
+			'PentPoncha' => $pick(array('PentPoncha', 'PentPonchaMori')),
+			'SLambai' => $pick(array('SLambai')),
+			'SBazoo' => $pick(array('SBazoo')),
+			'STeera' => $pick(array('STeera')),
+			'SGeera' => $join_triple('SGeera'),
+			'geera' => $join_triple('geera'),
+			'SChaati' => $pick(array('SChaati')),
+			'SKamar' => $pick(array('SKamar')),
+			'SGaala' => $pick(array('SGaala')),
+			'CoatLambai' => $pick(array('CoatLambai')),
+			'CoatBazoo' => $pick(array('CoatBazoo')),
+			'CoatTeera' => $pick(array('CoatTeera')),
+			'CoatChaati' => $pick(array('CoatChaati')),
+			'CoatHIP' => $pick(array('CoatHIP')),
+			'CoatKamar' => $pick(array('CoatKamar')),
+			'CoatDola' => $pick(array('CoatDola')),
+			'CoatBazooMori' => $pick(array('CoatBazooMori')),
+			'CoatLambaiBack' => $pick(array('CoatLambaiBack')),
+			'crossback' => $pick(array('crossback')),
+			'PCCoatLambai' => $pick(array('PCCoatLambai')),
+			'PCCoatChaati' => $pick(array('PCCoatChaati')),
+			'PCCoatKamar' => $pick(array('PCCoatKamar')),
+			'PCCoatTeera' => $pick(array('PCCoatTeera')),
+			'PCCoatBazoo' => $pick(array('PCCoatBazoo')),
+			'PCCoatGaala' => $pick(array('PCCoatGaala')),
+			'PCCoatHIP' => $pick(array('PCCoatHIP')),
+			'PCCoatDola' => $pick(array('PCCoatDola')),
+			'PCCoatBazooMori' => $pick(array('PCCoatBazooMori')),
+			'PCCoatLambaiBack' => $pick(array('PCCoatLambaiBack')),
+			'PCCrossback' => $pick(array('PCCrossback')),
+			'PCPentLambai' => $pick(array('PCPentLambai')),
+			'PCpentWaiste' => $pick(array('PCpentWaiste')),
+			'PCHIP' => $pick(array('PCHIP')),
+			'PCPentPat' => $pick(array('PCPentPat')),
+			'PCPentThai' => $pick(array('PCPentThai', 'PCPentPat')),
+			'PCPentGhutna' => $pick(array('PCPentGhutna')),
+			'PCPentPonchaMori' => $pick(array('PCPentPonchaMori')),
+			'PCPentPoncha' => $pick(array('PCPentPoncha', 'PCPentPonchaMori')),
+			'wastLambai' => $pick(array('wastLambai')),
+			'wastTeera' => $pick(array('wastTeera')),
+			'wastChaati' => $pick(array('wastChaati')),
+			'wastHIP' => $pick(array('wastHIP')),
+			'wastKamar' => $pick(array('wastKamar')),
+			'wastGaala' => $pick(array('wastGaala')),
+			'remarks' => $pick(array('RemarksKurta', 'Remarks', 'remarks')),
+			'remarks_kurta' => $pick(array('RemarksKurta', 'Remarks', 'remarks_kurta')),
+			'remarks_pajama' => $pick(array('RemarksPajama', 'remarks_pajama')),
+			'remarks_pent' => $pick(array('RemarksPent', 'remarks_pent')),
+			'remarks_shirt' => $pick(array('RemarksShirt', 'remarks_shirt')),
+			'remarks_coat' => $pick(array('RemarksCoat', 'remarks_coat')),
+			'remarks_pentcoat' => $pick(array('RemarksPentcoat', 'remarks_pentcoat')),
+			'remarks_waistcoat' => $pick(array('RemarksWaistcoat', 'remarks_waistcoat')),
+			'pait' => $pick(array('pait')),
+			'WASIT' => $pick(array('WASIT')),
+			'FRONT_Pocket_Size' => $pick(array('FRONT_Pocket_Size')),
+			'CAKLAMBAI' => $pick(array('CAKLAMBAI')),
+			'KAAFCURAI' => $pick(array('KAAFCURAI')),
+			'MODA_CURAI' => $pick(array('MODA_CURAI')),
+			'CoatGaala' => $pick(array('CoatGaala')),
+			'updated_at' => date('Y-m-d H:i:s'),
+		);
+
+		// Drop columns that do not exist on this DB.
+		if ($this->CI->db->table_exists('measurement'))
+		{
+			$fields = $this->CI->db->list_fields('measurement');
+			$field_map = array_fill_keys($fields, TRUE);
+			foreach (array_keys($row) as $col)
+			{
+				if ( ! isset($field_map[$col]))
+				{
+					unset($row[$col]);
+				}
+			}
+		}
+
+		return $row;
+	}
+
+	private function _resolve_customer_code_for_measurement(array $payload)
+	{
+		$code = isset($payload['customer_code']) ? (int) $payload['customer_code'] : 0;
+		if ($code < 1)
+		{
+			$code = isset($payload['customerno1']) ? (int) $payload['customerno1'] : 0;
+		}
+		if ($code < 1 && ! empty($payload['customer_client_id']))
+		{
+			$map = $this->CI->erp_sync_model->map_get('customer', $payload['customer_client_id']);
+			if ($map)
+			{
+				$code = (int) $map['server_id'];
+			}
+		}
+		return $code;
+	}
+
+	private function _measurement_create($device_id, $client_uuid, array $payload)
+	{
+		if ($client_uuid === '')
+		{
+			return array('ok' => FALSE, 'error' => 'missing_client_uuid');
+		}
+		$mapped = $this->CI->erp_sync_model->map_get('measurement', $client_uuid);
+		if ($mapped)
+		{
+			return array('ok' => TRUE, 'server_entity_id' => $mapped['server_id'], 'duplicate' => TRUE);
+		}
+
+		$by_uuid = $this->CI->db->where('client_uuid', $client_uuid)->limit(1)->get('measurement')->row_array();
+		if ($by_uuid)
+		{
+			$this->CI->erp_sync_model->map_put('measurement', $client_uuid, $by_uuid['code'], $device_id);
+			return array('ok' => TRUE, 'server_entity_id' => (string) $by_uuid['code'], 'duplicate' => TRUE);
+		}
+
+		$customer_code = $this->_resolve_customer_code_for_measurement($payload);
+		if ($customer_code < 1)
+		{
+			return array('ok' => FALSE, 'error' => 'customer_required');
+		}
+
+		// Always insert a new measurement for create. Overwriting the customer's latest
+		// measurement caused silent data loss when an offline "create" synced later.
+		$row = $this->_measurement_row_from_payload($payload, $customer_code);
+		if ($this->CI->db->field_exists('client_uuid', 'measurement'))
+		{
+			$row['client_uuid'] = $client_uuid;
+		}
+		if ($this->CI->db->field_exists('row_version', 'measurement'))
+		{
+			$row['row_version'] = 1;
+		}
+
+		$this->CI->db->insert('measurement', $row);
+		$code = (int) $this->CI->db->insert_id();
+		if ($code < 1)
+		{
+			return array('ok' => FALSE, 'error' => 'measurement_insert_failed');
+		}
+		$this->CI->erp_sync_model->map_put('measurement', $client_uuid, $code, $device_id);
+		return array('ok' => TRUE, 'server_entity_id' => (string) $code);
+	}
+
+	private function _measurement_update($device_id, $client_uuid, array $payload)
+	{
+		$server_id = isset($payload['server_id']) ? (int) $payload['server_id'] : (isset($payload['code']) ? (int) $payload['code'] : 0);
+		if ($server_id < 1 && $client_uuid !== '')
+		{
+			$map = $this->CI->erp_sync_model->map_get('measurement', $client_uuid);
+			if ($map)
+			{
+				$server_id = (int) $map['server_id'];
+			}
+		}
+		if ($server_id < 1)
+		{
+			return array('ok' => FALSE, 'error' => 'measurement_id_required');
+		}
+
+		$customer_code = $this->_resolve_customer_code_for_measurement($payload);
+		if ($customer_code < 1)
+		{
+			$current = $this->CI->db->where('code', $server_id)->limit(1)->get('measurement')->row_array();
+			$customer_code = $current ? (int) $current['customer_code'] : 0;
+		}
+		if ($customer_code < 1)
+		{
+			return array('ok' => FALSE, 'error' => 'customer_required');
+		}
+
+		$current = $this->CI->db->where('code', $server_id)->limit(1)->get('measurement')->row_array();
+		if ( ! $current)
+		{
+			return array('ok' => FALSE, 'error' => 'measurement_not_found');
+		}
+
+		$base_version = isset($payload['base_row_version']) ? (int) $payload['base_row_version'] : 0;
+		$server_version = isset($current['row_version']) ? (int) $current['row_version'] : 1;
+		$force_keep_local = ! empty($payload['force_keep_local']);
+		if ( ! $force_keep_local && (($base_version > 0 && $server_version > $base_version) || ($base_version < 1 && $server_version > 1)))
+		{
+			$this->CI->erp_sync_model->save_conflict(array(
+				'device_id' => $device_id,
+				'entity_type' => 'measurement',
+				'entity_client_id' => $client_uuid,
+				'server_entity_id' => (string) $server_id,
+				'local_json' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+				'server_json' => json_encode($current, JSON_UNESCAPED_UNICODE),
+				'conflict_fields' => 'row_version',
+				'status' => 'open',
+				'created_at' => date('Y-m-d H:i:s'),
+			));
+			return array(
+				'ok' => FALSE,
+				'conflict' => TRUE,
+				'server_entity_id' => (string) $server_id,
+				'conflict_fields' => array('row_version'),
+				'server_snapshot' => $current,
+				'error' => 'conflict',
+			);
+		}
+
+		$row = $this->_measurement_row_from_payload($payload, $customer_code);
+		if ($client_uuid !== '' && $this->CI->db->field_exists('client_uuid', 'measurement'))
+		{
+			$row['client_uuid'] = $client_uuid;
+		}
+		if ($this->CI->db->field_exists('row_version', 'measurement'))
+		{
+			$row['row_version'] = $server_version + 1;
+		}
+		$this->CI->db->where('code', $server_id)->update('measurement', $row);
+		if ($client_uuid !== '')
+		{
+			$this->CI->erp_sync_model->map_put('measurement', $client_uuid, $server_id, $device_id);
+		}
+		return array('ok' => TRUE, 'server_entity_id' => (string) $server_id, 'row_version' => $server_version + 1);
 	}
 
 	/**
@@ -861,6 +1276,53 @@ class Erp_sync_service
 			return array('ok' => FALSE, 'error' => 'delivery_invalid');
 		}
 
+		// Reject re-delivery of lines already recorded in ddtl (prevents duplicate cash + dmst).
+		$already_delivered = array();
+		$count_check = count($order_sr_list);
+		for ($ci = 0; $ci < $count_check; $ci++)
+		{
+			$ret_check = isset($returndel_list[$ci]) ? strtolower(trim((string) $returndel_list[$ci])) : '';
+			if ($ret_check !== 'yes')
+			{
+				continue;
+			}
+			$sr_check = (int) $order_sr_list[$ci];
+			if ($sr_check < 1)
+			{
+				continue;
+			}
+			$prior = $this->CI->db->where('ORDER_TRNNO', $order_id)
+				->where('ORDERSR', $sr_check)
+				->limit(1)
+				->get('ddtl')
+				->row_array();
+			if ($prior)
+			{
+				$already_delivered[] = $sr_check;
+			}
+		}
+		if ( ! empty($already_delivered))
+		{
+			$this->CI->erp_sync_model->save_conflict(array(
+				'device_id' => $device_id,
+				'entity_type' => 'delivery',
+				'entity_client_id' => $client_uuid,
+				'server_entity_id' => (string) $order_id,
+				'local_json' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+				'server_json' => json_encode(array('already_delivered_sr' => $already_delivered), JSON_UNESCAPED_UNICODE),
+				'conflict_fields' => 'already_delivered',
+				'status' => 'open',
+				'created_at' => date('Y-m-d H:i:s'),
+			));
+			return array(
+				'ok' => FALSE,
+				'conflict' => TRUE,
+				'server_entity_id' => (string) $order_id,
+				'conflict_fields' => array('already_delivered'),
+				'error' => 'already_delivered',
+			);
+		}
+
 		$dmst = array(
 			'EDATE' => date('Y-m-d'),
 			'order_id' => $order_id,
@@ -1191,6 +1653,201 @@ class Erp_sync_service
 					break;
 				}
 			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Snapshots for offline Transfer queues + Order Status search.
+	 */
+	public function offline_lists()
+	{
+		$this->CI->load->model('Order_query_model', 'order_query');
+		$this->CI->load->helper('esc');
+		$this->CI->load->helper('url');
+
+		$transfer = array();
+		foreach (array('HO', 'CUT', 'HO2', 'STIT') as $dept)
+		{
+			$rows = $this->CI->order_query->get_pending_transfer_rows($dept, 0, 800, '', 'order_mst.trnno', 'DESC');
+			$transfer[$dept] = $this->_format_transfer_list_rows($dept, $rows);
+		}
+
+		// Large snapshot so offline phone/order search matches online results.
+		$current = $this->CI->order_query->order_Status(array('row_limit' => 3000));
+		$delivered_filters = $this->CI->order_query->apply_default_order_date_filters(array(), 30, 120, FALSE);
+		$delivered_filters['row_limit'] = 1500;
+		$delivered = $this->CI->order_query->order_Status_D($delivered_filters);
+
+		return array(
+			'ok' => TRUE,
+			'server_time' => date('c'),
+			'transfer' => $transfer,
+			'order_status' => array(
+				'current' => $this->_format_order_status_list_rows($current),
+				'delivered' => $this->_format_order_status_list_rows($delivered),
+			),
+			'counts' => array(
+				'transfer_ho' => isset($transfer['HO']) ? count($transfer['HO']) : 0,
+				'transfer_cut' => isset($transfer['CUT']) ? count($transfer['CUT']) : 0,
+				'transfer_ho2' => isset($transfer['HO2']) ? count($transfer['HO2']) : 0,
+				'transfer_stit' => isset($transfer['STIT']) ? count($transfer['STIT']) : 0,
+				'order_status_current' => is_array($current) ? count($current) : 0,
+				'order_status_delivered' => is_array($delivered) ? count($delivered) : 0,
+			),
+		);
+	}
+
+	private function _format_transfer_list_rows($dept, $rows)
+	{
+		$dept = strtoupper(trim((string) $dept));
+		$show_bulk = ($dept === 'CUT' || $dept === 'STIT');
+		$list_from = $dept;
+		$out = array();
+		$sr_by_order = array();
+		foreach ($rows as $row)
+		{
+			$order_no = (int) $row->ORDERNO;
+			if ( ! isset($sr_by_order[$order_no]))
+			{
+				$sr_by_order[$order_no] = 1;
+			}
+			else
+			{
+				$sr_by_order[$order_no]++;
+			}
+			$line_sr = isset($row->ORDERSR) ? (int) $row->ORDERSR : (int) $row->SUITNO;
+			$display_sr = $sr_by_order[$order_no];
+			$transfer_id = (int) $row->TRANSFERID;
+			$emp_name = isset($row->emp_name) ? trim((string) $row->emp_name) : '';
+			$emp_name = preg_replace('/\s*0{3,}\s*$/u', '', $emp_name);
+			$emp_name = trim((string) $emp_name);
+			$entry = $row->ORDERDATE;
+			if ($entry === '' || $entry === NULL)
+			{
+				$entry = $row->TRANSFEREDATE;
+			}
+			$ret = $row->RORDERDATE;
+			if ($ret === '' || $ret === NULL)
+			{
+				$ret = $row->RETURNDATE;
+			}
+			$cells = array();
+			if ($show_bulk)
+			{
+				$cells[] = '<input type="checkbox" class="bulk-transfer-cb" data-trnno="'.$transfer_id.'" data-order="'.$order_no.'" data-sr="'.$line_sr.'">';
+			}
+			$cells[] = esc_html($order_no.'-'.$display_sr);
+			$cells[] = esc_html($emp_name);
+			$cells[] = ($entry !== '' && $entry !== NULL) ? date('d-m-Y', strtotime($entry)) : '';
+			$cells[] = ($ret !== '' && $ret !== NULL) ? date('d-m-Y', strtotime($ret)) : '';
+			$cells[] = esc_html((string) $row->Phone);
+			$cells[] = esc_html((string) $row->name);
+			$cells[] = esc_html((string) $row->man_napno);
+			$cells[] = esc_html((string) $row->order_remarks);
+			$view = '';
+			if ($dept === 'CUT' || $dept === 'STIT')
+			{
+				$view = '<a class="btn btn-primary dz-btn--filled btn-sm" href="'.site_url('Transfer/transfer_Print/'.$transfer_id.'/'.$dept.'/'.$line_sr).'" target="_blank">View</a>';
+			}
+			$cells[] = $view;
+			$cells[] = '<a class="btn btn-primary dz-btn--filled btn-sm" href="'.site_url('Transfer/transfer_order/'.$transfer_id.'/'.$dept.'/'.$line_sr).'">Transfer</a>';
+			$ret_btn = '';
+			if ($dept !== 'HO')
+			{
+				$ret_btn = '<a class="btn btn-primary dz-btn--filled btn-sm" data-no-ajax="true" href="'.site_url('Transfer/transfer_return/'.$transfer_id.'/'.$dept.'/'.$order_no.'/'.$line_sr.'/'.$list_from).'">Return</a>';
+			}
+			$cells[] = $ret_btn;
+			$out[] = $cells;
+		}
+		return $out;
+	}
+
+	private function _format_order_status_list_rows($rows)
+	{
+		$out = array();
+		$employees = array();
+		try
+		{
+			$emp_rows = $this->CI->db->select('empno, name')->get('employee')->result();
+			foreach ($emp_rows as $e)
+			{
+				$employees[(string) $e->empno] = $e->name;
+			}
+		}
+		catch (Exception $e)
+		{
+			$employees = array();
+		}
+		$order = 0;
+		$sr = 1;
+		foreach ($rows as $row)
+		{
+			if (isset($row->ostatus) && (int) $row->ostatus !== 0)
+			{
+				continue;
+			}
+			$orderno = isset($row->ORDERNO) ? (int) $row->ORDERNO : 0;
+			if ($orderno !== $order)
+			{
+				$order = $orderno;
+				$sr = 1;
+			}
+			else
+			{
+				$sr++;
+			}
+			$dept = isset($row->dept) ? strtoupper(trim((string) $row->dept)) : '';
+			$xfer_status = isset($row->status) ? trim((string) $row->status) : '';
+			$is_delivered = ($xfer_status === 'DELIVER');
+			$is_ready = ( ! $is_delivered && $dept === 'STIT' && $xfer_status === 'Deactive');
+			// Same labels as live order_status.php
+			if ($is_delivered)
+			{
+				$status_label = 'Delivered';
+			}
+			elseif ($dept === 'HO')
+			{
+				$status_label = 'Booking';
+			}
+			elseif ($dept === 'CUT')
+			{
+				$status_label = 'Cutting';
+			}
+			elseif ($dept === 'HO2')
+			{
+				$status_label = 'After Cutting';
+			}
+			elseif ($dept === 'STIT' && $xfer_status !== 'Deactive')
+			{
+				$status_label = 'Stitching';
+			}
+			elseif ($is_ready)
+			{
+				$status_label = 'Ready 4 Deliver';
+			}
+			else
+			{
+				$status_label = $dept !== '' ? $dept : '';
+			}
+			$empno = isset($row->empno) ? (string) $row->empno : '';
+			$entry_raw = ! empty($row->ORDERDATE) ? $row->ORDERDATE : (! empty($row->TRANSFEREDATE) ? $row->TRANSFEREDATE : '');
+			$return_raw = ! empty($row->ORDERRDATE) ? $row->ORDERRDATE : (! empty($row->RETURNDATE) ? $row->RETURNDATE : (! empty($row->RDATE) ? $row->RDATE : ''));
+			$out[] = array(
+				'order_no' => $orderno,
+				'order_display' => $orderno.'-'.$sr,
+				'emp_name' => isset($employees[$empno]) ? $employees[$empno] : '',
+				'entry_date' => $entry_raw !== '' ? date('d-m-Y', strtotime($entry_raw)) : '',
+				'order_date' => $entry_raw !== '' ? date('d-m-Y', strtotime($entry_raw)) : '',
+				'return_date' => $return_raw !== '' ? date('d-m-Y', strtotime($return_raw)) : '',
+				'phone' => isset($row->Phone) ? (string) $row->Phone : '',
+				'customer' => isset($row->name) ? (string) $row->name : '',
+				'naap_no' => isset($row->man_napno) ? (string) $row->man_napno : '',
+				'remarks' => isset($row->order_remarks) ? (string) $row->order_remarks : '',
+				'status_label' => $status_label,
+				'stage' => $dept,
+				'xfer_status' => $xfer_status,
+			);
 		}
 		return $out;
 	}

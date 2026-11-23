@@ -180,6 +180,19 @@ class Erp_sync_model extends CI_Model
 		return (int) $this->db->insert_id();
 	}
 
+	/**
+	 * Remove a previously failed op so the same idempotency key can be retried.
+	 * Applied/conflict rows must never be deleted through this path.
+	 */
+	public function delete_failed_op($device_id, $idempotency_key)
+	{
+		$this->db->where('device_id', $device_id)
+			->where('idempotency_key', $idempotency_key)
+			->where('status', 'failed')
+			->delete('erp_sync_ops');
+		return $this->db->affected_rows() > 0;
+	}
+
 	public function map_get($entity_type, $client_uuid)
 	{
 		return $this->db->where('entity_type', $entity_type)
@@ -213,6 +226,38 @@ class Erp_sync_model extends CI_Model
 	{
 		$this->db->insert('erp_sync_conflicts', $data);
 		return (int) $this->db->insert_id();
+	}
+
+	/**
+	 * Resolve open conflict rows for an entity without deleting history.
+	 */
+	public function resolve_open_conflicts($device_id, $entity_type, $server_entity_id, $resolution, $resolved_by)
+	{
+		if ( ! $this->db->table_exists('erp_sync_conflicts'))
+		{
+			return 0;
+		}
+		$now = date('Y-m-d H:i:s');
+		$this->db->where('status', 'open');
+		if ($device_id !== '')
+		{
+			$this->db->where('device_id', $device_id);
+		}
+		if ($entity_type !== '')
+		{
+			$this->db->where('entity_type', $entity_type);
+		}
+		if ($server_entity_id !== '')
+		{
+			$this->db->where('server_entity_id', (string) $server_entity_id);
+		}
+		$this->db->update('erp_sync_conflicts', array(
+			'status' => 'resolved',
+			'resolution' => $resolution,
+			'resolved_by' => substr((string) $resolved_by, 0, 120),
+			'resolved_at' => $now,
+		));
+		return (int) $this->db->affected_rows();
 	}
 
 	public function customers_since($since, $limit = 500)

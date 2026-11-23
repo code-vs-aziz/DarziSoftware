@@ -35,7 +35,7 @@ class MY_Controller extends CI_Controller {
 		{
 			return;
 		}
-		foreach (array('suss', 'success_msg') as $key)
+		foreach (array('suss', 'success_msg', 'transfer_error', 'bulk_transfer_count') as $key)
 		{
 			$is_flash = isset($_SESSION['__ci_vars'][$key]) && ! is_int($_SESSION['__ci_vars'][$key]);
 			if (isset($_SESSION[$key]) && ! $is_flash)

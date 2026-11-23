@@ -70,17 +70,67 @@
 		});
 	}
 
+	function saveMeasurement(payload) {
+		var clientUuid = db().uuid();
+		var serverId = String(payload.code || payload.server_id || '');
+		var customerCode = String(payload.customerno1 || payload.customer_code || '');
+		var opType = serverId ? 'update' : 'create';
+		return provisionalNumber('M').then(function (displayNo) {
+			var record = {
+				local_id: db().scopedLocalId
+					? db().scopedLocalId(serverId, serverId ? null : clientUuid)
+					: serverId
+						? 'srv:' + serverId
+						: clientUuid,
+				client_uuid: clientUuid,
+				server_id: serverId,
+				customer_code: customerCode,
+				provisional_no: displayNo,
+				payload: payload,
+				raw: payload,
+				sync_status: 'pending',
+				updated_at: new Date().toISOString()
+			};
+			return db()
+				.put('measurements', record)
+				.then(function () {
+					return db().enqueue({
+						entity_type: 'measurement',
+						entity_client_id: clientUuid,
+						op_type: opType,
+						payload: Object.assign({}, payload, {
+							server_id: serverId,
+							code: serverId,
+							customer_code: customerCode,
+							client_uuid: clientUuid
+						}),
+						idempotency_key: clientUuid + ':measurement.' + opType
+					});
+				})
+				.then(function () {
+					return record;
+				});
+		});
+	}
+
 	function saveOrder(payload) {
 		var clientUuid = db().uuid();
+		var enriched = Object.assign({}, payload || {});
+		var naapRaw = String(enriched.Naapno || enriched.naap_no || '').trim();
+		if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(naapRaw)) {
+			enriched.measurement_client_id = naapRaw;
+			enriched.Naapno = '';
+			enriched.naap_no = '';
+		}
 		return provisionalNumber('O').then(function (displayNo) {
 			var record = {
 				local_id: clientUuid,
 				client_uuid: clientUuid,
 				server_id: '',
 				provisional_no: displayNo,
-				naap_no: payload.Naapno || payload.naap_no || '',
-				customer_name: payload.customer_name || '',
-				payload: payload,
+				naap_no: enriched.Naapno || enriched.naap_no || '',
+				customer_name: enriched.customer_name || '',
+				payload: enriched,
 				sync_status: 'pending',
 				updated_at: new Date().toISOString()
 			};
@@ -91,7 +141,7 @@
 						entity_type: 'order',
 						entity_client_id: clientUuid,
 						op_type: 'create',
-						payload: payload,
+						payload: enriched,
 						idempotency_key: clientUuid + ':order.create'
 					});
 				})
@@ -155,6 +205,7 @@
 	window.DarziOffline = window.DarziOffline || {};
 	window.DarziOffline.deskOps = {
 		saveCustomer: saveCustomer,
+		saveMeasurement: saveMeasurement,
 		saveOrder: saveOrder,
 		saveCash: saveCash,
 		saveDelivery: saveDelivery,

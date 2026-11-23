@@ -454,6 +454,7 @@ var suit_id = '#suit0';
 											<option value="Pent"><?php echo t('design_type_pent'); ?></option>
 											<option value="Shirt"><?php echo t('design_type_shirt'); ?></option>
 											<option value="Coat"><?php echo t('design_type_coat'); ?></option>
+											<option value="PentCoat"><?php echo t('design_type_pentcoat'); ?></option>
 											<option value="Waistcoat"><?php echo t('design_type_waistcoat'); ?></option>
 										</select>
 										<div class="order-price-row">

@@ -269,11 +269,13 @@ $base = site_url('Website');
 															<a class="btn btn-sm btn-outline-primary" href="<?php echo esc_attr(site_url('Website/categories?edit='.(int) $cat['id'])); ?>">Edit</a>
 															<a class="btn btn-sm btn-outline-<?php echo $active ? 'warning' : 'success'; ?>"
 															   href="<?php echo esc_attr(site_url('Website/category_toggle/'.(int) $cat['id'])); ?>"
+															   data-no-ajax="true"
 															   onclick="return confirm('<?php echo $active ? 'Mark this category inactive?' : 'Activate this category?'; ?>');">
 																<?php echo $active ? 'Inactive' : 'Activate'; ?>
 															</a>
 															<a class="btn btn-sm btn-outline-danger"
 															   href="<?php echo esc_attr(site_url('Website/category_delete/'.(int) $cat['id'])); ?>"
+															   data-no-ajax="true"
 															   onclick="return confirm('Delete this category permanently?');">
 																Delete
 															</a>
@@ -393,11 +395,13 @@ $base = site_url('Website');
 															<a class="btn btn-sm btn-outline-primary" href="<?php echo esc_attr(site_url('Website/products?edit='.(int) $p['id'])); ?>">Edit</a>
 															<a class="btn btn-sm btn-outline-<?php echo $active ? 'warning' : 'success'; ?>"
 															   href="<?php echo esc_attr(site_url('Website/product_toggle/'.(int) $p['id'])); ?>"
+															   data-no-ajax="true"
 															   onclick="return confirm('<?php echo $active ? 'Mark this product inactive?' : 'Activate this product?'; ?>');">
 																<?php echo $active ? 'Inactive' : 'Activate'; ?>
 															</a>
 															<a class="btn btn-sm btn-outline-danger"
 															   href="<?php echo esc_attr(site_url('Website/product_delete/'.(int) $p['id'])); ?>"
+															   data-no-ajax="true"
 															   onclick="return confirm('Delete this product permanently?');">
 																Delete
 															</a>

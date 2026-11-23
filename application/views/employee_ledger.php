@@ -46,10 +46,12 @@ foreach ($payment as $payments) {
 		$wages = $price;
 	}
 
+	// type 1 = payment TO employee (reduces payable); type 2 = receipt FROM employee (increases payable).
+	// Amounts are stored positive; direction comes from type.
 	if ($type === 1) {
-		$paid = $amount;
+		$paid = abs($amount);
 	} elseif ($type === 2) {
-		$paid = $amount * -1;
+		$paid = -1 * abs($amount);
 	}
 
 	$wages_total += $wages;
@@ -60,7 +62,18 @@ foreach ($payment as $payments) {
 	$order_remarks = isset($payments->order_remarks) ? (string) $payments->order_remarks : '';
 	$narration = isset($payments->narration) ? (string) $payments->narration : '';
 	if ($is_cash_row) {
+		$direction_label = '';
+		if ($type === 1) {
+			$direction_label = t('cash_emp_payment');
+		} elseif ($type === 2) {
+			$direction_label = t('cash_emp_receipt');
+		}
 		$description = trim($narration);
+		if ($description === '' && $direction_label !== '') {
+			$description = $direction_label;
+		} elseif ($description !== '' && $direction_label !== '') {
+			$description = $direction_label.' — '.$description;
+		}
 	} else {
 		$description = trim('Order #'.$order_no.' Naap # '.$naap_no.' '.$order_remarks.' '.$narration);
 	}
@@ -105,9 +118,9 @@ $net_payable = $empopening + $wages_total - $payment_total;
 	.report-field label { display: block; font-weight: 700; margin-bottom: 5px; }
 	.report-field input, .report-field select { width: 100%; border: 1px solid #d7e0ea; border-radius: 8px; padding: 9px 10px; }
 	.report-table-wrap { padding: 18px 24px 24px; }
-	.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-	.report-table th { background: #1f9faa; color: #fff; padding: 9px; border: 1px solid #128995; text-align: center; }
-	.report-table td { padding: 8px; border: 1px solid #dde6ef; }
+	.report-table { width: 100%; border-collapse: collapse; font-size: 16px; line-height: 1.45; }
+	.report-table th { background: #1f9faa; color: #fff; padding: 12px 10px; border: 1px solid #128995; text-align: center; font-size: 16px; font-weight: 800; }
+	.report-table td { padding: 11px 10px; border: 1px solid #dde6ef; font-size: 16px; font-weight: 600; color: #111827; vertical-align: middle; }
 	.report-table .num { text-align: right; }
 	.report-table .center { text-align: center; }
 	.report-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
@@ -218,17 +231,36 @@ $net_payable = $empopening + $wages_total - $payment_total;
 		(function () {
 			var form = document.getElementById('emp-ledger-filter-form');
 			if (!form) return;
-			form.addEventListener('submit', function (e) {
-				e.preventDefault();
+			function buildEmpLedgerUrl() {
 				var from = String((form.querySelector('[name="fromdate"]') || {}).value || '').trim();
 				var to = String((form.querySelector('[name="todate"]') || {}).value || '').trim();
 				var emp = String((form.querySelector('[name="employee"]') || {}).value || '').trim();
 				var st = String((form.querySelector('[name="emp_status"]') || {}).value || 'All').trim();
-				if (!from || !to || !emp) return;
+				if (!from || !to || !emp) return '';
 				var url = <?php echo json_encode(site_url('Cash/employee_ledger')); ?> + '/' + encodeURIComponent(from) + '/' + encodeURIComponent(to) + '/' + encodeURIComponent(emp);
 				if (st && st !== 'All') url += '?emp_status=' + encodeURIComponent(st);
+				return url;
+			}
+			form.addEventListener('submit', function (e) {
+				e.preventDefault();
+				var url = buildEmpLedgerUrl();
+				if (!url) return;
 				window.location.href = url;
 			});
+			<?php if ( ! $has_report) { ?>
+			// Refresh recovery: old history bug left filter URL in the bar with params filled.
+			var navEntry = (window.performance && performance.getEntriesByType)
+				? performance.getEntriesByType('navigation')[0]
+				: null;
+			var isReload = (navEntry && navEntry.type === 'reload')
+				|| (window.performance && performance.navigation && performance.navigation.type === 1);
+			if (isReload) {
+				var recoveryUrl = buildEmpLedgerUrl();
+				if (recoveryUrl) {
+					window.location.replace(recoveryUrl);
+				}
+			}
+			<?php } ?>
 		})();
 		</script>
 		<?php } ?>

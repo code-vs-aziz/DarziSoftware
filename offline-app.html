@@ -3,32 +3,279 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Redirecting to Full ERP — Darzi Baba</title>
-	<meta http-equiv="refresh" content="0; url=./index.php/Login">
+	<base href="/">
+	<meta name="theme-color" content="#0ea5e9">
+	<meta name="description" content="Darzi Baba ERP Offline — same Full ERP layout">
+	<link rel="manifest" href="/manifest.webmanifest">
+	<link rel="icon" href="/images/favicon-32.png">
+	<title>Darzi Baba ERP</title>
+	<link rel="stylesheet" href="/vendor/bootstrap-4.1/bootstrap.min.css">
+	<link rel="stylesheet" href="/vendor/font-awesome-5/css/fontawesome-all.min.css?v=5154">
+	<link rel="stylesheet" href="/css/theme.css">
+	<link rel="stylesheet" href="/css/dz-design-system.css?v=88">
+	<link rel="stylesheet" href="/css/app-unified-theme.css?v=11">
+	<link rel="stylesheet" href="/css/dz-mobile-app.css?v=6">
+	<link rel="stylesheet" href="/css/offline-erp.css?v=3">
+	<link rel="stylesheet" href="/css/offline-desk.css?v=5">
+	<link rel="stylesheet" href="/css/measurement-form-enhancements.css?v=13">
 	<script>
-	(function () {
-		function wipe() {
-			var p = Promise.resolve();
-			if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
-				p = navigator.serviceWorker.getRegistrations().then(function (regs) {
-					return Promise.all(regs.map(function (r) { return r.unregister(); }));
-				});
-			}
-			return p.then(function () {
-				if (!window.caches || !caches.keys) return;
-				return caches.keys().then(function (keys) {
-					return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-				});
-			}).catch(function () { return null; });
-		}
-		wipe().finally(function () {
-			window.location.replace('./index.php/Login');
-		});
-	})();
+	window.DARZI_OFFLINE_CFG = {
+		enabled: true,
+		apiBase: '/index.php/api/erp_sync',
+		healthUrl: '/index.php/api/erp_sync/health',
+		swUrl: '/sw.js?v=15',
+		swScope: '/',
+		homeUrl: '/index.php/Welcome',
+		loginUrl: '/index.php/Login',
+		offlineApp: true
+	};
+	window.APP_LANG = window.APP_LANG || {};
 	</script>
 </head>
-<body style="font-family:sans-serif;padding:2rem;background:#f8fafc;color:#0f172a">
-	<p>Offline Desk is temporarily off. Opening Full ERP…</p>
-	<p><a href="./index.php/Login">Sign in</a></p>
+<body class="animsition erp-app erp-home offline-erp-body">
+	<aside class="menu-sidebar dz-sidebar" aria-label="Main">
+		<div class="dz-sidebar__brand">
+			<a href="/index.php/Welcome">
+				<img src="/images/darzi-baba-logo.png?v=5" alt="Darzi Baba" class="app-sidebar-logo" width="220" height="138">
+			</a>
+		</div>
+		<div class="menu-sidebar__content dz-sidebar__scroll">
+			<nav class="navbar-sidebar" aria-label="Main">
+				<ul class="list-unstyled navbar__list dz-nav">
+					<li class="dz-nav__item"><a href="/index.php/Welcome/dashboard"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-chart-pie"></i></span><span class="dz-nav__label">Dashboard</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Customer"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-users"></i></span><span class="dz-nav__label">Customer</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/transfer/order_Status"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span><span class="dz-nav__label">Order Status</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Order/order_view_det"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span><span class="dz-nav__label">Order Detail</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/transfer/transfer_table/HO/HO"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-book"></i></span><span class="dz-nav__label">Pending Booking</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/transfer/transfer_table/CUT/CUT"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-cut"></i></span><span class="dz-nav__label">Pending Cutting</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/transfer/transfer_table/HO2/HO2"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-layer-group"></i></span><span class="dz-nav__label">Pending HO2</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/transfer/transfer_table/STIT/STIT"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-tshirt"></i></span><span class="dz-nav__label">Pending Stitching</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Order/order_issue"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-box-open"></i></span><span class="dz-nav__label">Ready for Delivered</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Welcome/Report"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-chart-bar"></i></span><span class="dz-nav__label">Reports</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Cash"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-money-bill-wave"></i></span><span class="dz-nav__label">Cash Payment/Receipt</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Employee"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-user-tie"></i></span><span class="dz-nav__label">Employee</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Suit"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-male"></i></span><span class="dz-nav__label">Suit Type</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/Style"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-palette"></i></span><span class="dz-nav__label">Style</span></a></li>
+					<li class="dz-nav__item"><a href="/index.php/embroidery"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-pen-fancy"></i></span><span class="dz-nav__label">Embroidery</span></a></li>
+					<li class="dz-nav__section"><span>Offline tools</span></li>
+					<li class="dz-nav__item is-active"><a href="/offline-app.html"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-home"></i></span><span class="dz-nav__label">Home Search</span></a></li>
+					<li class="dz-nav__item"><button type="button" data-desk-nav="customers" class="desk-nav-link"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span><span class="dz-nav__label">New Customer</span></button></li>
+					<li class="dz-nav__item"><button type="button" data-desk-nav="orders" class="desk-nav-link"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-plus-square"></i></span><span class="dz-nav__label">New Order</span></button></li>
+					<li class="dz-nav__item"><button type="button" data-desk-nav="queue" class="desk-nav-link"><span class="dz-nav__icon" aria-hidden="true"><i class="fas fa-cloud-upload-alt"></i></span><span class="dz-nav__label">Sync Queue</span><span class="desk-pill" id="nav-pending-pill" hidden></span></button></li>
+				</ul>
+			</nav>
+		</div>
+	</aside>
+
+	<div class="page-container">
+		<header class="header-desktop dz-topbar">
+			<div class="dz-topbar__inner">
+				<div class="dz-topbar__lead">
+					<nav class="dz-topbar__crumb" aria-label="Breadcrumb">
+						<a href="/index.php/Welcome">Home</a>
+						<span class="dz-topbar__crumb-sep" aria-hidden="true">/</span>
+						<span class="dz-topbar__crumb-current" id="desk-page-title" aria-current="page">Search</span>
+					</nav>
+					<h1 class="dz-topbar__title" id="desk-heading">Home</h1>
+				</div>
+				<div class="dz-topbar__tools">
+					<span id="desk-status" class="dz-offline-chip dz-offline-chip--desktop is-checking" role="status">
+						<span class="dz-offline-chip__dot" aria-hidden="true"></span>
+						<span class="dz-offline-chip__label">Checking…</span>
+					</span>
+					<button type="button" class="btn btn-sm desk-top-btn desk-top-btn--primary" id="btn-sync">Sync Now</button>
+					<a class="btn btn-sm desk-top-btn" id="btn-open-erp" href="/index.php/Welcome">Full ERP</a>
+					<a class="btn btn-sm desk-top-btn" id="btn-open-login" href="/index.php/Login">Login</a>
+				</div>
+			</div>
+		</header>
+
+		<main class="main-content">
+			<section class="desk-home-wrap" data-desk-view="home">
+				<section class="dz-home" aria-label="Home">
+					<div class="dz-home__logo">
+						<img src="/images/darzi-baba-logo.png?v=5" alt="Darzi Baba" width="640" height="402" decoding="async">
+					</div>
+					<div class="dz-home__actions">
+						<form id="erp-home-search-form" class="dz-home__search" action="#" method="get" autocomplete="off" data-offline-bypass="1">
+							<label class="sr-only" for="erp-home-search">Search</label>
+							<div class="dz-home__search-shell">
+								<span class="dz-home__search-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+								<input class="dz-home__input" type="text" name="search" id="erp-home-search" placeholder="Search by name, phone, or naap number" autocomplete="off" inputmode="search" autofocus aria-autocomplete="list" aria-controls="erp-home-suggest" aria-expanded="false">
+								<button type="submit" class="dz-home__submit">Search</button>
+								<button type="button" class="dz-home__add-customer" id="erp-home-add-customer" data-desk-nav="customers">
+									<span aria-hidden="true"><i class="fas fa-user-plus"></i></span>
+									<span>+ Create New Customer</span>
+								</button>
+							</div>
+							<div id="erp-home-suggest" class="dz-home__suggest" role="listbox" hidden></div>
+						</form>
+					</div>
+					<p class="dz-home__hint">Search a customer to open measurement, then submit to add their order.</p>
+				</section>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="measurement" hidden>
+				<div class="container-fluid">
+					<div class="dz-card erp-module-card data-entry-card measurement-entry-card">
+						<div class="card-body erp-card-body">
+							<div class="erp-card-head">
+								<h2 class="erp-module-title mb-0">Measurement</h2>
+								<span class="erp-entry-number" id="meas-naap-label"></span>
+							</div>
+							<div class="measurement-info-panel" id="meas-customer-panel">
+								<div class="measurement-info-panel__grid">
+									<div class="measurement-info-panel__item"><span>Name</span><strong id="meas-cust-name">—</strong></div>
+									<div class="measurement-info-panel__item"><span>Phone</span><strong id="meas-cust-phone">—</strong></div>
+									<div class="measurement-info-panel__item"><span>Naap No</span><strong id="meas-cust-naap">—</strong></div>
+								</div>
+							</div>
+							<form id="form-measurement" class="desk-form">
+								<input type="hidden" name="customerno1" id="meas-customer-code" value="">
+								<input type="hidden" name="code" id="meas-server-id" value="">
+								<input type="hidden" name="return_to" value="order">
+								<div class="desk-grid">
+									<div class="form-group desk-field"><label>Lambai (KL)</label><input class="form-control" name="KL" id="meas-KL"></div>
+									<div class="form-group desk-field"><label>Teera</label><input class="form-control" name="Teera" id="meas-Teera"></div>
+									<div class="form-group desk-field"><label>Bazoo (BL)</label><input class="form-control" name="BL" id="meas-BL"></div>
+									<div class="form-group desk-field"><label>Chaati</label><input class="form-control" name="Chaati" id="meas-Chaati"></div>
+									<div class="form-group desk-field"><label>Gala</label><input class="form-control" name="Gala" id="meas-Gala"></div>
+									<div class="form-group desk-field"><label>Geera</label><input class="form-control" name="geera" id="meas-geera"></div>
+									<div class="form-group desk-field"><label>Shalwar length</label><input class="form-control" name="Shalwar_Lenght" id="meas-Shalwar_Lenght"></div>
+									<div class="form-group desk-field"><label>Poncha</label><input class="form-control" name="Poncha" id="meas-Poncha"></div>
+									<div class="form-group desk-field desk-field--full"><label>Remarks</label><textarea class="form-control" name="RemarksKurta" id="meas-RemarksKurta" rows="2"></textarea></div>
+								</div>
+								<div class="desk-form-actions" style="gap:8px;">
+									<button type="button" class="btn desk-top-btn" data-desk-nav="home">Back to Search</button>
+									<button type="submit" class="btn btn-primary">Save Measurement</button>
+									<button type="button" class="btn btn-primary" id="meas-to-order-btn">Continue to Order</button>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="customers" hidden>
+				<div class="container-fluid">
+					<div class="dz-card erp-module-card">
+						<div class="card-body">
+							<h2 class="erp-module-title">Create New Customer</h2>
+							<form id="form-customer" class="desk-form">
+								<div class="desk-grid">
+									<div class="form-group desk-field"><label>Name</label><input class="form-control" name="name" required></div>
+									<div class="form-group desk-field"><label>Phone</label><input class="form-control" name="phone" inputmode="tel"></div>
+									<div class="form-group desk-field"><label>City</label><input class="form-control" name="city"></div>
+									<div class="form-group desk-field"><label>Naap No</label><input class="form-control" name="man_napno"></div>
+									<div class="form-group desk-field desk-field--full"><label>Address</label><input class="form-control" name="address"></div>
+									<div class="form-group desk-field"><label>CNIC</label><input class="form-control" name="cnic"></div>
+									<div class="form-group desk-field desk-field--full"><label>Remarks</label><textarea class="form-control" name="remarks" rows="2"></textarea></div>
+								</div>
+								<div class="desk-form-actions"><button type="submit" class="btn btn-primary">Save Customer</button></div>
+							</form>
+							<div id="customer-list" class="desk-list"></div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="orders" hidden>
+				<div class="container-fluid">
+					<div class="dz-card erp-module-card">
+						<div class="card-body">
+							<h2 class="erp-module-title">Order</h2>
+							<form id="form-order" class="desk-form">
+								<div class="desk-grid">
+									<div class="form-group desk-field desk-field--full"><label>Customer</label><select class="form-control" name="customer_id" id="order-customer" data-customer-select required></select></div>
+									<div class="form-group desk-field desk-field--full"><label>Measurement / Naap No</label><select class="form-control" name="naap_no" id="order-naap" required></select></div>
+									<div class="form-group desk-field"><label>Suit type</label><input class="form-control" name="suit_type" value="Kurta"></div>
+									<div class="form-group desk-field"><label>Suit code</label><input class="form-control" name="suit" value="1"></div>
+									<div class="form-group desk-field"><label>Qty</label><input class="form-control" name="qty" type="number" min="1" value="1"></div>
+									<div class="form-group desk-field"><label>Rate</label><input class="form-control" name="rate" type="number" min="0" step="0.01" value="0"></div>
+									<div class="form-group desk-field"><label>Advance</label><input class="form-control" name="advance" type="number" min="0" step="0.01" value="0"></div>
+									<div class="form-group desk-field"><label>Discount</label><input class="form-control" name="discount" type="number" min="0" step="0.01" value="0"></div>
+									<div class="form-group desk-field"><label>Return date</label><input class="form-control" name="return_date" type="date"></div>
+									<div class="form-group desk-field desk-field--full"><label>Remarks</label><input class="form-control" name="remarks"></div>
+								</div>
+								<div class="desk-form-actions"><button type="submit" class="btn btn-primary">Save Order</button></div>
+							</form>
+							<div id="order-list" class="desk-list"></div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="cash" hidden>
+				<div class="container-fluid"><div class="dz-card erp-module-card"><div class="card-body">
+					<h2 class="erp-module-title">Cash</h2>
+					<form id="form-cash" class="desk-form">
+						<div class="desk-grid">
+							<div class="form-group desk-field"><label>Type</label><select class="form-control" name="type"><option value="2">Customer receipt (2)</option><option value="1">Payment / expense (1)</option><option value="7">Salary (7)</option></select></div>
+							<div class="form-group desk-field"><label>Amount</label><input class="form-control" name="amount" type="number" min="0" step="0.01" required></div>
+							<div class="form-group desk-field desk-field--full"><label>Customer</label><select class="form-control" name="customer_id" data-customer-select></select></div>
+							<div class="form-group desk-field"><label>Employee ID</label><input class="form-control" name="employee"></div>
+							<div class="form-group desk-field"><label>Order no</label><input class="form-control" name="order_no"></div>
+							<div class="form-group desk-field desk-field--full"><label>Remarks</label><input class="form-control" name="remarks"></div>
+						</div>
+						<div class="desk-form-actions"><button type="submit" class="btn btn-primary">Save Cash</button></div>
+					</form>
+				</div></div></div>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="delivery" hidden>
+				<div class="container-fluid"><div class="dz-card erp-module-card"><div class="card-body">
+					<h2 class="erp-module-title">Delivery</h2>
+					<form id="form-delivery" class="desk-form">
+						<div class="desk-grid">
+							<div class="form-group desk-field"><label>Order ID</label><input class="form-control" name="order_id" required></div>
+							<div class="form-group desk-field"><label>Order SR</label><input class="form-control" name="order_sr" value="1" required></div>
+							<div class="form-group desk-field desk-field--full"><label>Customer</label><select class="form-control" name="customer_id" data-customer-select required></select></div>
+							<div class="form-group desk-field"><label>Paid now</label><input class="form-control" name="amount" type="number" min="0" step="0.01" value="0"></div>
+							<div class="form-group desk-field"><label>Total</label><input class="form-control" name="total" type="number" min="0" step="0.01"></div>
+							<div class="form-group desk-field"><label>Advance</label><input class="form-control" name="advance" type="number" min="0" step="0.01" value="0"></div>
+							<div class="form-group desk-field"><label>Discount</label><input class="form-control" name="discount" type="number" min="0" step="0.01" value="0"></div>
+							<div class="form-group desk-field"><label>Paid date</label><input class="form-control" name="paid_date" type="date"></div>
+						</div>
+						<div class="desk-form-actions"><button type="submit" class="btn btn-primary">Save Delivery</button></div>
+					</form>
+				</div></div></div>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="transfer" hidden>
+				<div class="container-fluid"><div class="dz-card erp-module-card"><div class="card-body">
+					<h2 class="erp-module-title">Transfer</h2>
+					<form id="form-transfer" class="desk-form">
+						<div class="desk-grid">
+							<div class="form-group desk-field"><label>Transfer trnno</label><input class="form-control" name="trnno" required></div>
+							<div class="form-group desk-field"><label>From dept</label><select class="form-control" name="dept"><option value="HO">HO → CUT</option><option value="CUT">CUT → HO2</option><option value="HO2">HO2 → STIT</option><option value="STIT">STIT complete</option></select></div>
+							<div class="form-group desk-field"><label>Order ID</label><input class="form-control" name="order_id" required></div>
+							<div class="form-group desk-field"><label>SR</label><input class="form-control" name="sr" required></div>
+							<div class="form-group desk-field"><label>Employee</label><input class="form-control" name="employee"></div>
+							<div class="form-group desk-field"><label>Rate</label><input class="form-control" name="rate" type="number" min="0" step="0.01"></div>
+							<div class="form-group desk-field"><label>Date</label><input class="form-control" name="rdate" type="date"></div>
+						</div>
+						<div class="desk-form-actions"><button type="submit" class="btn btn-primary">Save Transfer</button></div>
+					</form>
+				</div></div></div>
+			</section>
+
+			<section class="section__content section__content--p30" data-desk-view="queue" hidden>
+				<div class="container-fluid"><div class="dz-card erp-module-card"><div class="card-body">
+					<h2 class="erp-module-title">Sync Queue</h2>
+					<p class="desk-panel__lead">Local changes waiting for Sync Now. Nothing is lost on this device.</p>
+					<div id="queue-list" class="desk-list"></div>
+				</div></div></div>
+			</section>
+		</main>
+	</div>
+
+	<script src="/js/offline/db.js?v=7"></script>
+	<script src="/js/offline/connectivity.js?v=6"></script>
+	<script src="/js/offline/sync-engine.js?v=11"></script>
+	<script src="/js/offline/search.js?v=2"></script>
+	<script src="/js/offline/desk-ops.js?v=8"></script>
+	<script src="/js/offline/ui.js?v=18"></script>
+	<script src="/js/offline/desk.js?v=8"></script>
+	<!-- desk v8: open real Full ERP measurement URLs when cached -->
 </body>
 </html>

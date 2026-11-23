@@ -17,15 +17,24 @@ $this->load->helper('ui');
                 <div  >
                     <div class="container-fluid" style="padding-left:0px !important">
 						 
-						<?php $this->load->view('partials/success_alert', array('success_default' => t('app_saved_success'))); ?>
-						<?php if ($this->session->flashdata('transfer_error')) { ?>
-						<div class="alert alert-danger" role="alert">
-							<?php echo esc_html($this->session->flashdata('transfer_error')); ?>
+						<?php
+						$this->load->helper('flash');
+						$this->load->view('partials/success_alert', array('success_default' => t('app_saved_success')));
+						$transfer_flash_err = app_take_flash('transfer_error');
+						$transfer_flash_ok = app_take_flash('bulk_transfer_count');
+						// Success wins — never show both (double-submit leftovers).
+						if ($transfer_flash_ok !== NULL && $transfer_flash_ok !== '' && $transfer_flash_ok !== FALSE) {
+							$transfer_flash_err = NULL;
+						}
+						?>
+						<?php if ($transfer_flash_err !== NULL && $transfer_flash_err !== '') { ?>
+						<div class="alert alert-danger" role="alert" data-flash-once="1">
+							<?php echo esc_html((string) $transfer_flash_err); ?>
 						</div>
 						<?php } ?>
-						<?php if ($this->session->flashdata('bulk_transfer_count') !== FALSE && $this->session->flashdata('bulk_transfer_count') !== NULL) { ?>
-						<div class="alert alert-success" role="alert">
-							<?php echo sprintf(t('transfer_bulk_transfer_done'), (int) $this->session->flashdata('bulk_transfer_count')); ?>
+						<?php if ($transfer_flash_ok !== NULL && $transfer_flash_ok !== '' && $transfer_flash_ok !== FALSE) { ?>
+						<div class="alert alert-success" role="alert" data-flash-once="1">
+							<?php echo sprintf(t('transfer_bulk_transfer_done'), (int) $transfer_flash_ok); ?>
 						</div>
 						<?php } ?>
                      	<div class="col-md-14">

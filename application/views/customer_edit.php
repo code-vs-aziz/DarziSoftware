@@ -74,6 +74,8 @@ $return_back_url = ($return_to !== '') ? site_url($return_to) : site_url('Custom
 										<?php if ($return_to !== '') { ?>
 										<input type="hidden" name="return_to" value="<?php echo esc_attr($return_to); ?>">
 										<?php } ?>
+										<input type="hidden" name="row_version" value="<?php echo (int) (isset($customer_row->row_version) ? $customer_row->row_version : 1); ?>">
+										<input type="hidden" name="code" value="<?php echo (int) $edit_code; ?>">
 										<input id="City" name="City" type="hidden" value="<?php echo esc_html((string) $customer_row->city); ?>">
 										<input id="Country" name="Country" type="hidden" value="<?php echo esc_html((string) $customer_row->country); ?>">
 										<input id="Remarks" name="Remarks" type="hidden" value="<?php echo esc_html((string) $customer_row->remarks); ?>">

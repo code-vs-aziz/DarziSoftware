@@ -45,16 +45,6 @@ else
 	<link rel="shortcut icon" href="<?php echo base_url('favicon.ico'); ?>?v=1">
 	<link rel="apple-touch-icon" href="<?php echo base_url('images/apple-touch-icon.png'); ?>?v=2" sizes="180x180">
 	<meta name="theme-color" content="#0ea5e9">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="default">
-	<meta name="apple-mobile-web-app-title" content="DarziERP">
-	<?php
-	$offline_desk_enabled_head = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
-	if ($offline_desk_enabled_head) {
-	?>
-	<link rel="manifest" href="<?php echo base_url('manifest.webmanifest'); ?>?v=4">
-	<?php } ?>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Urdu:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -87,13 +77,13 @@ else
 
     <!-- Main CSS-->
     <link href="<?php echo base_url(); ?>css/theme.css" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=88" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/dz-design-system.css?v=89" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/app-unified-theme.css?v=11" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/erp-form-enhancements.css?v=5" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/dz-responsive.css?v=6" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/dz-mobile-app.css?v=6" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/app-ajax-loader.css?v=2" rel="stylesheet" media="all">
-    <link href="<?php echo base_url(); ?>css/offline-erp.css?v=1" rel="stylesheet" media="all">
+    <link href="<?php echo base_url(); ?>css/offline-erp.css?v=8" rel="stylesheet" media="all">
     <link href="<?php echo base_url(); ?>css/dz-date-picker.css?v=1" rel="stylesheet" media="all">
 <?php if (!$erp_light_page) { ?>
 	<script type="text/javascript" src="<?php echo base_url(); ?>/js/select2.full.js"></script>
@@ -130,54 +120,59 @@ else
 		'loadingHtml' => '<p class="text-center text-muted py-3 mb-0">'.t('app_loading').'</p>',
 	), JSON_UNESCAPED_UNICODE); ?>;</script>
 	<script src="<?php echo base_url(); ?>js/order-lifecycle-modal.js?v=1"></script>
-	<script src="<?php echo base_url(); ?>js/order-detail-datatable.js?v=11"></script>
+	<script src="<?php echo base_url(); ?>js/order-detail-datatable.js?v=15"></script>
 	<script src="<?php echo base_url(); ?>js/master-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/customer-list-datatable.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/cash-entry.js?v=4"></script>
 	<script src="<?php echo base_url(); ?>js/order-status-deliver.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/config-predefined.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/transfer-bulk-table.js?v=7"></script>
-	<script src="<?php echo base_url(); ?>js/app-datatables-init.js?v=1"></script>
+	<script src="<?php echo base_url(); ?>js/transfer-bulk-table.js?v=12"></script>
+	<script src="<?php echo base_url(); ?>js/app-datatables-init.js?v=3"></script>
 <?php } ?>
 	<script src="<?php echo base_url(); ?>js/dz-open-nav.js?v=1"></script>
-	<script src="<?php echo base_url(); ?>js/app-ajax-shell.js?v=30"></script>
+	<script src="<?php echo base_url(); ?>js/app-ajax-shell.js?v=35"></script>
 	<script src="<?php echo base_url(); ?>js/dz-responsive-shell.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/dz-date-picker.js?v=2"></script>
 	<script src="<?php echo base_url(); ?>js/app-notifications.js?v=3"></script>
 	<script>window.APP_LANG = <?php echo json_encode(app_lang_js_strings(), JSON_UNESCAPED_UNICODE); ?>;</script>
 	<script src="<?php echo base_url(); ?>js/bridge-status-indicator.js?v=3"></script>
 	<?php
-	// Temporary kill-switch: Offline Desk / PWA off until shops are ready.
-	$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
+	// Reliable offline: same ERP UI + IndexedDB queue. Safe SW never intercepts POST.
+	$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', TRUE) : TRUE;
 	?>
-	<?php if ( ! $offline_desk_enabled) { ?>
-	<script src="<?php echo base_url(); ?>js/offline-kill.js?v=1"></script>
-	<?php } elseif ($this->session->userdata('user')) { ?>
+	<?php if ($offline_desk_enabled && $this->session->userdata('user')) { ?>
 	<script>
 	window.DARZI_OFFLINE_CFG = <?php echo json_encode(array(
 		'enabled' => TRUE,
 		'apiBase' => site_url('api/erp_sync'),
 		'healthUrl' => site_url('api/erp_sync/health'),
-		'swUrl' => base_url('sw.js?v=7'),
+		'swUrl' => base_url('sw.js?v=34'),
 		'swScope' => base_url(),
 		'homeUrl' => site_url('Welcome'),
 		'loginUrl' => site_url('Login'),
 		'offlineAppUrl' => base_url('offline-app.html'),
 		'customerUrl' => site_url('Customer'),
 		'measurementUrl' => site_url('Measurement'),
+		'orderAddUrl' => site_url('Order/order_add1'),
 		'cashUrl' => site_url('Cash'),
 		'deliveryUrl' => site_url('Order/order_issue'),
 		'transferUrl' => site_url('Transfer'),
 		'deviceLabel' => (string) $this->session->userdata('user'),
 	), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 	</script>
-	<script src="<?php echo base_url(); ?>js/offline/db.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/connectivity.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/sync-engine.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/desk-ops.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=4"></script>
-	<script src="<?php echo base_url(); ?>js/offline/bootstrap.js?v=3"></script>
+	<script src="<?php echo base_url(); ?>js/offline/db.js?v=7"></script>
+	<script src="<?php echo base_url(); ?>js/offline/connectivity.js?v=6"></script>
+	<script src="<?php echo base_url(); ?>js/offline/sync-engine.js?v=11"></script>
+	<script src="<?php echo base_url(); ?>js/offline/search.js?v=3"></script>
+	<script src="<?php echo base_url(); ?>js/offline/lists.js?v=6"></script>
+	<script src="<?php echo base_url(); ?>js/offline/nav.js?v=3"></script>
+	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=8"></script>
+	<script src="<?php echo base_url(); ?>js/offline/prefetch.js?v=5"></script>
+	<script src="<?php echo base_url(); ?>js/offline/desk-ops.js?v=8"></script>
+	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=18"></script>
+	<script src="<?php echo base_url(); ?>js/offline/bootstrap.js?v=20"></script>
+	<?php } elseif ( ! $offline_desk_enabled) { ?>
+	<script src="<?php echo base_url(); ?>js/offline-kill.js?v=2"></script>
 	<?php } ?>
 	<?php $this->load->view('partials/csrf_bootstrap'); ?>
 	<?php $this->load->view('partials/notify_flash'); ?>

@@ -5,6 +5,8 @@ class Rbac_auth
 {
   protected $CI;
   protected $public_routes = array('login/index', 'login/process', 'login/logout', 'language/set');
+  /** Logged-in routes that skip device lockdown (enrollment UI). */
+  protected $device_gate_routes = array('device_gate/index', 'device_gate/enroll');
 
   public function __construct()
   {
@@ -97,6 +99,14 @@ class Rbac_auth
       redirect('Login');
       return FALSE;
     }
+    if (in_array($route, $this->device_gate_routes, TRUE))
+    {
+      return TRUE;
+    }
+    if ( ! $this->enforce_device_lock())
+    {
+      return FALSE;
+    }
     $permission = $this->route_permission($class, $method);
     if ($permission !== '' && !$this->has_permission($permission))
     {
@@ -104,6 +114,29 @@ class Rbac_auth
       return FALSE;
     }
     return TRUE;
+  }
+
+  /**
+   * When lockdown is enabled, require an approved device cookie.
+   * Login credentials alone are not enough.
+   */
+  public function enforce_device_lock()
+  {
+    $this->CI->load->model('Device_auth_model');
+    if ( ! $this->CI->Device_auth_model->tables_ready())
+    {
+      return TRUE;
+    }
+    if ( ! $this->CI->Device_auth_model->is_lock_enabled())
+    {
+      return TRUE;
+    }
+    if ($this->CI->Device_auth_model->current_device())
+    {
+      return TRUE;
+    }
+    redirect('Device_gate');
+    return FALSE;
   }
 
   public function route_permission($class, $method)

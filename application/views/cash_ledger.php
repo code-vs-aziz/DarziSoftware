@@ -119,9 +119,9 @@ if ($load_detail_inline) {
 	.drill-toolbar .report-field { flex: 1; min-width: 140px; margin: 0; }
 	.drill-hint { color: #64748b; font-size: 13px; margin: 0 0 10px; }
 	.drill-status { font-size: 13px; color: #0f766e; min-height: 18px; }
-	.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-	.report-table th { background: #1f9faa; color: #fff; padding: 9px; border: 1px solid #128995; text-align: center; }
-	.report-table td { padding: 8px; border: 1px solid #dde6ef; }
+	.report-table { width: 100%; border-collapse: collapse; font-size: 16px; line-height: 1.45; }
+	.report-table th { background: #1f9faa; color: #fff; padding: 12px 10px; border: 1px solid #128995; text-align: center; font-size: 16px; font-weight: 800; }
+	.report-table td { padding: 11px 10px; border: 1px solid #dde6ef; font-size: 16px; font-weight: 600; color: #111827; vertical-align: middle; }
 	.report-table .num { text-align: right; }
 	.report-table .center { text-align: center; }
 	.report-table tr.drill-row-click { cursor: pointer; }
@@ -189,7 +189,7 @@ if ($load_detail_inline) {
 		</div>
 
 		<?php if ($export_mode !== 'excel' && $export_mode !== 'pdf') { ?>
-		<form class="report-form print-hide" action="<?php echo site_url('Cash/cash_ledger_pro'); ?>" method="post" data-no-ajax="true">
+		<form class="report-form print-hide" id="cash-ledger-filter-form" action="<?php echo site_url('Cash/cash_ledger_pro'); ?>" method="post" data-no-ajax="true">
 			<?php $this->load->view('partials/csrf_field'); ?>
 			<?php if ($has_report) { ?>
 			<p class="report-meta" style="margin:0 0 10px;"><?php echo esc_html(t('report_change_filters')); ?></p>
@@ -208,6 +208,27 @@ if ($load_detail_inline) {
 				</div>
 			</div>
 		</form>
+		<?php if ( ! $has_report) { ?>
+		<script>
+		(function () {
+			var form = document.getElementById('cash-ledger-filter-form');
+			if (!form) return;
+			var from = String((form.querySelector('[name="fromdate"]') || {}).value || '').trim();
+			var to = String((form.querySelector('[name="todate"]') || {}).value || '').trim();
+			if (!from || !to) return;
+			var navEntry = (window.performance && performance.getEntriesByType)
+				? performance.getEntriesByType('navigation')[0]
+				: null;
+			var isReload = (navEntry && navEntry.type === 'reload')
+				|| (window.performance && performance.navigation && performance.navigation.type === 1);
+			if (!isReload) return;
+			window.location.replace(
+				<?php echo json_encode(site_url('Cash/cash_ledger')); ?>
+				+ '/' + encodeURIComponent(from) + '/' + encodeURIComponent(to)
+			);
+		})();
+		</script>
+		<?php } ?>
 		<?php } ?>
 
 		<?php if ($has_report) { ?>

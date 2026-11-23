@@ -78,6 +78,7 @@ foreach ($order as $line)
 		'Pent' => 'پینٹ',
 		'Shirt' => 'شرٹ',
 		'Coat' => 'شروانی/کوٹ',
+		'PentCoat' => 'پینٹ کوٹ',
 		'Waistcoat' => 'ویسکوٹ',
 	);
 	$type_label = isset($type_urdu[$type_raw]) ? $type_urdu[$type_raw] : $type_raw;
@@ -111,6 +112,8 @@ foreach ($order as $line)
 	if ($fpocket === '') { $fpocket = 'X'; }
 	if ($spocket === '') { $spocket = 'X'; }
 	if ($shawpocket === '') { $shawpocket = 'X'; }
+	// Pockets only on قمیض شلوار / پاجامہ — hide for ویسکوٹ and other garments.
+	$show_pockets = in_array($type_raw, array('Kurta', 'Pajama'), TRUE);
 
 	$primary_title = $type_label;
 	if ($suit_name !== '' && strcasecmp($suit_name, $type_raw) !== 0)
@@ -123,42 +126,12 @@ foreach ($order as $line)
 		$suit_end = '';
 	}
 
-	// Nap note goes on the detail line after suit name (no label, not under pockets).
-	$type_note_map = array(
-		'Kurta' => 'remarks_kurta',
-		'Pajama' => 'remarks_pajama',
-		'Pent' => 'remarks_pent',
-		'Shirt' => 'remarks_shirt',
-		'Coat' => 'remarks_coat',
-		'Waistcoat' => 'remarks_waistcoat',
-	);
+	// Nap note: only THIS garment's dedicated note (never borrow قمیض شلوار note onto ویسکوٹ etc.).
+	// Never use bare $line->remarks — SELECT * + employee join overwrites it with staff remarks.
 	$nap_note = '';
-	if ($type_raw !== '' && isset($type_note_map[$type_raw]) && isset($line->{$type_note_map[$type_raw]}))
+	if (function_exists('measurement_garment_note_for_type'))
 	{
-		$nap_note = $clean_text($line->{$type_note_map[$type_raw]});
-	}
-	if ($nap_note === '')
-	{
-		foreach ($type_note_map as $field)
-		{
-			if (isset($line->{$field}))
-			{
-				$cand = $clean_text($line->{$field});
-				if ($cand !== '')
-				{
-					$nap_note = $cand;
-					break;
-				}
-			}
-		}
-	}
-	if ($nap_note === '' && isset($line->MREMARKS))
-	{
-		$nap_note = $clean_text($line->MREMARKS);
-	}
-	if ($nap_note === '' && isset($line->remarks))
-	{
-		$nap_note = $clean_text($line->remarks);
+		$nap_note = $clean_text(measurement_garment_note_for_type($line, $type_raw));
 	}
 	// Skip if note already present in the style/detail text.
 	if ($nap_note !== '' && $remarks !== '' && mb_stripos($remarks, $nap_note) !== FALSE)
@@ -171,7 +144,9 @@ foreach ($order as $line)
 		: '—';
 
 	$detail_html = $format_detail_html($remarks);
-	$pockets_inline = '(فرنٹ پاکٹ '.esc_html($fpocket).') (سائیڈ پاکٹ '.esc_html($spocket).') (شلوار پاکٹ '.esc_html($shawpocket).')';
+	$pockets_inline = $show_pockets
+		? '(فرنٹ پاکٹ '.esc_html($fpocket).') (سائیڈ پاکٹ '.esc_html($spocket).') (شلوار پاکٹ '.esc_html($shawpocket).')'
+		: '';
 
 	$detail_line = '<span class="print-suit-no">'.(int) $SR.'-</span> ';
 	if ($detail_html !== '')
@@ -213,10 +188,14 @@ foreach ($order as $line)
 	<div class="print-suit-classic__meta">
 		<span class="print-suit-classic__price"><?php echo $price_text; ?></span>
 		<?php if ($fabric_src !== '') { ?>
-		<span class="print-suit-classic__fabric"><img src="<?php echo esc_html($fabric_src); ?>" alt=""></span>
+		<span class="print-suit-classic__fabric"><img src="<?php echo esc_html($fabric_src); ?>" alt="" width="30" height="22" style="width:30px;height:22px;max-width:30px;max-height:22px;border:1px solid #777;"></span>
 		<?php } ?>
+		<?php if ($pockets_inline !== '') { ?>
 		<span class="print-suit-classic__pockets ur urd"><?php echo $pockets_inline; ?></span>
+		<?php } ?>
 	</div>
+	<?php /* Thick divider under pockets — separates suit 1 / 2 / 3… */ ?>
+	<div class="print-suit-classic__sep" aria-hidden="true"></div>
 </article>
 <?php
 }

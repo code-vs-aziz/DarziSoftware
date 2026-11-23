@@ -76,32 +76,16 @@ $this->load->helper('ui');
 											<button type="submit" class="btn btn-primary dz-btn--filled btn-sm<?php echo $os_is_delivered_scope ? ' os-scope-active' : ''; ?>" data-os-scope="delivered" onclick="document.getElementById('os-scope-input').value='delivered';"><?php echo esc_html(t('order_status_delivered_tab')); ?></button>
 										</div>
 										<div class="row align-items-end">
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Customer</strong></label>
-												<input type="text" id="os-filter-customer-name" name="customer_name" class="form-control form-control-sm order-filter-urdu-field customer-urdu-field os-filter-clearable" dir="rtl" lang="ur" placeholder="<?php echo esc_html(t('customer_name')); ?>" value="<?php echo esc_html($os_customer); ?>" autocomplete="off">
-											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Order #</strong></label>
-												<input type="text" name="order_no" class="form-control form-control-sm os-filter-clearable" placeholder="Order number" value="<?php echo esc_html($os_order_no); ?>" autocomplete="off">
-											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Naap #</strong></label>
-												<input type="text" name="naap_no" class="form-control form-control-sm os-filter-clearable" placeholder="Naap number" value="<?php echo esc_html($os_naap_no); ?>" autocomplete="off">
-											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Mobile #</strong></label>
-												<input type="text" name="mobile_no" class="form-control form-control-sm os-filter-clearable" placeholder="Mobile number" value="<?php echo esc_html($os_mobile_no); ?>" autocomplete="off">
-											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Return From</strong></label>
+											<div class="col-md-3 mb-2">
+												<label class="mb-1"><strong><?php echo $os_is_delivered_scope ? 'Delivered From' : 'Return From'; ?></strong></label>
 												<input type="date" name="return_from" class="form-control form-control-sm" value="<?php echo esc_html($os_return_from); ?>">
 											</div>
-											<div class="col-md-2 mb-2">
-												<label class="mb-1"><strong>Return To</strong></label>
+											<div class="col-md-3 mb-2">
+												<label class="mb-1"><strong><?php echo $os_is_delivered_scope ? 'Delivered To' : 'Return To'; ?></strong></label>
 												<input type="date" name="return_to" class="form-control form-control-sm" value="<?php echo esc_html($os_return_to); ?>">
 											</div>
 											<?php if ( ! $os_is_delivered_scope) { ?>
-											<div class="col-md-2 mb-2">
+											<div class="col-md-3 mb-2">
 												<label class="mb-1"><strong>Stage</strong></label>
 												<select name="stage" id="os-filter-stage" class="form-control form-control-sm" onchange="this.form.submit()">
 													<option value="" <?php echo $os_stage === '' ? 'selected' : ''; ?>>All</option>
@@ -113,13 +97,12 @@ $this->load->helper('ui');
 												</select>
 											</div>
 											<?php } ?>
-											<div class="col-md-<?php echo $os_is_delivered_scope ? '12' : '10'; ?> mb-2">
-												<label class="mb-1 d-none d-md-block">&nbsp;</label>
+											<div class="col-md-12 mb-2">
 												<button type="submit" class="btn btn-primary dz-btn--filled btn-lg btn-block"><?php echo t('app_search'); ?></button>
 											</div>
 										</div>
 									</form>
-									<p class="text-muted small text-center mb-2"><?php echo $os_is_delivered_scope ? esc_html(t('order_status_delivered_help')) : t('order_status_unified_help'); ?></p>
+									<p class="text-muted small text-center mb-2"><?php echo $os_is_delivered_scope ? esc_html(t('order_status_delivered_help')) : esc_html(t('order_status_unified_help')); ?> Use the table Search box for order #, naap, phone, customer, or employee.</p>
 									<section>
  
 			<div class="demo-html"></div>
@@ -157,9 +140,12 @@ $this->load->helper('ui');
 			 {
 				 $sr = $sr + 1;
 			 }
-			 $is_delivered = (isset($orderdata->status) && (string) $orderdata->status === 'DELIVER');
+			 $xfer_status = isset($orderdata->status) ? (string) $orderdata->status : '';
+			 $is_deactivated = (isset($orderdata->ostatus) && (int) $orderdata->ostatus === 1)
+			 	|| $xfer_status === 'CANCEL' || $xfer_status === 'CANCEL_READY';
+			 $is_delivered = ($xfer_status === 'DELIVER');
 			 // Ready 4 Deliver = stitching complete (STIT + Deactive). Deliver only on those rows.
-			 $is_ready = ( ! $is_delivered && isset($orderdata->dept) && $orderdata->dept === 'STIT' && isset($orderdata->status) && (string) $orderdata->status === 'Deactive');
+			 $is_ready = ( ! $is_delivered && ! $is_deactivated && isset($orderdata->dept) && $orderdata->dept === 'STIT' && $xfer_status === 'Deactive');
 			 $show_deliver = $is_ready;
 						                    ?>
 					<tr>
@@ -200,9 +186,13 @@ $this->load->helper('ui');
 						<td><?php echo $orderdata->order_remarks; ?></td>
 						
 						<td><?php
-						  if ($is_delivered)
+						  if ($is_deactivated)
 						  {
-							echo '<span class="badge badge-secondary">'.esc_html(t('order_status_delivered_tab')).'</span>';
+							echo '<span class="badge badge-danger">'.esc_html(t('order_status_deactivated')).'</span>';
+						  }
+						  elseif ($is_delivered)
+						  {
+							echo '<span class="badge badge-secondary os-badge--delivered">'.esc_html(t('order_status_delivered_tab')).'</span>';
 						  }
 						  elseif($orderdata->dept == 'HO')
 						  {
@@ -222,7 +212,7 @@ $this->load->helper('ui');
 						}
 							elseif($orderdata->dept == 'STIT' and $orderdata->status == 'Deactive')
 						{
-							echo '<span class="badge badge-success">Ready 4 Deliver</span>';
+							echo '<span class="badge badge-success os-badge--ready">Ready 4 Deliver</span>';
 						}
 						   ?></td>
 						<td class="os-actions-cell">

@@ -208,7 +208,16 @@ if ($show_kurta_block) {
 							   &nbsp; &nbsp; <b>  باذو گول    </b>  
 							 
 							</td>
-			  </tr>	
+			  </tr>
+		<tr>
+						 <td class="m-val" style="border-bottom:1px solid black;" align="left"><?php echo isset($orders->CKC) ? esc_html((string) $orders->CKC) : ''; ?></td>
+						<td align="right" class="m-lbl" style="border-bottom:1px solid black;" >
+							   &nbsp; &nbsp; <b>پینٹ کوٹ</b>
+							</td>
+<td class="m-gap">&nbsp;</td>
+							<td class="m-val" style="border-bottom:1px solid black;" align="left"></td>
+									<td align="right" class="m-lbl" style="border-bottom:1px solid black;" ></td>
+			  </tr>
 			  
 			  <tr>
 				<td> </td> 
@@ -393,6 +402,49 @@ if ($show_kurta_block) {
 					array($coat_pick('CoatLambaiBack', 'SherwaniLambaiBack'), 'لمبائی بیک'),
 				);
 				foreach ($coat_rows as $cr)
+				{
+			  ?>
+			  <tr>
+						<td class="m-val" style="border-bottom:1px solid black;" align="left" colspan="4"><?php echo esc_html($cr[0]); ?></td>
+						<td align="right" class="m-lbl">
+							   &nbsp; &nbsp; <b><?php echo esc_html($cr[1]); ?></b>
+						</td>
+						</tr>
+			  <?php
+				}
+			  }
+			  if($print_has_type('PentCoat'))
+			  {
+				echo '<tr><td colspan="5" align="center" style="font-weight:bold;padding:6px 0;">پینٹ کوٹ</td></tr>';
+				$pc_pick = function () use ($orders) {
+					$keys = func_get_args();
+					$fallback = '';
+					foreach ($keys as $key)
+					{
+						$val = isset($orders->$key) ? trim((string) $orders->$key) : '';
+						if ($fallback === '') { $fallback = $val; }
+						if ($val !== '') { return $val; }
+					}
+					return $fallback;
+				};
+				$pc_rows = array(
+					array($pc_pick('PCCoatLambai', 'CoatLambai'), 'کوٹ لمبائی'),
+					array($pc_pick('PCCoatChaati', 'CoatChaati'), 'کوٹ چھاتی'),
+					array($pc_pick('PCCoatKamar', 'CoatKamar'), 'کوٹ کمر'),
+					array($pc_pick('PCCoatTeera', 'CoatTeera'), 'کوٹ تیرا'),
+					array($pc_pick('PCCoatBazoo', 'CoatBazoo'), 'کوٹ بازو'),
+					array($pc_pick('PCCoatGaala', 'CoatGaala'), 'کوٹ گلا'),
+					array($pc_pick('PCCoatHIP', 'PCHIP', 'CoatHIP'), 'کوٹ ہپ'),
+					array($pc_pick('PCCoatDola', 'CoatDola'), 'کوٹ ڈولا'),
+					array($pc_pick('PCCrossback', 'crossback'), 'کراس بیک'),
+					array($pc_pick('PCPentLambai', 'PentLambai'), 'پینٹ لمبائی'),
+					array($pc_pick('PCpentWaiste', 'pentWaiste'), 'پینٹ کمر'),
+					array($pc_pick('PCHIP', 'HIP'), 'پینٹ ہپ'),
+					array($pc_pick('PCPentPat', 'PCPentThai', 'PentPat', 'PentThai'), 'پینٹ پٹ'),
+					array($pc_pick('PCPentGhutna', 'PentGhutna'), 'پینٹ گھٹنہ'),
+					array($pc_pick('PCPentPonchaMori', 'PCPentPoncha', 'PentPonchaMori', 'PentPoncha'), 'پینٹ پانچہ'),
+				);
+				foreach ($pc_rows as $cr)
 				{
 			  ?>
 			  <tr>

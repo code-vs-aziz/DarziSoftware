@@ -5,52 +5,20 @@
 		return;
 	}
 
-	window.initOrderDetailDataTable = function () {
-		var $table = $('table#example.order-detail-table');
-		if (!$table.length || !$.fn.DataTable) {
-			return;
-		}
-		if ($.fn.DataTable.isDataTable($table[0])) {
-			$table.DataTable().destroy();
-		}
-		var pageLen = parseInt($table.data('page-length'), 10) || 10;
-		pageLen = Math.min(100, Math.max(1, pageLen));
-		var dt = $table.DataTable({
-			pagingType: 'full_numbers',
-			pageLength: pageLen,
-			lengthChange: false,
-			dom: 'frtip'
-		});
-		var $wrapper = $table.closest('.dataTables_wrapper');
-		$wrapper.find('.order-detail-length').remove();
-		var $ctrl = $('<div class="dataTables_length order-detail-length"><label>Show <input type="number" min="1" max="100" step="1" class="order-detail-page-size form-control form-control-sm"> entries</label></div>');
-		$ctrl.find('input').val(pageLen);
-		$wrapper.find('.dataTables_filter').before($ctrl);
-		$ctrl.find('input').on('change', function () {
-			var n = parseInt($(this).val(), 10) || pageLen;
-			n = Math.min(100, Math.max(1, n));
-			$(this).val(n);
-			dt.page.len(n).draw();
-		});
-		$ctrl.find('input').on('keydown', function (e) {
-			if (e.key === 'Enter') {
-				e.preventDefault();
-				$(this).trigger('change');
-			}
-		});
-	};
+	var SEARCH_PLACEHOLDER = 'Search order, naap, phone, name…';
 
-	function orderStatusFormAction() {
-		var $form = $('#os-status-filter-form');
-		return ($form.length && $form.attr('action')) || window.location.pathname;
+	function isOfflineNow() {
+		return (
+			window.DarziOffline &&
+			window.DarziOffline.connectivity &&
+			!window.DarziOffline.connectivity.isOnline()
+		);
 	}
 
 	/**
-	 * Table Search → server lookup.
-	 * Uses dt_q so one term matches order # OR naap OR phone OR name
-	 * (same idea as stitching SSP search).
+	 * Universal lookup query → dt_q (order # / naap / phone / name / employee).
 	 */
-	function isOrderStatusLookupQuery(q) {
+	function isUniversalLookupQuery(q) {
 		var raw = String(q || '').replace(/^\s+|\s+$/g, '');
 		if (!raw) {
 			return null;
@@ -60,125 +28,83 @@
 		if (digits.length > 0 && digits.length < 11 && digits.charAt(0) === '0') {
 			return null;
 		}
-		// Full-ish phone.
 		if (digits.length >= 11 || (digits.length >= 10 && digits.charAt(0) !== '0')) {
 			return { field: 'dt_q', value: digits };
 		}
-		// Order # / naap / short code (e.g. 46902) — 3+ chars.
 		if (raw.length >= 3) {
 			return { field: 'dt_q', value: raw };
 		}
 		return null;
 	}
 
-	function orderStatusScope() {
-		var $scope = $('#os-scope-input');
-		var v = $scope.length ? String($scope.val() || '').toLowerCase() : '';
-		return v === 'delivered' ? 'delivered' : 'current';
-	}
-
-	function goOrderStatusLookup(lookup) {
-		if (!lookup) {
-			return false;
+	function restoreFilterCaret(el, start, end) {
+		if (!el) {
+			return;
 		}
-		var params = new URLSearchParams();
-		params.set('scope', orderStatusScope());
-		params.set(lookup.field, lookup.value);
-		params.set('via', 'dt');
-		window.location.href = orderStatusFormAction() + '?' + params.toString();
-		return true;
-	}
-
-	function goOrderStatusAll() {
-		var params = new URLSearchParams();
-		params.set('scope', orderStatusScope());
-		window.location.href = orderStatusFormAction() + '?' + params.toString();
-	}
-
-	function topFiltersAreEmpty($form) {
-		var keys = ['customer_name', 'order_no', 'naap_no', 'mobile_no', 'return_from', 'return_to'];
-		for (var i = 0; i < keys.length; i++) {
-			var v = String($form.find('[name="' + keys[i] + '"]').val() || '').replace(/^\s+|\s+$/g, '');
-			if (v !== '') {
-				return false;
+		try {
+			el.focus({ preventScroll: true });
+		} catch (errFocus) {
+			try {
+				el.focus();
+			} catch (err2) {
+				/* ignore */
 			}
 		}
-		return true;
+		if (start !== null && typeof el.setSelectionRange === 'function') {
+			try {
+				el.setSelectionRange(start, end);
+			} catch (errSel) {
+				/* ignore */
+			}
+		}
 	}
 
-	function bindTopFilterClear($form) {
-		if (!$form.length) {
+	function styleSearchInput($filter) {
+		if (!$filter || !$filter.length) {
 			return;
 		}
-		var clearTimer = null;
-		$form.off('.osTopClear');
-		$form.on('input.osTopClear', '.os-filter-clearable', function () {
-			clearTimeout(clearTimer);
-			clearTimer = setTimeout(function () {
-				if (!topFiltersAreEmpty($form)) {
-					return;
-				}
-				$form.find('[name="stage"]').val('');
-				goOrderStatusAll();
-			}, 350);
-		});
+		$filter.attr('placeholder', SEARCH_PLACEHOLDER);
+		$filter.attr('autocomplete', 'off');
+		$filter.css({ minWidth: '220px', maxWidth: '100%' });
+		var $label = $filter.closest('label');
+		if ($label.length) {
+			$label.contents().filter(function () {
+				return this.nodeType === 3;
+			}).each(function () {
+				this.nodeValue = String(this.nodeValue || '').replace(/Search\s*:?/i, 'Search:');
+			});
+		}
 	}
 
-	window.initOrderListDataTable = function () {
-		var $table = $('table#example[data-order-list-table]');
-		if (!$table.length || !$.fn.DataTable) {
+	/**
+	 * Bind real-time client filter + server dt_q lookup when no local matches.
+	 */
+	function bindUniversalSearch(opts) {
+		opts = opts || {};
+		var dt = opts.dt;
+		var $filter = opts.$filter;
+		var seed = String(opts.seed || '');
+		var formSelector = opts.formSelector || '';
+		var buildLookupUrl = opts.buildLookupUrl;
+		var buildClearUrl = opts.buildClearUrl;
+		var offlineLookup = opts.offlineLookup;
+		if (!dt || !$filter || !$filter.length) {
 			return;
 		}
 
-		var $prevFilter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
-		var preserveVal = $prevFilter.length ? String($prevFilter.val() || '') : '';
-		var preserveFocus = $prevFilter.length && document.activeElement === $prevFilter.get(0);
-		var preserveStart = preserveFocus && typeof $prevFilter.get(0).selectionStart === 'number'
-			? $prevFilter.get(0).selectionStart : null;
-		var preserveEnd = preserveFocus && typeof $prevFilter.get(0).selectionEnd === 'number'
-			? $prevFilter.get(0).selectionEnd : null;
-
-		if ($.fn.DataTable.isDataTable($table[0])) {
-			$table.DataTable().destroy();
-		}
-		var viaDt = String($table.attr('data-os-via-dt') || '') === '1';
-		var seed = String($table.attr('data-os-dt-seed') || '');
-		var dt = $table.DataTable({
-			pagingType: 'full_numbers',
-			searching: true,
-			searchDelay: 10000
-		});
-		var $form = $('#os-status-filter-form');
-		bindTopFilterClear($form);
-
-		var $filter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
-		if (!$filter.length) {
-			return;
-		}
+		styleSearchInput($filter);
 
 		var suppressInput = false;
 		var lookupTimer = null;
 
 		function sameAsCurrentSeed(lookup) {
-			if (!viaDt || !seed || !lookup) {
+			if (!seed || !lookup) {
 				return false;
 			}
-			return String(lookup.value) === String(seed)
-				|| String(lookup.value) === String(seed).split('-')[0];
-		}
-
-		function restoreFilterCaret(el, start, end) {
-			if (!el) {
-				return;
-			}
-			try {
-				el.focus({ preventScroll: true });
-			} catch (errFocus) {
-				try { el.focus(); } catch (err2) { /* ignore */ }
-			}
-			if (start !== null && typeof el.setSelectionRange === 'function') {
-				try { el.setSelectionRange(start, end); } catch (errSel) { /* ignore */ }
-			}
+			return (
+				String(lookup.value) === String(seed) ||
+				String(lookup.value) === String(seed).split('-')[0]
+			);
 		}
 
 		function applyClientSearch(term) {
@@ -200,28 +126,37 @@
 			return dt.rows({ search: 'applied' }).count();
 		}
 
-		$filter.off('keyup.DT search.DT input.DT paste.DT cut.DT keypress.DT');
-		$filter.off('.osServerLookup');
-
-		if (preserveVal !== '') {
-			$filter.val(preserveVal);
-			applyClientSearch(preserveVal);
-		} else if (viaDt && seed) {
-			// Server already filtered rows for this seed — show all loaded matches.
-			$filter.val(seed);
-			applyClientSearch('');
+		function goLookup(lookup) {
+			if (!lookup) {
+				return;
+			}
+			if (isOfflineNow()) {
+				if (typeof offlineLookup === 'function') {
+					offlineLookup(lookup);
+				}
+				return;
+			}
+			if (typeof buildLookupUrl === 'function') {
+				window.location.href = buildLookupUrl(lookup);
+			}
 		}
 
-		if (preserveFocus) {
-			restoreFilterCaret($filter.get(0), preserveStart, preserveEnd);
+		function goClear() {
+			if (isOfflineNow()) {
+				applyClientSearch('');
+				return;
+			}
+			if (typeof buildClearUrl === 'function') {
+				window.location.href = buildClearUrl();
+			}
 		}
 
 		function runLookupFromInput(raw) {
 			if (raw === '') {
-				goOrderStatusAll();
+				goClear();
 				return;
 			}
-			var lookup = isOrderStatusLookupQuery(raw);
+			var lookup = isUniversalLookupQuery(raw);
 			if (!lookup) {
 				applyClientSearch(raw);
 				return;
@@ -231,7 +166,15 @@
 				$filter.val(raw);
 				return;
 			}
-			goOrderStatusLookup(lookup);
+			goLookup(lookup);
+		}
+
+		$filter.off('keyup.DT search.DT input.DT paste.DT cut.DT keypress.DT');
+		$filter.off('.osServerLookup');
+
+		if (seed) {
+			$filter.val(seed);
+			applyClientSearch('');
 		}
 
 		$filter.on('keydown.osServerLookup', function (e) {
@@ -254,18 +197,286 @@
 				return;
 			}
 			var matched = applyClientSearch(raw);
-			var lookup = isOrderStatusLookupQuery(raw);
+			var lookup = isUniversalLookupQuery(raw);
 			if (!lookup || sameAsCurrentSeed(lookup)) {
 				return;
 			}
-			// Not in the loaded 200 rows (e.g. naap 46902) — server search after pause,
-			// same practical result as stitching SSP. Partial phones never hit this.
 			if (matched === 0) {
 				lookupTimer = window.setTimeout(function () {
-					goOrderStatusLookup(lookup);
-				}, 450);
+					var latest = String($filter.val() || '').replace(/^\s+|\s+$/g, '');
+					var latestLookup = isUniversalLookupQuery(latest);
+					if (!latestLookup) {
+						return;
+					}
+					goLookup(latestLookup);
+				}, isOfflineNow() ? 120 : 450);
+			}
+		});
+
+		// Keep hidden dt_q in sync when present (date/status form submit).
+		if (formSelector) {
+			var $form = $(formSelector);
+			$form.off('submit.universalSearch').on('submit.universalSearch', function () {
+				var $hidden = $form.find('input[name="dt_q"]');
+				if ($hidden.length) {
+					$hidden.val(String($filter.val() || '').replace(/^\s+|\s+$/g, ''));
+				}
+			});
+		}
+	}
+
+	function appendFormFilters(params, formSelector, keys) {
+		var $form = formSelector ? $(formSelector) : $();
+		if (!$form.length) {
+			return;
+		}
+		(keys || []).forEach(function (name) {
+			var el = $form.find('[name="' + name + '"]');
+			if (!el.length) {
+				return;
+			}
+			var v = String(el.val() || '').replace(/^\s+|\s+$/g, '');
+			if (v !== '') {
+				params.set(name, v);
+			}
+		});
+	}
+
+	window.initOrderDetailDataTable = function () {
+		var $table = $('table#example.order-detail-table');
+		if (!$table.length || !$.fn.DataTable) {
+			return;
+		}
+		var $prevFilter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
+		var preserveVal = $prevFilter.length ? String($prevFilter.val() || '') : '';
+		var preserveFocus = $prevFilter.length && document.activeElement === $prevFilter.get(0);
+		var preserveStart =
+			preserveFocus && typeof $prevFilter.get(0).selectionStart === 'number'
+				? $prevFilter.get(0).selectionStart
+				: null;
+		var preserveEnd =
+			preserveFocus && typeof $prevFilter.get(0).selectionEnd === 'number'
+				? $prevFilter.get(0).selectionEnd
+				: null;
+
+		if ($.fn.DataTable.isDataTable($table[0])) {
+			$table.DataTable().destroy();
+		}
+		var pageLen = parseInt($table.data('page-length'), 10) || 10;
+		pageLen = Math.min(100, Math.max(1, pageLen));
+		var seed = String($table.attr('data-od-dt-seed') || '');
+		var formSelector = String($table.attr('data-search-form') || '#od-detail-filter-form');
+		var dt = $table.DataTable({
+			pagingType: 'full_numbers',
+			pageLength: pageLen,
+			lengthChange: false,
+			dom: 'frtip',
+			searching: true,
+			searchDelay: 10000
+		});
+		var $wrapper = $table.closest('.dataTables_wrapper');
+		$wrapper.find('.order-detail-length').remove();
+		var $ctrl = $(
+			'<div class="dataTables_length order-detail-length"><label>Show <input type="number" min="1" max="100" step="1" class="order-detail-page-size form-control form-control-sm"> entries</label></div>'
+		);
+		$ctrl.find('input').val(pageLen);
+		$wrapper.find('.dataTables_filter').before($ctrl);
+		$ctrl.find('input').on('change', function () {
+			var n = parseInt($(this).val(), 10) || pageLen;
+			n = Math.min(100, Math.max(1, n));
+			$(this).val(n);
+			dt.page.len(n).draw();
+		});
+		$ctrl.find('input').on('keydown', function (e) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				$(this).trigger('change');
+			}
+		});
+
+		var $filter = $wrapper.find('.dataTables_filter input');
+		if (preserveVal !== '' && !seed) {
+			seed = preserveVal;
+		}
+		bindUniversalSearch({
+			dt: dt,
+			$filter: $filter,
+			seed: seed,
+			formSelector: formSelector,
+			buildLookupUrl: function (lookup) {
+				var params = new URLSearchParams();
+				params.set('dt_q', lookup.value);
+				params.set('via', 'dt');
+				appendFormFilters(params, formSelector, ['order_status', 'row_limit']);
+				return (
+					($('#od-detail-filter-form').attr('action') || window.location.pathname) +
+					'?' +
+					params.toString()
+				);
+			},
+			buildClearUrl: function () {
+				var params = new URLSearchParams();
+				appendFormFilters(params, formSelector, [
+					'return_from',
+					'return_to',
+					'order_status',
+					'row_limit'
+				]);
+				var base = $('#od-detail-filter-form').attr('action') || window.location.pathname;
+				var q = params.toString();
+				return q ? base + '?' + q : base;
+			}
+		});
+		if (preserveFocus) {
+			restoreFilterCaret($filter.get(0), preserveStart, preserveEnd);
+		}
+	};
+
+	window.initOrderReadyDataTable = function () {
+		var $table = $('table#example.order-ready-table');
+		if (!$table.length || !$.fn.DataTable) {
+			return;
+		}
+		var $prevFilter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
+		var preserveVal = $prevFilter.length ? String($prevFilter.val() || '') : '';
+
+		if ($.fn.DataTable.isDataTable($table[0])) {
+			$table.DataTable().destroy();
+		}
+		var pageLen = parseInt($table.data('page-length'), 10) || 10;
+		var seed = String($table.attr('data-od-dt-seed') || '');
+		var formSelector = String($table.attr('data-search-form') || '#rd-ready-filter-form');
+		var dt = $table.DataTable({
+			pagingType: 'full_numbers',
+			pageLength: pageLen,
+			searching: true,
+			searchDelay: 10000
+		});
+		var $filter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
+		if (preserveVal !== '' && !seed) {
+			seed = preserveVal;
+		}
+		bindUniversalSearch({
+			dt: dt,
+			$filter: $filter,
+			seed: seed,
+			formSelector: formSelector,
+			buildLookupUrl: function (lookup) {
+				var params = new URLSearchParams();
+				params.set('dt_q', lookup.value);
+				params.set('via', 'dt');
+				var base = $('#rd-ready-filter-form').attr('action') || window.location.pathname;
+				return base + '?' + params.toString();
+			},
+			buildClearUrl: function () {
+				var params = new URLSearchParams();
+				appendFormFilters(params, formSelector, ['return_from', 'return_to']);
+				var base = $('#rd-ready-filter-form').attr('action') || window.location.pathname;
+				var q = params.toString();
+				return q ? base + '?' + q : base;
 			}
 		});
 	};
 
-}(window, window.jQuery));
+	function orderStatusFormAction() {
+		var $form = $('#os-status-filter-form');
+		return ($form.length && $form.attr('action')) || window.location.pathname;
+	}
+
+	function orderStatusScope() {
+		var $scope = $('#os-scope-input');
+		var v = $scope.length ? String($scope.val() || '').toLowerCase() : '';
+		return v === 'delivered' ? 'delivered' : 'current';
+	}
+
+	window.initOrderListDataTable = function () {
+		var $table = $('table#example[data-order-list-table]');
+		if (!$table.length || !$.fn.DataTable) {
+			return;
+		}
+
+		var $prevFilter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
+		var preserveVal = $prevFilter.length ? String($prevFilter.val() || '') : '';
+		var preserveFocus = $prevFilter.length && document.activeElement === $prevFilter.get(0);
+		var preserveStart =
+			preserveFocus && typeof $prevFilter.get(0).selectionStart === 'number'
+				? $prevFilter.get(0).selectionStart
+				: null;
+		var preserveEnd =
+			preserveFocus && typeof $prevFilter.get(0).selectionEnd === 'number'
+				? $prevFilter.get(0).selectionEnd
+				: null;
+
+		if ($.fn.DataTable.isDataTable($table[0])) {
+			$table.DataTable().destroy();
+		}
+		var viaDt = String($table.attr('data-os-via-dt') || '') === '1';
+		var seed = String($table.attr('data-os-dt-seed') || '');
+		if (!seed && viaDt === false && preserveVal) {
+			seed = '';
+		}
+		var dt = $table.DataTable({
+			pagingType: 'full_numbers',
+			searching: true,
+			searchDelay: 10000
+		});
+
+		var $filter = $table.closest('.dataTables_wrapper').find('.dataTables_filter input');
+		var effectiveSeed = seed || (viaDt ? seed : '');
+		if (preserveVal !== '' && !effectiveSeed) {
+			// Keep typed value during reinit without forcing server seed.
+			$filter.val(preserveVal);
+			dt.search(preserveVal).draw(false);
+			$filter.val(preserveVal);
+		}
+
+		bindUniversalSearch({
+			dt: dt,
+			$filter: $filter,
+			seed: viaDt ? seed : '',
+			formSelector: '#os-status-filter-form',
+			offlineLookup: function (lookup) {
+				if (
+					window.DarziOffline &&
+					window.DarziOffline.lists &&
+					typeof window.DarziOffline.lists.applyOrderStatusFilters === 'function'
+				) {
+					window.DarziOffline.lists.applyOrderStatusFilters(
+						orderStatusScope(),
+						{
+							customer_name: '',
+							order_no: '',
+							naap_no: '',
+							mobile_no: '',
+							stage: '',
+							dt_q: lookup.value
+						},
+						{ keepSearch: String(lookup.value || '') }
+					);
+				}
+			},
+			buildLookupUrl: function (lookup) {
+				var params = new URLSearchParams();
+				params.set('scope', orderStatusScope());
+				params.set('dt_q', lookup.value);
+				params.set('via', 'dt');
+				appendFormFilters(params, '#os-status-filter-form', ['stage']);
+				return orderStatusFormAction() + '?' + params.toString();
+			},
+			buildClearUrl: function () {
+				var params = new URLSearchParams();
+				params.set('scope', orderStatusScope());
+				appendFormFilters(params, '#os-status-filter-form', [
+					'return_from',
+					'return_to',
+					'stage'
+				]);
+				return orderStatusFormAction() + '?' + params.toString();
+			}
+		});
+
+		if (preserveFocus) {
+			restoreFilterCaret($filter.get(0), preserveStart, preserveEnd);
+		}
+	};
+})(window, window.jQuery);

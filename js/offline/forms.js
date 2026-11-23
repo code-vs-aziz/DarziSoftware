@@ -96,6 +96,12 @@
 		if (p.indexOf('/customer/process') !== -1) {
 			return 'customer.create';
 		}
+		if (p.indexOf('/measurement/process_edit') !== -1) {
+			return 'measurement.update';
+		}
+		if (p.indexOf('/measurement/process') !== -1) {
+			return 'measurement.create';
+		}
 		if (p.indexOf('/order/process_del') !== -1) {
 			return 'delivery.create';
 		}
@@ -210,8 +216,13 @@
 		var m = action.match(/process_edit\/(\d+)/i) || window.location.pathname.match(/customer_edit\/(\d+)/i);
 		var serverId = m ? m[1] : payload.code || '';
 		var clientUuid = db().uuid();
+		var baseVersion = parseInt(payload.row_version || '0', 10) || 0;
 		var record = {
-			local_id: serverId ? 'srv:' + serverId : clientUuid,
+			local_id: db().scopedLocalId
+				? db().scopedLocalId(serverId, serverId ? null : clientUuid)
+				: serverId
+					? 'srv:' + serverId
+					: clientUuid,
 			client_uuid: clientUuid,
 			server_id: String(serverId || ''),
 			man_napno: payload.man_napno || '',
@@ -223,7 +234,7 @@
 			cnic: payload.CNIC || '',
 			cus_type: payload.type || '',
 			remarks: payload.Remarks || '',
-			base_row_version: parseInt(payload.row_version || '0', 10) || 0,
+			base_row_version: baseVersion,
 			sync_status: 'pending',
 			updated_at: new Date().toISOString()
 		};
@@ -247,7 +258,8 @@
 						man_napno: record.man_napno,
 						remarks: record.remarks
 					},
-					idempotency_key: db().uuid() + ':customer.update'
+					idempotency_key:
+						String(serverId || clientUuid) + ':customer.update:v' + baseVersion + ':' + record.updated_at
 				});
 			})
 			.then(function () {
@@ -255,16 +267,35 @@
 			});
 	}
 
+	function looksLikeUuid(value) {
+		return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+			String(value || '').trim()
+		);
+	}
+
 	function saveOrderCreate(payload) {
 		var clientUuid = db().uuid();
+		var enriched = Object.assign({}, payload);
+		var naapRaw = String(enriched.Naapno || enriched.naap_no || '').trim();
+		if (looksLikeUuid(naapRaw)) {
+			enriched.measurement_client_id = naapRaw;
+			enriched.Naapno = '';
+			enriched.naap_no = '';
+		} else if (enriched.measurement_client_id && !enriched.naap_no && !enriched.Naapno) {
+			/* keep client id for sync rewrite */
+		}
+		var custRaw = String(enriched.customer_code || enriched.customerno1 || '').trim();
+		if (looksLikeUuid(custRaw)) {
+			enriched.customer_client_id = custRaw;
+		}
 		return provisionalNumber('O').then(function (displayNo) {
 			var record = {
 				local_id: clientUuid,
 				client_uuid: clientUuid,
 				server_id: '',
 				provisional_no: displayNo,
-				naap_no: payload.Naapno || payload.naap_no || '',
-				payload: payload,
+				naap_no: enriched.Naapno || enriched.naap_no || '',
+				payload: enriched,
 				sync_status: 'pending',
 				updated_at: new Date().toISOString()
 			};
@@ -275,7 +306,7 @@
 						entity_type: 'order',
 						entity_client_id: clientUuid,
 						op_type: 'create',
-						payload: payload,
+						payload: enriched,
 						idempotency_key: clientUuid + ':order.create'
 					});
 				})
@@ -283,6 +314,103 @@
 					return record;
 				});
 		});
+	}
+
+	function measurementServerCode(form, payload) {
+		var action = form.getAttribute('action') || '';
+		var m = action.match(/process_edit\/(\d+)/i);
+		if (m) {
+			return m[1];
+		}
+		return payload.code || payload.MCODE || '';
+	}
+
+	function saveMeasurementCreate(payload) {
+		var clientUuid = db().uuid();
+		var customerCode = String(payload.customerno1 || payload.customer_code || '');
+		var customerClientId = '';
+		if (looksLikeUuid(customerCode) || /^OFF-C-/i.test(customerCode)) {
+			customerClientId = looksLikeUuid(customerCode) ? customerCode : String(payload.customer_client_id || '');
+			if (looksLikeUuid(customerCode)) {
+				customerCode = '';
+			}
+		}
+		if (!customerClientId && payload.customer_client_id) {
+			customerClientId = String(payload.customer_client_id);
+		}
+		return provisionalNumber('M').then(function (displayNo) {
+			var record = {
+				local_id: clientUuid,
+				client_uuid: clientUuid,
+				server_id: '',
+				customer_code: customerCode,
+				provisional_no: displayNo,
+				payload: payload,
+				sync_status: 'pending',
+				updated_at: new Date().toISOString()
+			};
+			return db()
+				.put('measurements', record)
+				.then(function () {
+					var measPayload = Object.assign({}, payload, {
+						customer_code: customerCode,
+						client_uuid: clientUuid
+					});
+					if (customerClientId) {
+						measPayload.customer_client_id = customerClientId;
+					}
+					return db().enqueue({
+						entity_type: 'measurement',
+						entity_client_id: clientUuid,
+						op_type: 'create',
+						payload: measPayload,
+						idempotency_key: clientUuid + ':measurement.create'
+					});
+				})
+				.then(function () {
+					return record;
+				});
+		});
+	}
+
+	function saveMeasurementUpdate(form, payload) {
+		var serverId = String(measurementServerCode(form, payload) || '');
+		var clientUuid = db().uuid();
+		var customerCode = String(payload.customerno1 || payload.customer_code || '');
+		var baseVersion = parseInt(payload.row_version || '0', 10) || 0;
+		var record = {
+			local_id: db().scopedLocalId
+				? db().scopedLocalId(serverId, serverId ? null : clientUuid)
+				: serverId
+					? 'srv:' + serverId
+					: clientUuid,
+			client_uuid: clientUuid,
+			server_id: serverId,
+			customer_code: customerCode,
+			payload: payload,
+			sync_status: 'pending',
+			updated_at: new Date().toISOString()
+		};
+		return db()
+			.put('measurements', record)
+			.then(function () {
+				return db().enqueue({
+					entity_type: 'measurement',
+					entity_client_id: clientUuid,
+					op_type: 'update',
+					payload: Object.assign({}, payload, {
+						server_id: serverId,
+						customer_code: customerCode,
+						code: serverId,
+						base_row_version: baseVersion
+					}),
+					idempotency_key:
+						String(serverId || clientUuid) + ':measurement.update:v' + baseVersion + ':' + record.updated_at
+				});
+			})
+			.then(function () {
+				return record;
+			});
 	}
 
 	function saveCashCreate(payload) {
@@ -352,12 +480,21 @@
 		);
 	}
 
-	function redirectAfter(kind) {
+	function redirectAfter(kind, record) {
 		var url = cfg().homeUrl || window.location.href;
 		if (kind === 'customer.create') {
 			url = cfg().measurementUrl || url;
 		} else if (kind === 'customer.update') {
 			url = cfg().customerUrl || url;
+		} else if (kind === 'measurement.create' || kind === 'measurement.update') {
+			var cust = record && record.customer_code ? String(record.customer_code) : '';
+			if (cfg().orderAddUrl && cust) {
+				url = cfg().orderAddUrl.replace(/\/$/, '') + '/' + cust;
+			} else {
+				url = cfg().homeUrl || url;
+			}
+		} else if (kind === 'order.create') {
+			url = cfg().homeUrl || url;
 		} else if (kind === 'cash.create' || kind === 'cash.pending_pay') {
 			url = cfg().cashUrl || window.location.pathname.replace(/\/process.*/, '') || url;
 		} else if (kind === 'delivery.create') {
@@ -366,8 +503,102 @@
 			url = cfg().transferUrl || cfg().homeUrl || url;
 		}
 		window.setTimeout(function () {
+			var offlineNow =
+				window.DarziOffline &&
+				window.DarziOffline.connectivity &&
+				!window.DarziOffline.connectivity.isOnline();
+			if (offlineNow && window.DarziOffline.nav && typeof window.DarziOffline.nav.open === 'function') {
+				window.DarziOffline.nav.open(url);
+				return;
+			}
 			window.location.href = url;
 		}, 600);
+	}
+
+	function queueByKind(form, kind, payload) {
+		if (kind === 'customer.create') {
+			return saveCustomerCreate(payload);
+		}
+		if (kind === 'customer.update') {
+			return saveCustomerUpdate(form, payload);
+		}
+		if (kind === 'measurement.create') {
+			return saveMeasurementCreate(payload);
+		}
+		if (kind === 'measurement.update') {
+			return saveMeasurementUpdate(form, payload);
+		}
+		if (kind === 'order.create') {
+			return saveOrderCreate(payload);
+		}
+		if (kind === 'cash.create') {
+			return saveCashCreate(payload);
+		}
+		if (kind === 'cash.pending_pay') {
+			return saveCashPendingPay(payload);
+		}
+		if (kind === 'delivery.create') {
+			return saveDeliveryCreate(form, payload);
+		}
+		if (kind === 'transfer.process') {
+			return saveTransferProcess(form, payload);
+		}
+		if (kind === 'transfer.process_bulk') {
+			return saveTransferBulk(payload);
+		}
+		return Promise.reject(new Error('unsupported'));
+	}
+
+	function finishQueued(kind, record, opts) {
+		opts = opts || {};
+		var msg = opts.synced
+			? t('offline_saved_synced', 'Saved and synced to server')
+			: t('offline_saved_pending', 'Saved Offline — Pending Sync');
+		flashOfflineSaved(
+			msg + (record && record.provisional_no ? ' (' + record.provisional_no + ')' : '')
+		);
+		window.dispatchEvent(new CustomEvent('darzi-offline-queued'));
+		redirectAfter(kind, record);
+	}
+
+	/**
+	 * Queue-first write path (online or offline).
+	 * Online: persist locally with idempotency key, then push immediately.
+	 * If the network drops mid-sync, the durable queue remains for retry — no silent loss.
+	 * Uncertain API outcomes stay pending until server returns ok (duplicate-safe).
+	 */
+	function submitQueueable(form, kind) {
+		form.__darziOfflineBusy = true;
+		var payload = formToObject(form);
+		var online = isOnline();
+
+		return queueByKind(form, kind, payload)
+			.then(function (record) {
+				if (!online || !window.DarziOffline.sync || !window.DarziOffline.sync.syncNow) {
+					finishQueued(kind, record, { synced: false });
+					return record;
+				}
+				return window.DarziOffline.sync
+					.syncNow({ quiet: true })
+					.then(function (summary) {
+						var synced = !!(summary && summary.ok);
+						finishQueued(kind, record, { synced: synced });
+						return record;
+					})
+					.catch(function () {
+						// Disconnect / uncertain response during push: local queue kept.
+						finishQueued(kind, record, { synced: false });
+						return record;
+					});
+			})
+			.catch(function (err) {
+				flashOfflineSaved(
+					t('offline_save_failed', 'Could not save offline: ') + ((err && err.message) || 'error')
+				);
+			})
+			.then(function () {
+				form.__darziOfflineBusy = false;
+			});
 	}
 
 	function onSubmit(event) {
@@ -378,79 +609,53 @@
 		if (form.getAttribute('data-offline-bypass') === '1') {
 			return;
 		}
-
-		var action = form.getAttribute('action') || window.location.href;
-
-		if (isOnline()) {
+		if (form.__darziOfflineBusy) {
+			event.preventDefault();
+			event.stopPropagation();
 			return;
 		}
 
+		var action = form.getAttribute('action') || window.location.href;
+		var kind = classifyForm(form);
+		var online = isOnline();
+
 		if (isOnlineOnlyAction(action)) {
-			event.preventDefault();
-			event.stopPropagation();
-			blockOnlineOnly();
+			if (!online) {
+				event.preventDefault();
+				event.stopPropagation();
+				blockOnlineOnly();
+			}
 			return;
 		}
 
 		if (isReportAction(action)) {
-			event.preventDefault();
-			event.stopPropagation();
-			blockReportOffline();
+			if (!online) {
+				event.preventDefault();
+				event.stopPropagation();
+				blockReportOffline();
+			}
 			return;
 		}
 
-		var kind = classifyForm(form);
+		// Non-queueable forms: native browser POST when online; block when offline.
 		if (!kind) {
-			event.preventDefault();
-			event.stopPropagation();
-			flashOfflineSaved(
-				t(
-					'offline_form_unsupported',
-					'This form is not available offline.'
-				)
-			);
+			if (!online) {
+				event.preventDefault();
+				event.stopPropagation();
+				flashOfflineSaved(
+					t(
+						'offline_form_unsupported',
+						'This form is not available offline.'
+					)
+				);
+			}
 			return;
 		}
 
+		// Queueable ERP writes: always durable local-first (online + offline).
 		event.preventDefault();
 		event.stopPropagation();
-		var payload = formToObject(form);
-
-		var saver;
-		if (kind === 'customer.create') {
-			saver = saveCustomerCreate(payload);
-		} else if (kind === 'customer.update') {
-			saver = saveCustomerUpdate(form, payload);
-		} else if (kind === 'order.create') {
-			saver = saveOrderCreate(payload);
-		} else if (kind === 'cash.create') {
-			saver = saveCashCreate(payload);
-		} else if (kind === 'cash.pending_pay') {
-			saver = saveCashPendingPay(payload);
-		} else if (kind === 'delivery.create') {
-			saver = saveDeliveryCreate(form, payload);
-		} else if (kind === 'transfer.process') {
-			saver = saveTransferProcess(form, payload);
-		} else if (kind === 'transfer.process_bulk') {
-			saver = saveTransferBulk(payload);
-		} else {
-			saver = Promise.reject(new Error('unsupported'));
-		}
-
-		saver
-			.then(function (record) {
-				flashOfflineSaved(
-					t('offline_saved_pending', 'Saved Offline — Pending Sync') +
-						(record.provisional_no ? ' (' + record.provisional_no + ')' : '')
-				);
-				window.dispatchEvent(new CustomEvent('darzi-offline-queued'));
-				redirectAfter(kind);
-			})
-			.catch(function (err) {
-				flashOfflineSaved(
-					t('offline_save_failed', 'Could not save offline: ') + ((err && err.message) || 'error')
-				);
-			});
+		submitQueueable(form, kind);
 	}
 
 	function guardWhatsAppClicks(event) {

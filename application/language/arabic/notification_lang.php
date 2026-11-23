@@ -53,7 +53,8 @@ $lang['notify_bridge_chip_off'] = 'الجسر متوقف';
 $lang['notify_bridge_banner_down'] = 'جسر واتساب متوقف — اضغط لإعادة التشغيل ومسح QR.';
 $lang['notify_bridge_banner_scan'] = 'يلزم رمز QR — اضغط للفتح والمسح.';
 $lang['notify_days_before'] = 'تذكير الدفع: أيام قبل تاريخ الاستحقاق';
-$lang['notify_tokens_help'] = 'Tokens: {order_no}, {return_date}, {due_date}, {balance}, {total}, {advance}, {customer_name}, {shop_name}, {shop_phone}';
+$lang['notify_tokens_help'] = 'Tokens: {order_no}, {naap_no}, {customer_name}, {order_items}, {suit_count}, {bill_total}, {total}, {advance}, {balance}, {return_date}, {due_date}, {shop_name}, {shop_address}, {shop_phone}, {shop_website}, {copyright}, {year}';
+
 $lang['notify_tpl_booked'] = 'قالب — حجز الطلب';
 $lang['notify_tpl_ready'] = 'قالب — جاهز للتسليم';
 $lang['notify_tpl_payment'] = 'قالب — تذكير الدفع';

@@ -150,7 +150,10 @@ $this->load->helper('ui');
 							<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('app_advance'); ?></label>
-  <input id="retrun_Date" name="Advance" readonly  type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_single_data1->advance + $TOTRECED + $TOTCASHRECEVIED; ?>" >
+  <input id="retrun_Date" name="Advance" readonly  type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php
+	$deliver_advance_shown = (float) $order_single_data1->advance + (float) $TOTRECED + (float) $TOTCASHRECEVIED;
+	echo $deliver_advance_shown;
+  ?>" >
   
                                             </div>  
 						</div>	
@@ -165,7 +168,11 @@ $this->load->helper('ui');
 				<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('app_balance'); ?></label>
-  <input id="Balance" name="Balance"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php echo   $order_single_data1->total - $order_single_data1->advance - $order_single_data1->discount - $TOTRECED - $TOTCASHRECEVIED ; ?>" >
+  <input id="Balance" name="Balance"   type="text" class="form-control" aria-required="true" aria-invalid="false" value="<?php
+	$deliver_balance_shown = (float) $order_single_data1->total - (float) $order_single_data1->advance - (float) $order_single_data1->discount - (float) $TOTRECED - (float) $TOTCASHRECEVIED;
+	if ($deliver_balance_shown < 0) { $deliver_balance_shown = 0; }
+	echo $deliver_balance_shown;
+  ?>" >
   
                                             </div>  
 						</div>							

@@ -21,6 +21,10 @@ class Configuration extends MY_Controller
 		{
 			$tab = 'database';
 		}
+		elseif ($tab === 'devices')
+		{
+			$tab = 'devices';
+		}
 		else
 		{
 			$tab = 'business';
@@ -37,6 +41,16 @@ class Configuration extends MY_Controller
 		$data['backup_max_label'] = $this->Database_backup_model->format_bytes(
 			isset($data['backup_limits']['effective_max']) ? $data['backup_limits']['effective_max'] : 0
 		);
+
+		$this->load->model('Device_auth_model');
+		$data['device_tables_ready'] = $this->Device_auth_model->tables_ready();
+		$data['device_lock_enabled'] = $this->Device_auth_model->is_lock_enabled();
+		$data['authorized_devices'] = $this->Device_auth_model->list_devices();
+		$data['this_device'] = $this->Device_auth_model->current_device();
+		$data['device_client_ip'] = $this->Device_auth_model->client_ip();
+		$data['device_enrollment_code'] = $this->session->flashdata('device_enrollment_code');
+		$data['device_enrollment_expires'] = $this->session->flashdata('device_enrollment_expires');
+
 		$this->load->view('business_configuration', $data);
 	}
 
@@ -632,5 +646,150 @@ class Configuration extends MY_Controller
 		$ok = $this->Order_predefined_model->reseed_defaults();
 		$this->session->set_flashdata($ok ? 'predefined_suss' : 'predefined_error', $ok ? 'reseeded' : 'missing_table');
 		redirect('Configuration?tab=order_predefined');
+	}
+
+	public function device_lock_toggle()
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		$this->load->model('Device_auth_model');
+
+		if (strtoupper((string) $this->input->method(TRUE)) !== 'POST')
+		{
+			redirect('Configuration?tab=devices');
+			return;
+		}
+		if ( ! $this->Device_auth_model->tables_ready())
+		{
+			$this->session->set_flashdata('device_error', 'missing_table');
+			redirect('Configuration?tab=devices');
+			return;
+		}
+
+		$enable = (int) $this->input->post('lock_enabled') === 1;
+		if ($enable)
+		{
+			// Must have this browser registered before turning lock on.
+			if ( ! $this->Device_auth_model->current_device())
+			{
+				$name = trim((string) $this->input->post('device_name', TRUE));
+				if ($name === '')
+				{
+					$name = 'Admin device '.date('Y-m-d');
+				}
+				$result = $this->Device_auth_model->register_device(
+					$name,
+					(string) $this->input->user_agent(TRUE),
+					$this->Device_auth_model->client_ip(),
+					(string) $this->session->userdata('user')
+				);
+				if (empty($result['ok']))
+				{
+					$this->session->set_flashdata('device_error', 'register_failed');
+					redirect('Configuration?tab=devices');
+					return;
+				}
+				$this->Device_auth_model->set_device_cookie($result['raw_token']);
+			}
+		}
+
+		$this->Device_auth_model->set_lock_enabled($enable);
+		$this->session->set_flashdata('device_suss', $enable ? 'lock_on' : 'lock_off');
+		redirect('Configuration?tab=devices');
+	}
+
+	public function device_register()
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		$this->load->model('Device_auth_model');
+
+		if (strtoupper((string) $this->input->method(TRUE)) !== 'POST')
+		{
+			redirect('Configuration?tab=devices');
+			return;
+		}
+		if ( ! $this->Device_auth_model->tables_ready())
+		{
+			$this->session->set_flashdata('device_error', 'missing_table');
+			redirect('Configuration?tab=devices');
+			return;
+		}
+
+		$name = trim((string) $this->input->post('device_name', TRUE));
+		$result = $this->Device_auth_model->register_device(
+			$name !== '' ? $name : ('Device '.date('Y-m-d H:i')),
+			(string) $this->input->user_agent(TRUE),
+			$this->Device_auth_model->client_ip(),
+			(string) $this->session->userdata('user')
+		);
+		if (empty($result['ok']))
+		{
+			$this->session->set_flashdata('device_error', 'register_failed');
+			redirect('Configuration?tab=devices');
+			return;
+		}
+		$this->Device_auth_model->set_device_cookie($result['raw_token']);
+		$this->session->set_flashdata('device_suss', 'registered');
+		redirect('Configuration?tab=devices');
+	}
+
+	public function device_revoke($id = 0)
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		$this->load->model('Device_auth_model');
+
+		$id = (int) $id;
+		$current = $this->Device_auth_model->current_device();
+		$ok = $this->Device_auth_model->revoke_device($id);
+		if ($ok && $current && (int) $current->id === $id)
+		{
+			$this->Device_auth_model->clear_device_cookie();
+		}
+		$this->session->set_flashdata($ok ? 'device_suss' : 'device_error', $ok ? 'revoked' : 'revoke_failed');
+		redirect('Configuration?tab=devices');
+	}
+
+	public function device_enrollment_code()
+	{
+		$this->load->helper('url');
+		$this->load->library('session');
+		$this->load->model('Device_auth_model');
+
+		if (strtoupper((string) $this->input->method(TRUE)) !== 'POST')
+		{
+			redirect('Configuration?tab=devices');
+			return;
+		}
+		if ( ! $this->Device_auth_model->tables_ready())
+		{
+			$this->session->set_flashdata('device_error', 'missing_table');
+			redirect('Configuration?tab=devices');
+			return;
+		}
+		if ($this->Device_auth_model->is_lock_enabled() && ! $this->Device_auth_model->current_device())
+		{
+			$this->session->set_flashdata('device_error', 'not_this_device');
+			redirect('Configuration?tab=devices');
+			return;
+		}
+
+		$label = trim((string) $this->input->post('label', TRUE));
+		$result = $this->Device_auth_model->create_enrollment_code(
+			$label,
+			(string) $this->session->userdata('user'),
+			30
+		);
+		if (empty($result['ok']))
+		{
+			$this->session->set_flashdata('device_error', 'code_failed');
+			redirect('Configuration?tab=devices');
+			return;
+		}
+		$this->session->set_flashdata('device_suss', 'code_created');
+		$this->session->set_flashdata('device_enrollment_code', $result['code']);
+		$this->session->set_flashdata('device_enrollment_expires', $result['expires_at']);
+		redirect('Configuration?tab=devices');
 	}
 }

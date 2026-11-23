@@ -29,12 +29,29 @@ class Order extends MY_Controller {
 			: md5(uniqid('', TRUE));
 		$tokens[] = $token;
 		$tokens = array_values(array_unique($tokens));
-		if (count($tokens) > 8)
+		// Prefetch / multi-tab / SW can mint several tokens — keep a wider pool.
+		if (count($tokens) > 24)
 		{
-			$tokens = array_slice($tokens, -8);
+			$tokens = array_slice($tokens, -24);
 		}
 		$this->session->set_userdata('order_submit_tokens', $tokens);
 		return $token;
+	}
+
+	/**
+	 * Fresh one-time token for Order form (JSON).
+	 * Cached/SW HTML often carries a dead token — client refreshes before save.
+	 */
+	public function fresh_submit_token()
+	{
+		$this->require_login(TRUE);
+		$token = $this->order_submit_token();
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode(array(
+				'ok' => TRUE,
+				'token' => $token,
+			)));
 	}
 
 	private function is_valid_order_submit_token()
@@ -107,7 +124,7 @@ class Order extends MY_Controller {
 		return FALSE;
 	}
 
-	private static $order_garment_types = array('Kurta', 'Pajama', 'Pent', 'Shirt', 'Coat', 'Waistcoat');
+	private static $order_garment_types = array('Kurta', 'Pajama', 'Pent', 'Shirt', 'Coat', 'PentCoat', 'Waistcoat');
 
 	private function _order_print_slips_data($trnno)
 	{
@@ -242,72 +259,36 @@ class Order extends MY_Controller {
 
 	private function _pdf_print_styles()
 	{
+		// Styles for order_print.php pdf_mode — match on-screen slip.
+		// mPDF often ignores CSS-only image sizing; keep attrs + max-* here.
 		return '
-body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
-.order-pdf { direction: ltr; width: 100%; }
-.order-pdf, .order-pdf table, .order-pdf td, .order-pdf th, .order-pdf span {
-	font-family: lateef, xbriyaz, sans-serif;
-	font-size: 12pt;
-	line-height: 18px;
-	font-weight: normal;
-}
-.order-pdf b, .order-pdf th, .order-pdf .lbl { font-weight: bold; }
-.order-pdf .val { font-weight: normal; }
-.order-pdf .body { table-layout: fixed; width: 100%; border-collapse: collapse; }
-.order-pdf .body .col-meas { width: 88mm; vertical-align: top; padding-right: 3mm; }
-.order-pdf .body .col-items { width: 98mm; vertical-align: top; }
-.order-pdf .meas { table-layout: fixed; width: 100%; border-collapse: collapse; direction: ltr; }
-.order-pdf .meas td { font-size: 10pt; padding: 1px 2px; vertical-align: middle; overflow: hidden; }
-.order-pdf .meas .m-val { text-align: left; font-weight: normal; width: 14mm; }
-.order-pdf .meas .m-lbl { text-align: right; font-weight: bold; }
-.order-pdf .meas .m-gap { width: 3mm; padding: 0; }
-.order-pdf .info-wrap { width: 100%; border-collapse: collapse; }
-.order-pdf .info-wrap td { text-align: right; padding: 0; }
-.order-pdf .info { table-layout: fixed; width: 186mm; direction: rtl; border-collapse: collapse; }
-.order-pdf .info td.i-val { text-align: right; font-weight: normal; border-bottom: 1px dotted #000; padding: 1px 4px 2px; vertical-align: bottom; white-space: nowrap; }
-.order-pdf .info th.i-lbl { text-align: right; font-weight: bold; padding: 1px 4px 2px; vertical-align: bottom; white-space: nowrap; }
-.order-pdf .info th.i-lbl.i-left { text-align: left; font-weight: bold; }
-.order-pdf .info td.i-gap { border: none; padding: 0; height: 10px; }
-.order-pdf .info td.i-blank { border: none; padding: 0; }
-.order-pdf .items { table-layout: fixed; width: 100%; border-collapse: collapse; direction: ltr; margin-bottom: 3px; }
-.order-pdf .items td { font-size: 10pt; padding: 2px; vertical-align: top; word-wrap: break-word; overflow: hidden; }
-.order-pdf .items td.val { font-weight: normal; text-align: left; }
-.order-pdf .items td.lbl { font-weight: bold; text-align: right; }
-.order-pdf .items .i-no { width: 8mm; text-align: right; font-weight: bold; }
-.order-pdf .items .i-price { width: 14mm; text-align: left; font-weight: normal; }
-.order-pdf .items .i-img { width: 16mm; text-align: center; }
-.order-pdf .badge { background: #000; color: #fff; padding: 2px 8px; font-size: 10pt; font-weight: bold; }
-.order-pdf .hdr { table-layout: fixed; width: 100%; border-collapse: collapse; margin-bottom: 2mm; }
-.order-pdf .hdr td { vertical-align: top; padding: 2px; }
-.order-pdf .hdr .hdr-phone { font-weight: bold; font-size: 11pt; text-align: center; }
-.order-pdf .hdr .hdr-trnno { font-weight: bold; font-size: 12pt; text-align: left; vertical-align: middle; }
-.order-pdf .hdr .hdr-address { font-weight: bold; font-size: 11pt; text-align: right; direction: rtl; margin-bottom: 2px; }
-.order-pdf .hdr .hdr-badges { text-align: right; direction: rtl; vertical-align: top; }
-.order-pdf .hdr .hdr-badge { background: #000; color: #fff; font-weight: bold; font-size: 9pt; padding: 2px 8px; margin-left: 4px; border-radius: 8px; }
-.order-pdf .ftr { direction: rtl; border-collapse: collapse; }
-.order-pdf .ftr td { background-color: #BBB; }
-.order-pdf .ftr-big { font-size: 24px; font-weight: bold; text-align: center; }
-.order-pdf .ftr-sm { font-size: 11pt; font-weight: bold; text-align: right; }
-.order-pdf .credit { width: 100%; border-collapse: collapse; margin-top: 8px; direction: rtl; }
-.order-pdf .credit td { border-top: 1px solid #94a3b8; padding: 10px 8px 4px; }
-.order-pdf .credit-text {
-	font-family: lateef, xbriyaz, sans-serif;
-	font-size: 13pt;
-	font-weight: bold;
-	line-height: 22px;
-	color: #0f172a;
-	text-align: center;
-	direction: rtl;
-}
-.order-pdf .credit-phone {
-	display: inline-block;
-	margin-top: 4px;
-	font-size: 14pt;
-	font-weight: bold;
-	letter-spacing: 0.5px;
-	direction: ltr;
-	unicode-bidi: embed;
-}
+body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; font-family: lateef, xbriyaz, sans-serif; }
+.pdf-slip, .page-wrapper, .container-fluid, .col-md-14 { width: 100%; }
+.pdf-struct, .pdf-struct td, .pdf-struct th { font-family: lateef, xbriyaz, sans-serif; }
+.pdf-brand-badge { background: #0f172a; color: #fff; font-weight: bold; font-size: 10pt; padding: 4px 8px; }
+.print-slip-panel__head { font-weight: bold; font-size: 12pt; text-align: right; direction: rtl; margin: 2px 0 4px; }
+.print-suit-card, .print-suit-card--classic { border: none; margin: 0 0 2px; padding: 1px 0; page-break-inside: auto; }
+.print-suit-classic__detail { direction: rtl; text-align: right; font-size: 11pt; font-weight: bold; line-height: 1.55; padding: 1px 0 2px; }
+.print-suit-classic__rule { border-bottom: 1px dotted #000; height: 0; margin: 1px 0; }
+.print-suit-classic__meta { width: 100%; margin-top: 2px; }
+.print-suit-classic__price { font-weight: bold; font-size: 10pt; }
+.print-suit-classic__pockets { direction: rtl; text-align: right; font-size: 10pt; font-weight: bold; }
+.print-suit-classic__sep { display: block; width: 100%; border-bottom: 2.5px solid #000; margin: 4px 0 3px; height: 0; }
+.print-suit-classic__fabric { display: inline-block; vertical-align: middle; }
+.print-suit-classic__fabric img { width: 30px !important; height: 22px !important; max-width: 30px !important; max-height: 22px !important; border: 1px solid #777; }
+img { max-width: 48px; }
+.pdf-logo img, .print-slip-brand__logo { max-width: 160px !important; height: auto !important; }
+.pdf-info-table img { width: 48px !important; height: 48px !important; max-width: 48px !important; max-height: 48px !important; }
+.print-suit-no, .print-suit-card__color, .print-suit-card__suit-end { font-weight: bold; }
+.pdf-body-grid { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 2px; }
+.pdf-col-meas { width: 36%; vertical-align: top; padding-right: 4px; }
+.pdf-col-suits { width: 64%; vertical-align: top; padding-left: 3px; }
+.pdf-meas-cell { font-size: 10pt !important; padding: 3px 6px !important; }
+.pdf-meas-num { font-size: 11pt !important; }
+.pdf-footer-holiday { font-size: 12pt; font-weight: bold; background: #cbd5e1; padding: 4px; text-align: center; }
+.pdf-footer-terms { font-size: 9pt; font-weight: bold; text-align: right; direction: rtl; }
+.pdf-meas-note-full { direction: rtl; text-align: right; font-size: 10pt; font-weight: bold; border-bottom: 1.5px solid #000; padding: 4px; margin: 4px 0; }
+.urd, .ur { font-family: lateef, xbriyaz, sans-serif; font-weight: bold; }
 ';
 	}
 
@@ -338,15 +319,17 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			'format' => 'Letter',
 			'margin_left' => 8,
 			'margin_right' => 8,
-			'margin_top' => 8,
-			'margin_bottom' => 8,
+			'margin_top' => 6,
+			'margin_bottom' => 6,
 			'tempDir' => $tempDir,
 			'fontDir' => $fontDirs,
 			'fontdata' => $fontData,
 			'default_font' => 'xbriyaz',
-			'default_font_size' => 11,
+			'default_font_size' => 10,
 			'autoScriptToLang' => FALSE,
 			'autoLangToFont' => FALSE,
+			'img_dpi' => 96,
+			'shrink_tables_to_fit' => 1,
 		));
 		$mpdf->SetDirectionality('ltr');
 
@@ -365,11 +348,11 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			.$this->_pdf_print_styles()
 			.'</style></head><body class="pdf-body">';
 
-		// Classic Darzi Baba receipt: measurements LEFT + suit lines RIGHT
-		// (order_print pdf_mode stacked layout was hard to read on WhatsApp).
+		// Same template as on-screen order print slip (pdf_mode).
 		foreach ($slips as $data)
 		{
-			$html .= $this->load->view('order_pdf', $data, TRUE);
+			$data['pdf_mode'] = TRUE;
+			$html .= $this->load->view('order_print', $data, TRUE);
 			break;
 		}
 
@@ -752,6 +735,37 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	 
 	 
 	 
+	private function _log_order_action($trnno, $action)
+	{
+		$trnno = (int) $trnno;
+		if ($trnno <= 0)
+		{
+			return;
+		}
+		$user = (string) $this->session->userdata('user');
+		$ip = '';
+		if ($this->input)
+		{
+			$ip = (string) $this->input->ip_address();
+			// Cloudflare / proxy real client IP when present.
+			$xff = (string) $this->input->server('HTTP_CF_CONNECTING_IP');
+			if ($xff === '')
+			{
+				$xff = (string) $this->input->server('HTTP_X_FORWARDED_FOR');
+			}
+			if ($xff !== '')
+			{
+				$parts = preg_split('/\s*,\s*/', $xff);
+				if ( ! empty($parts[0]))
+				{
+					$ip = $parts[0];
+				}
+			}
+		}
+		$ua = $this->input ? (string) $this->input->user_agent() : '';
+		$this->order_query->log_order_action($trnno, $action, $user, $ip, $ua);
+	}
+
 	public function Order_deactive()
 	{
 		$this->load->helper('url');
@@ -766,6 +780,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		if ($trnno > 0)
 		{
 			$this->order_query->deactivate_order($trnno);
+			$this->_log_order_action($trnno, 'deactivate');
 			$this->session->set_flashdata('success_msg', t('app_order_deactivated'));
 		}
 		if (isset($this->dashboard_data) && is_object($this->dashboard_data))
@@ -789,6 +804,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		if ($trnno > 0)
 		{
 			$this->order_query->reactivate_order($trnno);
+			$this->_log_order_action($trnno, 'reactivate');
 			$this->session->set_flashdata('success_msg', t('app_order_reactivated'));
 		}
 		if (isset($this->dashboard_data) && is_object($this->dashboard_data))
@@ -1110,6 +1126,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 			'order_no' => trim((string) $this->input->get('order_no', TRUE)),
 			'naap_no' => trim((string) $this->input->get('naap_no', TRUE)),
 			'mobile_no' => trim((string) $this->input->get('mobile_no', TRUE)),
+			'dt_q' => trim((string) $this->input->get('dt_q', TRUE)),
 			'return_from' => trim((string) $this->input->get('return_from', TRUE)),
 			'return_to' => trim((string) $this->input->get('return_to', TRUE)),
 			// Order From/To removed from Ready UI — never apply entry-date range here.
@@ -1128,7 +1145,8 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		// Match Order Status: identity lookups ignore leftover date windows.
 		$has_lookup = ($ready_filters['order_no'] !== ''
 			|| $ready_filters['naap_no'] !== ''
-			|| $ready_filters['mobile_no'] !== '');
+			|| $ready_filters['mobile_no'] !== ''
+			|| $ready_filters['dt_q'] !== '');
 		if ($has_lookup)
 		{
 			$ready_filters['return_from'] = '';
@@ -1140,7 +1158,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 	protected function _ready_deliver_filter_query_params($filters)
 	{
 		$params = array();
-		$filter_keys = array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'return_from', 'return_to');
+		$filter_keys = array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'dt_q', 'return_from', 'return_to');
 		if ( ! is_array($filters))
 		{
 			return $params;
@@ -1164,8 +1182,10 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 
 				 	$data["order_single_data"]= $this->order_query->get_order_det_single($where);
 				 	$data["Measurement_data"]= $this->order_query->get_order_det_single($where);
-				 	$data["TOTRECED"]= $this->order_query->get_recevied($where);
-				 	$data["TOTCASHRECEVIED"]= $this->order_query->get_recevied_cash($where);
+				 	// De-duplicated: delivery writes both dmst.PAID and cash for the same payment.
+				 	$received_payments = (float) $this->order_query->get_order_amount_received($where);
+				 	$data["TOTRECED"]= $received_payments;
+				 	$data["TOTCASHRECEVIED"]= 0;
 				 	 $data["style"]= $this->master_data->get_dat(array('style'));
 				 	 $data["embroidery"]= $this->master_data->get_dat(array('embroidery'));
 				 	 $data["suit"]= $this->master_data->get_dat(array('suit'));
@@ -1470,6 +1490,7 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		   'order_no' => trim((string) ($this->input->post('order_no', TRUE) !== NULL ? $this->input->post('order_no', TRUE) : $this->input->get('order_no', TRUE))),
 		   'naap_no' => trim((string) ($this->input->post('naap_no', TRUE) !== NULL ? $this->input->post('naap_no', TRUE) : $this->input->get('naap_no', TRUE))),
 		   'mobile_no' => trim((string) ($this->input->post('mobile_no', TRUE) !== NULL ? $this->input->post('mobile_no', TRUE) : $this->input->get('mobile_no', TRUE))),
+		   'dt_q' => trim((string) ($this->input->post('dt_q', TRUE) !== NULL ? $this->input->post('dt_q', TRUE) : $this->input->get('dt_q', TRUE))),
 		   'return_from' => trim((string) ($this->input->post('return_from', TRUE) !== NULL ? $this->input->post('return_from', TRUE) : $this->input->get('return_from', TRUE))),
 		   'return_to' => trim((string) ($this->input->post('return_to', TRUE) !== NULL ? $this->input->post('return_to', TRUE) : $this->input->get('return_to', TRUE))),
 		   'order_from' => trim((string) ($this->input->post('order_from', TRUE) !== NULL ? $this->input->post('order_from', TRUE) : $this->input->get('order_from', TRUE))),
@@ -1477,6 +1498,17 @@ body, .pdf-body { margin: 0; padding: 0; color: #000; direction: ltr; }
 		   'row_limit' => trim((string) ($this->input->post('row_limit', TRUE) !== NULL ? $this->input->post('row_limit', TRUE) : $this->input->get('row_limit', TRUE))),
 		   'order_status' => trim((string) ($this->input->post('order_status', TRUE) !== NULL ? $this->input->post('order_status', TRUE) : $this->input->get('order_status', TRUE))),
 	   );
+	   // Universal search: ignore leftover date window so identity lookups always hit.
+	   if ($detail_filters['dt_q'] !== ''
+		   || $detail_filters['order_no'] !== ''
+		   || $detail_filters['naap_no'] !== ''
+		   || $detail_filters['mobile_no'] !== '')
+	   {
+		   $detail_filters['return_from'] = '';
+		   $detail_filters['return_to'] = '';
+		   $detail_filters['order_from'] = '';
+		   $detail_filters['order_to'] = '';
+	   }
 	   if ($detail_filters['row_limit'] === '')
 	   {
 		   $detail_filters['row_limit'] = '500';

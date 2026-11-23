@@ -148,3 +148,80 @@ if ( ! function_exists('measurement_join_triple_from_post'))
 		return measurement_join_triple($top, $mid, $bot);
 	}
 }
+
+if ( ! function_exists('measurement_garment_note_field'))
+{
+	/**
+	 * DB column for a garment type's dedicated note line.
+	 *
+	 * @param string $type order_dtl.type e.g. Kurta, Waistcoat
+	 * @return string column name or ''
+	 */
+	function measurement_garment_note_field($type)
+	{
+		$map = array(
+			'Kurta' => 'remarks_kurta',
+			'Pajama' => 'remarks_pajama',
+			'Pent' => 'remarks_pent',
+			'Shirt' => 'remarks_shirt',
+			'Coat' => 'remarks_coat',
+			'Sherwani' => 'remarks_sherwani',
+			'PentCoat' => 'remarks_pentcoat',
+			'Waistcoat' => 'remarks_waistcoat',
+		);
+		$type = trim((string) $type);
+		return isset($map[$type]) ? $map[$type] : '';
+	}
+}
+
+if ( ! function_exists('measurement_garment_note_for_type'))
+{
+	/**
+	 * Note for ONE garment only — never borrow another garment's note.
+	 * Legacy measurement.remarks / MREMARKS only applies to Kurta (migration).
+	 *
+	 * @param object|array $row
+	 * @param string       $type
+	 * @return string
+	 */
+	function measurement_garment_note_for_type($row, $type)
+	{
+		$type = trim((string) $type);
+		$get = function ($key) use ($row) {
+			if (is_array($row))
+			{
+				return isset($row[$key]) ? trim((string) $row[$key]) : '';
+			}
+			if (is_object($row) && isset($row->$key))
+			{
+				return trim((string) $row->$key);
+			}
+			return '';
+		};
+
+		$field = measurement_garment_note_field($type);
+		if ($field !== '')
+		{
+			$note = $get($field);
+			if ($note !== '')
+			{
+				return $note;
+			}
+		}
+
+		// Historical single remarks column was for قمیض شلوار only.
+		// Use MREMARKS (measurement.remarks alias) — never bare "remarks".
+		// SELECT * joins (employee/suit) overwrite ->remarks with staff notes (e.g. الماس کٹنگ).
+		if ($type === 'Kurta' || $type === '')
+		{
+			$legacy = $get('remarks_kurta');
+			if ($legacy === '')
+			{
+				$legacy = $get('MREMARKS');
+			}
+			return $legacy;
+		}
+
+		return '';
+	}
+}

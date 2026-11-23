@@ -1386,6 +1386,17 @@ body.erp-home.is-home-suggest-open .dz-container {
 	height: 56px;
 }
 
+/* Urdu typing, but cursor stays LEFT like English */
+.dz-home__input.customer-urdu-field {
+	direction: ltr !important;
+	text-align: left !important;
+	unicode-bidi: plaintext;
+	font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Naskh Urdu', serif;
+	font-size: 1.25rem;
+	font-weight: 600;
+	line-height: 1.6;
+}
+
 .dz-home__submit {
 	flex-shrink: 0;
 	border: 0;
@@ -1891,6 +1902,18 @@ table.dataTable thead th,
 
 .badge-pill.badge-danger {
 	background: var(--dz-error) !important;
+}
+
+/* Order Status: Ready badge must stay green (search/offline used to strip it). */
+.badge.badge-success,
+.os-badge--ready {
+	color: #fff !important;
+	background-color: #16a34a !important;
+}
+.badge.badge-secondary.os-badge--delivered,
+.os-badge--delivered {
+	color: #fff !important;
+	background-color: #64748b !important;
 }
 
 /* ─── Select2 ─── */
@@ -2628,15 +2651,11 @@ body.blank-print-page .print-slip-watermark {
 	opacity: 0.055;
 }
 
-/* Order print: small slip wider so long نوٹ لائن stays one line; A4 option full width */
-body.print-size-small.order-print-page .print-slip-sheet {
-	width: min(100%, 195mm);
-	max-width: 195mm;
-}
-
+/* Order print (screen): use more horizontal space; @media print keeps paper width */
+body.print-size-small.order-print-page .print-slip-sheet,
 body.print-size-a4.order-print-page .print-slip-sheet {
-	width: min(100%, 210mm);
-	max-width: 210mm;
+	width: min(100%, 1100px);
+	max-width: 1100px;
 }
 
 body.print-size-small.blank-print-page .container-fluid,
@@ -2647,13 +2666,10 @@ body.print-size-a4.blank-print-page .order-print-toolbar__inner {
 }
 
 body.print-size-small.order-print-page .container-fluid,
-body.print-size-small.order-print-page .order-print-toolbar__inner {
-	max-width: 195mm;
-}
-
+body.print-size-small.order-print-page .order-print-toolbar__inner,
 body.print-size-a4.order-print-page .container-fluid,
 body.print-size-a4.order-print-page .order-print-toolbar__inner {
-	max-width: 210mm;
+	max-width: 1100px;
 }
 
 /*
@@ -3408,6 +3424,7 @@ body.order-print-page.print-size-small .print-slip-body {
 	border-radius: 6px;
 	padding: 0.28rem 0.4rem;
 	margin-bottom: 0.55rem;
+	font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu Draft', serif;
 }
 
 .print-slip-meas__section {
@@ -3574,14 +3591,15 @@ body.order-print-page.print-size-small .print-slip-body {
 .print-suit-classic__detail {
 	direction: rtl;
 	text-align: right;
-	font-size: 0.72rem;
+	font-size: 1rem;
 	font-weight: 700;
 	/* Urdu glyphs need generous line gap or rows collide */
-	line-height: 2.2;
+	line-height: 2.25;
 	color: #111;
-	padding: 0.2rem 0 0.35rem;
+	padding: 0.25rem 0 0.4rem;
 	margin: 0;
 	overflow: visible;
+	font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu Draft', serif;
 }
 
 /* Dotted rule ABOVE pockets row — black */
@@ -3592,6 +3610,17 @@ body.order-print-page.print-size-small .print-slip-body {
 	border: 0;
 	border-bottom: 1.5px dotted #000;
 	margin: 0.15rem 0 0;
+	padding: 0;
+}
+
+/* Thick solid line UNDER pockets — separates each suit */
+.print-suit-classic__sep {
+	display: block;
+	width: 100%;
+	height: 0;
+	border: 0;
+	border-bottom: 3px solid #000;
+	margin: 0.4rem 0 0.25rem;
 	padding: 0;
 }
 
@@ -3625,7 +3654,7 @@ body.order-print-page.print-size-small .print-slip-body {
 .print-suit-classic__price {
 	flex: 0 0 auto;
 	font-weight: 800;
-	font-size: 0.8rem;
+	font-size: 0.95rem;
 	color: #111;
 	text-align: left;
 	border-bottom: 1px dotted #111;
@@ -3655,13 +3684,14 @@ body.order-print-page.print-size-small .print-slip-body {
 	flex: 1 1 auto;
 	direction: rtl;
 	text-align: right;
-	font-size: 0.68rem;
+	font-size: 0.95rem;
 	font-weight: 700;
 	color: #111;
-	line-height: 2;
+	line-height: 2.1;
 	white-space: normal;
 	overflow: visible;
 	padding: 0.15rem 0 0.2rem;
+	font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu Draft', serif;
 }
 
 .print-suit-classic__inline-note {
@@ -3682,9 +3712,9 @@ body.order-print-page.print-size-small .print-slip-body {
 }
 
 body.print-size-small.order-print-page .print-suit-classic__detail {
-	font-size: 0.64rem;
-	line-height: 2.15;
-	padding: 0.18rem 0 0.28rem;
+	font-size: 0.92rem;
+	line-height: 2.2;
+	padding: 0.2rem 0 0.32rem;
 }
 
 body.print-size-small.order-print-page .print-suit-classic__meta {
@@ -3693,13 +3723,13 @@ body.print-size-small.order-print-page .print-suit-classic__meta {
 }
 
 body.print-size-small.order-print-page .print-suit-classic__pockets {
-	font-size: 0.6rem;
-	line-height: 1.95;
+	font-size: 0.88rem;
+	line-height: 2.05;
 	padding: 0.12rem 0 0.18rem;
 }
 
 body.print-size-small.order-print-page .print-suit-classic__price {
-	font-size: 0.72rem;
+	font-size: 0.88rem;
 	min-width: 2.1rem;
 	line-height: 1.4;
 }
@@ -3924,23 +3954,29 @@ body.print-size-small.order-print-page .print-suit-classic__fabric img {
 	.print-suit-card--classic,
 	.print-suit-card {
 		border: none !important;
-		border-bottom: 1px dotted #555 !important;
+		border-bottom: none !important;
 		padding: 0.22rem 0 0.28rem !important;
 		margin: 0 !important;
 	}
 
 	.print-suit-classic__detail {
-		font-size: 0.74rem !important;
-		line-height: 2.25 !important;
-		padding: 0.22rem 0 0.4rem !important;
+		font-size: 1rem !important;
+		line-height: 2.3 !important;
+		padding: 0.25rem 0 0.42rem !important;
 	}
 
 	.print-suit-classic__rule {
 		border-bottom: 1.5px dotted #000 !important;
 	}
 
+	.print-suit-classic__sep {
+		border-bottom: 3px solid #000 !important;
+		margin: 0.35rem 0 0.3rem !important;
+	}
+
 	.print-suit-classic__price {
 		border-bottom: 1px dotted #111 !important;
+		font-size: 0.95rem !important;
 	}
 
 	.print-suit-card__color {
@@ -3949,7 +3985,7 @@ body.print-size-small.order-print-page .print-suit-classic__fabric img {
 
 	.print-suit-classic__pockets {
 		white-space: normal !important;
-		font-size: 0.66rem !important;
+		font-size: 0.95rem !important;
 		color: #111 !important;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
@@ -3982,11 +4018,11 @@ body.print-size-small.order-print-page .print-suit-classic__fabric img {
 	}
 
 	body.print-size-small.order-print-page .print-suit-classic__detail {
-		font-size: 0.68rem !important;
+		font-size: 0.92rem !important;
 	}
 
 	body.print-size-small.order-print-page .print-suit-classic__pockets {
-		font-size: 0.6rem !important;
+		font-size: 0.88rem !important;
 	}
 }
 

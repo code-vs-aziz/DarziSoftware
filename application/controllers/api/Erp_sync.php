@@ -93,7 +93,7 @@ class Erp_sync extends Api_Controller
 		{
 			return;
 		}
-		$data = $this->erp_sync->bootstrap(300);
+		$data = $this->erp_sync->bootstrap(1500);
 		$data['auth'] = array(
 			'user_name' => $auth['user_name'],
 			'device_id' => $auth['device_id'],
@@ -115,6 +115,19 @@ class Erp_sync extends Api_Controller
 			$since = isset($input['since']) ? $input['since'] : NULL;
 		}
 		return $this->respond($this->erp_sync->pull($since));
+	}
+
+	/**
+	 * Transfer queues + Order Status rows for offline tables/search.
+	 */
+	public function lists()
+	{
+		$auth = $this->_require_sync_auth(FALSE);
+		if ($auth === NULL)
+		{
+			return;
+		}
+		return $this->respond($this->erp_sync->offline_lists());
 	}
 
 	public function push()
@@ -140,6 +153,42 @@ class Erp_sync extends Api_Controller
 		}
 		$result = $this->erp_sync->push_ops($auth['device_id'], $auth['user_name'], $ops);
 		return $this->respond($result);
+	}
+
+	/**
+	 * Staff chose Keep Local or Keep Server for an offline conflict.
+	 */
+	public function resolve_conflict()
+	{
+		if ($this->input->method(TRUE) !== 'POST')
+		{
+			return $this->fail('method_not_allowed', 405);
+		}
+		$auth = $this->_require_sync_auth(FALSE);
+		if ($auth === NULL)
+		{
+			return;
+		}
+		$input = $this->json_input();
+		$result = $this->erp_sync->resolve_conflict($auth['device_id'], $auth['user_name'], $input);
+		if (empty($result['ok']))
+		{
+			return $this->fail(isset($result['error']) ? $result['error'] : 'resolve_failed', 400, $result);
+		}
+		return $this->respond($result);
+	}
+
+	/**
+	 * Verify additive offline sync schema (tables + row_version columns).
+	 */
+	public function schema_status()
+	{
+		$auth = $this->_require_sync_auth(TRUE);
+		if ($auth === NULL)
+		{
+			return;
+		}
+		return $this->respond($this->erp_sync->schema_status());
 	}
 
 	/**

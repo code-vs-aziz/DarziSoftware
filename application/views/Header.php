@@ -61,10 +61,11 @@ if ( ! function_exists('erp_nav_is_active')) {
 }
 
 if ( ! function_exists('erp_nav_item')) {
-	function erp_nav_item($label, $url, $icon, $active) {
+	function erp_nav_item($label, $url, $icon, $active, $extra_attrs = '') {
 		$cls = $active ? 'dz-nav__item is-active' : 'dz-nav__item';
+		$attrs = trim((string) $extra_attrs);
 		return '<li class="'.$cls.'">'
-			.'<a href="'.esc_html($url).'">'
+			.'<a href="'.esc_html($url).'"'.($attrs !== '' ? ' '.$attrs : '').'>'
 			.'<span class="dz-nav__icon" aria-hidden="true">'.ui_icon($icon).'</span>'
 			.'<span class="dz-nav__label" lang="'.esc_html(app_html_lang()).'">'.esc_html($label).'</span>'
 			.'</a></li>';
@@ -133,7 +134,18 @@ if (!empty($erp_can['order.blank_print'])) {
 	$erp_nav_html .= erp_nav_item(t('menu_blank_print'), site_url('Order/print_blank'), 'fa-print', $erp_router_class === 'order' && $erp_router_method === 'print_blank');
 }
 if (!empty($erp_can['configuration.manage'])) {
-	$erp_nav_html .= erp_nav_item(t('menu_configuration'), site_url('Configuration'), 'fa-cog', erp_nav_is_active('configuration', $erp_router_class, $erp_router_method, $erp_uri));
+	$erp_nav_html .= erp_nav_item(t('menu_configuration'), site_url('Configuration'), 'fa-cog', erp_nav_is_active('configuration', $erp_router_class, $erp_router_method, $erp_uri), 'data-no-ajax="true"');
+	$erp_devices_active = ($erp_router_class === 'configuration' && (
+		strpos((string) $erp_uri, 'tab=devices') !== FALSE
+		|| (isset($_GET['tab']) && (string) $_GET['tab'] === 'devices')
+	));
+	$erp_nav_html .= erp_nav_item(
+		t('menu_device_security'),
+		site_url('Configuration?tab=devices'),
+		'fa-shield-alt',
+		$erp_devices_active,
+		'data-no-ajax="true"'
+	);
 	$erp_nav_html .= erp_nav_item(t('menu_customer_messages'), site_url('Notifications'), 'fa-comment-dots', $erp_router_class === 'notifications');
 }
 if (!empty($erp_can['broadcast.manage']) || !empty($erp_can['configuration.manage'])) {
@@ -256,7 +268,7 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 					<?php $this->load->view('partials/offline_status_chip', array('offline_indicator_variant' => 'mobile')); ?>
 					<?php $this->load->view('partials/bridge_status_chip', array('bridge_indicator_variant' => 'mobile')); ?>
 					<?php $this->load->view('partials/language_switcher', array('switcher_wrap_class' => 'dz-topbar-mobile__lang')); ?>
-					<a href="<?php echo site_url('Login/logout'); ?>" class="dz-topbar-mobile__logout" title="<?php echo esc_html(t('app_sign_out')); ?>" data-no-ajax="true" data-app-logout="true" onclick="window.location.href=this.href; return false;"><?php echo ui_icon('sign-out-alt'); ?></a>
+					<a href="<?php echo site_url('Login/logout'); ?>" class="dz-topbar-mobile__logout" title="<?php echo esc_html(t('app_sign_out')); ?>" data-no-ajax="true" data-app-logout="true"><?php echo ui_icon('sign-out-alt'); ?></a>
 				</div>
 			</div>
 		</div>
@@ -336,7 +348,7 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 					<span class="dz-topbar__user-name"><?php echo esc_html((string) $erp_user); ?></span>
 				</div>
 				<?php } ?>
-				<a href="<?php echo site_url('Login/logout'); ?>" class="dz-topbar__logout" title="<?php echo esc_html(t('app_sign_out')); ?>" data-no-ajax="true" data-app-logout="true" onclick="window.location.href=this.href; return false;">
+				<a href="<?php echo site_url('Login/logout'); ?>" class="dz-topbar__logout" title="<?php echo esc_html(t('app_sign_out')); ?>" data-no-ajax="true" data-app-logout="true">
 					<?php echo ui_icon('sign-out-alt'); ?>
 					<span class="dz-topbar__logout-label"><?php echo esc_html(t('app_sign_out')); ?></span>
 				</a>
@@ -349,5 +361,12 @@ $erp_bottom_items = array_slice($erp_bottom_items, 0, 4);
 				<?php echo esc_html(t('app_software_powered_by')); ?>
 				<a href="https://wa.me/923060407042" target="_blank" rel="noopener noreferrer" class="erp-global-footer__name"><?php echo esc_html(t('app_powered_by_name')); ?></a>
 			</p>
+			<div id="dz-offline-progress" class="dz-offline-progress" role="status" hidden>
+				<div class="dz-offline-progress__track"><div class="dz-offline-progress__fill" data-offline-fill></div></div>
+				<div class="dz-offline-progress__row">
+					<span class="dz-offline-progress__text" data-offline-progress-text></span>
+					<span class="dz-offline-progress__meta" data-offline-progress-meta></span>
+				</div>
+			</div>
 		</div>
 	</footer>

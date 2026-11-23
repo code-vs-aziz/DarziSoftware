@@ -1,6 +1,6 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
-$measurement_guide_categories = array('kurta', 'pajama', 'pent', 'shirt', 'coat', 'waistcoat');
+$measurement_guide_categories = array('kurta', 'pajama', 'pent', 'shirt', 'coat', 'pentcoat', 'waistcoat');
 ?>
 <div class="measurement-guide" id="measurementGarmentGuide" aria-live="polite">
 	<div class="measurement-guide__head">

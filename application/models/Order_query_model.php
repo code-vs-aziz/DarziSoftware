@@ -10,6 +10,31 @@ class Order_query_model extends CI_Model
    *
    * @return bool
    */
+  /**
+   * Audit trail: who / when / IP for deactivate, reactivate, etc.
+   */
+  function log_order_action($trnno, $action, $username = '', $ip = '', $user_agent = '')
+  {
+	$trnno = (int) $trnno;
+	$action = trim((string) $action);
+	if ($trnno <= 0 || $action === '')
+	{
+		return FALSE;
+	}
+	if ( ! $this->db->table_exists('order_action_log'))
+	{
+		return FALSE;
+	}
+	return (bool) $this->db->insert('order_action_log', array(
+		'order_id' => $trnno,
+		'action' => substr($action, 0, 32),
+		'username' => substr(trim((string) $username), 0, 100),
+		'ip_address' => substr(trim((string) $ip), 0, 45),
+		'user_agent' => substr(trim((string) $user_agent), 0, 255),
+		'created_at' => date('Y-m-d H:i:s'),
+	));
+  }
+
   function deactivate_order($trnno)
   {
 	$trnno = (int) $trnno;
@@ -475,46 +500,57 @@ class Order_query_model extends CI_Model
   }
   function get_recevied($where)
   {
-	//$this->db->distinct();
-    $this->db->select('SUM(PAID) AS TOTRECEVIED');
+	$order_id = (int) $where;
+	if ($order_id <= 0)
+	{
+		return 0.0;
+	}
+	$this->db->select('COALESCE(SUM(PAID), 0) AS TOTRECEVIED', FALSE);
 	$this->db->from('dmst');
-	 $this->db->where('dmst.order_id = "'.$where.'"');
+	$this->db->where('order_id', $order_id);
 	$q = $this->db->get();
-	
-    /* after we've made the queries from the database, we will store them inside a variable called $data, and return the variable to the controller */
-    if($q->num_rows() > 0)
-    {
-      // we will store the results in the form of class methods by using $q->result()
-      // if you want to store them as an array you can use $q->result_array()
-      foreach ($q->result() as $row)
-      {
-         $data[] = $row->TOTRECEVIED;
-      }
-	
-      return $row->TOTRECEVIED;
-    }
+	if ($q === FALSE || $q->num_rows() < 1)
+	{
+		return 0.0;
+	}
+	return (float) $q->row()->TOTRECEVIED;
   }
-  
-   function get_recevied_cash($where)
+
+  function get_recevied_cash($where)
   {
-	//$this->db->distinct();
-    $this->db->select('SUM(amount) AS TOTCASHRECEVIED');
+	$order_id = (int) $where;
+	if ($order_id <= 0)
+	{
+		return 0.0;
+	}
+	$this->db->select('COALESCE(SUM(amount), 0) AS TOTCASHRECEVIED', FALSE);
 	$this->db->from('cash');
-	 $this->db->where('cash.order_no = "'.$where.'"');
+	$this->db->where('order_no', $order_id);
+	$this->db->where('type', 2);
 	$q = $this->db->get();
-	
-    /* after we've made the queries from the database, we will store them inside a variable called $data, and return the variable to the controller */
-    if($q->num_rows() > 0)
-    {
-      // we will store the results in the form of class methods by using $q->result()
-      // if you want to store them as an array you can use $q->result_array()
-      foreach ($q->result() as $row)
-      {
-         $data[] = $row->TOTCASHRECEVIED;
-      }
-	
-      return $row->TOTCASHRECEVIED;
-    }
+	if ($q === FALSE || $q->num_rows() < 1)
+	{
+		return 0.0;
+	}
+	return (float) $q->row()->TOTCASHRECEVIED;
+  }
+
+  /**
+   * Amount already collected against an order (excludes booking advance on order_mst).
+   *
+   * Delivery writes the same payment to both dmst.PAID and cash — do not sum both.
+   * Formula: cash receipts + any dmst.PAID not already covered by cash.
+   */
+  function get_order_amount_received($order_id)
+  {
+	$order_id = (int) $order_id;
+	if ($order_id <= 0)
+	{
+		return 0.0;
+	}
+	$dmst_paid = (float) $this->get_recevied($order_id);
+	$cash_paid = (float) $this->get_recevied_cash($order_id);
+	return round($cash_paid + max(0.0, $dmst_paid - $cash_paid), 2);
   }
   
     function total_wages($where)
@@ -551,7 +587,7 @@ class Order_query_model extends CI_Model
       'Peeir', 'PLambai', 'PPoncha', 'PAsan', 'PPeeir', 'PentLambai', 'pentWaiste', 'HIP', 'PentPoncha',
       'PentThai', 'SLambai', 'SBazoo', 'STeera', 'SGeera', 'geera', 'SChaati', 'SKamar', 'SGaala',
       'CoatLambai', 'CoatBazoo', 'CoatTeera', 'CoatChaati', 'CoatHIP', 'CoatKamar', 'crossback',
-      'wastLambai', 'wastTeera', 'wastChaati', 'wastHIP', 'wastKamar', 'pait', 'WASIT',
+      'wastLambai', 'wastTeera', 'wastChaati', 'wastHIP', 'wastKamar', 'pait', 'WASIT', 'CKC',
       'FRONT_Pocket_Size', 'CAKLAMBAI', 'KAAFCURAI', 'MODA_CURAI', 'CoatGaala', 'wastGaala',
       'remarks_kurta', 'remarks_pajama', 'remarks_pent', 'remarks_shirt', 'remarks_coat', 'remarks_waistcoat',
     );
@@ -777,6 +813,7 @@ class Order_query_model extends CI_Model
 	if ($where !== NULL && $where !== '')
 	{
 		$this->db->where($where, NULL, FALSE);
+		$this->db->order_by('measurement.code', 'DESC');
 	}
 	else
 	{
@@ -905,12 +942,16 @@ class Order_query_model extends CI_Model
   function get_order_order_Detai3($where)
   {
 	//$this->db->distinct();
-    $this->db->select('*,order_dtl.order_remarks AS ORDREMARKS,order_dtl.trnno ORDERSR ,order_mst.trnno as ORDER,measurement.remarks AS MREMARKS');
+	// Explicit transfer emp + cutting master name (avoid select(*) name/empno collisions across joins).
+	// Alias garment type LAST — employee.type ("Cutting") would otherwise overwrite order_dtl.type via SELECT *.
+	// Aliases AFTER * so measurement notes / garment type / customer name win over employee.* collisions.
+    $this->db->select('*, order_dtl.order_remarks AS ORDREMARKS, order_dtl.trnno AS ORDERSR, order_mst.trnno AS `ORDER`, measurement.remarks AS remarks, measurement.remarks AS MREMARKS, measurement.remarks_kurta AS remarks_kurta, measurement.remarks_pajama AS remarks_pajama, measurement.remarks_pent AS remarks_pent, measurement.remarks_shirt AS remarks_shirt, measurement.remarks_coat AS remarks_coat, measurement.remarks_sherwani AS remarks_sherwani, measurement.remarks_waistcoat AS remarks_waistcoat, measurement.remarks_pentcoat AS remarks_pentcoat, transfer_mst.empno AS transfer_empno, employee.name AS cutting_master_name, employee.remarks AS employee_remarks, customer.name AS customer_name, customer.man_napno AS man_napno, order_dtl.type AS garment_type', FALSE);
 	$this->db->from('transfer_mst');
  	$this->db->join('order_mst', 'transfer_mst.order_id = order_mst.trnno');
  	$this->db->join('order_dtl', 'order_dtl.order_trnno = transfer_mst.order_id and order_dtl.trnno = transfer_mst.sr');
  	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');	
- 	$this->db->join('customer', 'customer.code = measurement.customer_code');	
+ 	$this->db->join('customer', 'customer.code = measurement.customer_code');
+	$this->db->join('employee', 'employee.empno = transfer_mst.empno', 'left');
     $this->db->where($where);
 	$q = $this->db->get();
 	
@@ -938,70 +979,106 @@ class Order_query_model extends CI_Model
 		return array();
 	}
 
-	// Current stage row only: latest Active transfer, else Ready (STIT Deactive), else Delivered.
-	$current_transfer_sql =
-		'(SELECT t2.trnno FROM transfer_mst t2'
-		.' WHERE t2.order_id = order_dtl.order_trnno AND t2.sr = order_dtl.trnno'
-		.' AND ('
-		.'  t2.status = \'Active\''
-		.'  OR t2.status = \'DELIVER\''
-		.'  OR (t2.dept = \'STIT\' AND t2.status = \'Deactive\')'
-		.' )'
-		.' ORDER BY'
-		.'  CASE'
-		.'   WHEN t2.status = \'Active\' THEN 3'
-		.'   WHEN t2.status = \'DELIVER\' THEN 2'
-		.'   ELSE 1'
-		.'  END DESC,'
-		.'  t2.trnno DESC'
-		.' LIMIT 1)';
-
-	// Remaining after booking advance, discount, dmst PAID, and cash receipts.
-	// Used so physically delivered credit orders stay "Pending" until fully paid.
-	$remaining_sql =
-		'GREATEST(0, ROUND('
-		.' COALESCE(order_mst.total, 0)'
-		.' - COALESCE(order_mst.advance, 0)'
-		.' - COALESCE(order_mst.discount, 0)'
-		.' - COALESCE((SELECT SUM(dmst.PAID) FROM dmst WHERE dmst.order_id = order_mst.trnno), 0)'
-		.' - COALESCE((SELECT SUM(cash.amount) FROM cash WHERE cash.order_no = order_mst.trnno), 0)'
-		.', 2))';
-
-	$this->db->select(
-		'order_mst.ostatus,
-		order_mst.trnno AS ORDERNO,
-		order_mst.EDATE AS BORDERDATE,
-		order_mst.RDATE AS RORDERDATE,
-		order_mst.total,
-		order_mst.advance,
-		order_mst.discount,
-		'.$remaining_sql.' AS remaining_balance,
-		customer.Phone,
-		customer.name,
-		customer.man_napno,
-		order_dtl.type AS suit_type,
-		'.$this->suit_name_select_sql().',
-		transfer_mst.dept,
-		transfer_mst.status,
-		transfer_mst.empno,
-		employee.name AS karigar_name',
-		FALSE
-	);
-	$this->db->from('order_mst');
-	$this->db->join('order_dtl', 'order_mst.trnno = order_dtl.order_trnno');
-	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
-	$this->db->join('customer', 'customer.code = measurement.customer_code');
-	$this->db->join('transfer_mst', 'transfer_mst.trnno = '.$current_transfer_sql, 'inner', FALSE);
-	$this->db->join('employee', 'employee.empno = transfer_mst.empno', 'left');
-	$this->db->join('suit', 'suit.SNO = order_dtl.SNO', 'left');
-	// Old ERP: From/To filter Return Date (RDATE), not booking/entry date.
-	$this->db->where('order_mst.RDATE >=', $date);
-	$this->db->where('order_mst.RDATE <=', $date1);
-	$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')', NULL, FALSE);
-	$this->db->order_by('order_mst.RDATE', 'ASC');
-	$this->db->order_by('order_mst.trnno', 'ASC');
-	$q = $this->db->get();
-	return $q->num_rows() > 0 ? $q->result() : array();
+	// Fast path for multi-year ranges: no per-row correlated subqueries
+	// (those caused Cloudflare 524 on 5–10 year reports).
+	$this->db->query('SET SESSION group_concat_max_len = 65535');
+	$suit_sql = $this->suit_name_select_sql();
+	// received = cash + max(0, dmst - cash) — same de-dupe as delivery balance fix.
+	$received_sql = '(COALESCE(pay.cash_paid, 0) + GREATEST(0, COALESCE(pay.dmst_paid, 0) - COALESCE(pay.cash_paid, 0)))';
+	$sql = '
+		SELECT
+			om.ostatus,
+			om.trnno AS ORDERNO,
+			om.EDATE AS BORDERDATE,
+			om.RDATE AS RORDERDATE,
+			om.total,
+			om.advance,
+			om.discount,
+			GREATEST(0, ROUND(
+				COALESCE(om.total, 0)
+				- COALESCE(om.advance, 0)
+				- COALESCE(om.discount, 0)
+				- '.$received_sql.'
+			, 2)) AS remaining_balance,
+			customer.Phone,
+			customer.name,
+			customer.man_napno,
+			order_dtl.type AS suit_type,
+			'.$suit_sql.',
+			tm.dept,
+			tm.status,
+			tm.empno,
+			employee.name AS karigar_name
+		FROM order_mst om
+		INNER JOIN order_dtl ON om.trnno = order_dtl.order_trnno
+		INNER JOIN measurement ON measurement.code = om.naap_no
+		INNER JOIN customer ON customer.code = measurement.customer_code
+		INNER JOIN (
+			SELECT t.order_id, t.sr,
+				SUBSTRING_INDEX(GROUP_CONCAT(
+					t.trnno ORDER BY
+						CASE
+							WHEN t.status = \'Active\' THEN 3
+							WHEN t.status = \'DELIVER\' THEN 2
+							WHEN t.dept = \'STIT\' AND t.status = \'Deactive\' THEN 1
+							ELSE 0
+						END DESC,
+						t.trnno DESC
+					SEPARATOR \',\'
+				), \',\', 1) AS best_trnno
+			FROM transfer_mst t
+			INNER JOIN order_mst omx ON omx.trnno = t.order_id
+			WHERE omx.RDATE >= ?
+			  AND omx.RDATE <= ?
+			  AND (omx.ostatus IS NULL OR omx.ostatus = 0 OR omx.ostatus = \'0\')
+			  AND (
+				t.status = \'Active\'
+				OR t.status = \'DELIVER\'
+				OR (t.dept = \'STIT\' AND t.status = \'Deactive\')
+			  )
+			GROUP BY t.order_id, t.sr
+		) cur ON cur.order_id = order_dtl.order_trnno AND cur.sr = order_dtl.trnno
+		INNER JOIN transfer_mst tm ON tm.trnno = cur.best_trnno
+		LEFT JOIN employee ON employee.empno = tm.empno
+		LEFT JOIN suit ON suit.SNO = order_dtl.SNO
+		LEFT JOIN (
+			SELECT
+				om2.trnno AS order_id,
+				COALESCE(d.paid_sum, 0) AS dmst_paid,
+				COALESCE(c.cash_sum, 0) AS cash_paid
+			FROM order_mst om2
+			LEFT JOIN (
+				SELECT dmst.order_id, SUM(dmst.PAID) AS paid_sum
+				FROM dmst
+				INNER JOIN order_mst om_d ON om_d.trnno = dmst.order_id
+				WHERE om_d.RDATE >= ? AND om_d.RDATE <= ?
+				GROUP BY dmst.order_id
+			) d ON d.order_id = om2.trnno
+			LEFT JOIN (
+				SELECT cash.order_no, SUM(cash.amount) AS cash_sum
+				FROM cash
+				INNER JOIN order_mst om_c ON om_c.trnno = cash.order_no
+				WHERE cash.type = 2
+				  AND om_c.RDATE >= ? AND om_c.RDATE <= ?
+				GROUP BY cash.order_no
+			) c ON c.order_no = om2.trnno
+			WHERE om2.RDATE >= ?
+			  AND om2.RDATE <= ?
+			  AND (om2.ostatus IS NULL OR om2.ostatus = 0 OR om2.ostatus = \'0\')
+		) pay ON pay.order_id = om.trnno
+		WHERE om.RDATE >= ?
+		  AND om.RDATE <= ?
+		  AND (om.ostatus IS NULL OR om.ostatus = 0 OR om.ostatus = \'0\')
+		ORDER BY om.RDATE ASC, om.trnno ASC
+	';
+	$q = $this->db->query($sql, array(
+		$date, $date1,
+		$date, $date1,
+		$date, $date1,
+		$date, $date1,
+		$date, $date1,
+	));
+	return ($q !== FALSE && $q->num_rows() > 0) ? $q->result() : array();
   }
 
 
@@ -1165,13 +1242,32 @@ class Order_query_model extends CI_Model
 			$this->db->or_where('order_mst.trnno', (int) $search);
 			$this->db->or_where('transfer_mst.trnno', (int) $search);
 		}
-		$this->db->or_like('customer.name', $search);
-		$this->db->or_like('customer.Phone', $search);
-		$this->db->or_like('customer.man_napno', $search);
-		$this->db->or_like('order_dtl.order_remarks', $search);
-		$this->db->or_like('employee.name', $search);
+		// Columns mix latin1 / utf8mb3 / utf8mb4 — CONVERT avoids "Illegal mix of collations" on LIKE (Urdu search).
+		$this->_or_like_utf8mb4('customer.name', $search);
+		$this->_or_like_utf8mb4('customer.Phone', $search);
+		$this->_or_like_utf8mb4('customer.man_napno', $search);
+		$this->_or_like_utf8mb4('order_dtl.order_remarks', $search);
+		$this->_or_like_utf8mb4('employee.name', $search);
 		$this->db->group_end();
 	}
+  }
+
+  /**
+   * Collation-safe LIKE for mixed charset columns (latin1 + utf8mb4 connection).
+   */
+  protected function _or_like_utf8mb4($column, $search)
+  {
+	$column = trim((string) $column);
+	$search = (string) $search;
+	if ($column === '' || $search === '')
+	{
+		return;
+	}
+	$esc = $this->db->escape_like_str($search);
+	$like = $this->db->escape('%'.$esc.'%');
+	$col_sql = 'CONVERT(IFNULL('.$column.', \'\') USING utf8mb4) COLLATE utf8mb4_unicode_ci';
+	$pat_sql = 'CONVERT('.$like.' USING utf8mb4) COLLATE utf8mb4_unicode_ci';
+	$this->db->or_where($col_sql.' LIKE '.$pat_sql." ESCAPE '!'", NULL, FALSE);
   }
 
   /**
@@ -1431,6 +1527,7 @@ class Order_query_model extends CI_Model
     $esc = $this->db->escape_like_str($q);
     $exact = $this->db->escape($q);
     $like = $this->db->escape($esc.'%');
+    $like_both = $this->db->escape('%'.$esc.'%');
 
     $this->db->group_start();
     if ($digits !== '' && ctype_digit($digits) && substr($digits, 0, 1) !== '0')
@@ -1440,6 +1537,10 @@ class Order_query_model extends CI_Model
     if ($this->_order_mst_has_column('snap_man_napno'))
     {
       $this->db->or_where('(order_mst.snap_man_napno = '.$exact.' OR order_mst.snap_man_napno LIKE '.$like.')', NULL, FALSE);
+    }
+    if ($this->_order_mst_has_column('snap_customer_name'))
+    {
+      $this->db->or_where('(order_mst.snap_customer_name = '.$exact.' OR order_mst.snap_customer_name LIKE '.$like_both.')', NULL, FALSE);
     }
     $this->db->or_where('(customer.man_napno = '.$exact.' OR customer.man_napno LIKE '.$like.')', NULL, FALSE);
     if ($digits !== '')
@@ -1451,6 +1552,18 @@ class Order_query_model extends CI_Model
     $this->db->or_like('customer.Phone', $esc, 'after');
     $this->db->or_where('customer.name', $q);
     $this->db->or_like('customer.name', $esc, 'both');
+    // Employee name / phone (karigar on current transfer line).
+    $emp_sql = 'EXISTS (SELECT 1 FROM employee e WHERE e.empno = transfer_mst.empno AND ('
+      .'e.name = '.$exact.' OR e.name LIKE '.$like_both;
+    if ($digits !== '')
+    {
+      $emp_sql .= ' OR e.phone = '.$this->db->escape($digits)
+        .' OR e.phone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($digits).'%')
+        .' OR e.emergencyphone = '.$this->db->escape($digits)
+        .' OR e.emergencyphone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($digits).'%');
+    }
+    $emp_sql .= '))';
+    $this->db->or_where($emp_sql, NULL, FALSE);
     $this->db->group_end();
   }
 
@@ -1467,6 +1580,7 @@ class Order_query_model extends CI_Model
       'order_from' => '',
       'order_to' => '',
       'stage' => '',
+      'row_limit' => '',
     );
 
     if (is_array($filters))
@@ -1486,6 +1600,11 @@ class Order_query_model extends CI_Model
 
     foreach ($filters as $key => $value)
     {
+      if ($key === 'row_limit')
+      {
+        $filters[$key] = (string) ((int) $value);
+        continue;
+      }
       $filters[$key] = trim((string) $value);
     }
 
@@ -1704,6 +1823,14 @@ class Order_query_model extends CI_Model
 		 return array();
 	 }
 
+	// Delivered tab date fields mean actual delivery date (dmst.EDATE), matching
+	// dashboard "Today Deliveries" — not promised return date (order_mst.RDATE).
+	$deliver_from = isset($filters['return_from']) ? trim((string) $filters['return_from']) : '';
+	$deliver_to = isset($filters['return_to']) ? trim((string) $filters['return_to']) : '';
+	$apply_filters = $filters;
+	$apply_filters['return_from'] = '';
+	$apply_filters['return_to'] = '';
+
 	$this->_select_order_status_fields();
     $this->db->from('order_mst');
 	$this->db->join('transfer_mst', 'transfer_mst.order_id = order_mst.trnno');
@@ -1713,10 +1840,29 @@ class Order_query_model extends CI_Model
 	$this->db->where('transfer_mst.status', 'DELIVER');
 	$this->db->where('transfer_mst.dept', 'STIT');
 	$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')', NULL, FALSE);
-	$this->_apply_order_status_detail_filters($filters);
+	$this->_apply_order_status_detail_filters($apply_filters);
+	if ($deliver_from !== '' || $deliver_to !== '')
+	{
+		$dmst_sql = 'EXISTS (SELECT 1 FROM dmst d WHERE d.order_id = order_mst.trnno';
+		if ($deliver_from !== '')
+		{
+			$dmst_sql .= ' AND d.EDATE >= '.$this->db->escape($deliver_from);
+		}
+		if ($deliver_to !== '')
+		{
+			$dmst_sql .= ' AND d.EDATE <= '.$this->db->escape($deliver_to);
+		}
+		$dmst_sql .= ')';
+		$this->db->where($dmst_sql, NULL, FALSE);
+	}
 	$this->db->order_by('order_mst.RDATE', 'ASC');
 	$this->db->order_by('order_mst.trnno', 'ASC');
-	$this->db->limit(200);
+	$row_limit = 200;
+	if (isset($filters['row_limit']) && (int) $filters['row_limit'] > 0)
+	{
+		$row_limit = min(5000, (int) $filters['row_limit']);
+	}
+	$this->db->limit($row_limit);
 	 
 	$q = $this->db->get();
 	$data = array();
@@ -1736,6 +1882,13 @@ class Order_query_model extends CI_Model
 		$filters['stage'] = trim((string) $stage);
 	}
 	// Stage (incl. All) loads without requiring dates/search — optional filters only.
+	$has_lookup = (
+		(isset($filters['order_no']) && trim((string) $filters['order_no']) !== '')
+		|| (isset($filters['naap_no']) && trim((string) $filters['naap_no']) !== '')
+		|| (isset($filters['mobile_no']) && trim((string) $filters['mobile_no']) !== '')
+		|| (isset($filters['dt_q']) && trim((string) $filters['dt_q']) !== '')
+		|| (isset($filters['customer_name']) && trim((string) $filters['customer_name']) !== '')
+	);
 
 	$this->_select_order_status_fields();
     $this->db->from('order_mst');
@@ -1750,7 +1903,12 @@ class Order_query_model extends CI_Model
 		FALSE
 	);
 	$this->_apply_order_status_detail_filters($filters);
-	$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')', NULL, FALSE);
+	// Exact lookup (order # / phone / naap): also show deactivated — otherwise staff
+	// think the order "vanished" when it was only soft-deactivated.
+	if ( ! $has_lookup)
+	{
+		$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')', NULL, FALSE);
+	}
 	if ($filters['stage'] === 'HO' || $filters['stage'] === 'CUT' || $filters['stage'] === 'HO2' || $filters['stage'] === 'STIT')
 	{
 		$this->db->where('transfer_mst.dept', $filters['stage']);
@@ -1766,6 +1924,11 @@ class Order_query_model extends CI_Model
 		// Delivered history stays on Order Status D / delivered report — not here.
 		$this->db->where('1 = 0', NULL, FALSE);
 	}
+	elseif ($has_lookup)
+	{
+		// Lookup: show latest row even if CANCEL / CANCEL_READY / DELIVER.
+		// No Active-only filter — deactivated orders must still be findable.
+	}
 	else
 	{
 		// All: Active pipeline + Ready for deliver — never already-delivered lines.
@@ -1779,7 +1942,12 @@ class Order_query_model extends CI_Model
 	}
 	$this->db->order_by('order_mst.RDATE', 'ASC');
 	$this->db->order_by('order_mst.trnno', 'ASC');
-	$this->db->limit(200);
+	$row_limit = 200;
+	if (isset($filters['row_limit']) && (int) $filters['row_limit'] > 0)
+	{
+		$row_limit = min(5000, (int) $filters['row_limit']);
+	}
+	$this->db->limit($row_limit);
 	 
 	$q = $this->db->get();
 	$data = array();
@@ -1797,6 +1965,7 @@ class Order_query_model extends CI_Model
       'order_no' => '',
       'naap_no' => '',
       'mobile_no' => '',
+      'dt_q' => '',
       'return_from' => '',
       'return_to' => '',
       'order_from' => '',
@@ -1835,7 +2004,7 @@ class Order_query_model extends CI_Model
 
   protected function _has_order_detail_filters($filters)
   {
-    foreach (array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'return_from', 'return_to', 'order_from', 'order_to') as $key)
+    foreach (array('customer_name', 'order_no', 'naap_no', 'mobile_no', 'dt_q', 'return_from', 'return_to', 'order_from', 'order_to') as $key)
     {
       if (isset($filters[$key]) && trim((string) $filters[$key]) !== '')
       {
@@ -1865,6 +2034,11 @@ class Order_query_model extends CI_Model
 
   protected function _apply_order_detail_filters($filters)
   {
+    if (isset($filters['dt_q']) && trim((string) $filters['dt_q']) !== '')
+    {
+      $this->_apply_order_detail_dt_q_filter($filters['dt_q']);
+    }
+
     if ($filters['order_no'] !== '')
     {
       $digits = preg_replace('/\D+/', '', $filters['order_no']);
@@ -1914,6 +2088,59 @@ class Order_query_model extends CI_Model
     {
       $this->db->where('order_mst.EDATE <=', $filters['order_to']);
     }
+  }
+
+  /**
+   * Universal search for Order Detail (no transfer join required).
+   */
+  protected function _apply_order_detail_dt_q_filter($q)
+  {
+    $q = trim((string) $q);
+    if ($q === '')
+    {
+      return;
+    }
+    $digits = preg_replace('/\D+/', '', $q);
+    $esc = $this->db->escape_like_str($q);
+    $exact = $this->db->escape($q);
+    $like = $this->db->escape($esc.'%');
+    $like_both = $this->db->escape('%'.$esc.'%');
+
+    $this->db->group_start();
+    if ($digits !== '' && ctype_digit($digits) && substr($digits, 0, 1) !== '0')
+    {
+      $this->db->or_where('order_mst.trnno', (int) $digits);
+    }
+    if ($this->_order_mst_has_column('snap_man_napno'))
+    {
+      $this->db->or_where('(order_mst.snap_man_napno = '.$exact.' OR order_mst.snap_man_napno LIKE '.$like.')', NULL, FALSE);
+    }
+    if ($this->_order_mst_has_column('snap_customer_name'))
+    {
+      $this->db->or_where('(order_mst.snap_customer_name = '.$exact.' OR order_mst.snap_customer_name LIKE '.$like_both.')', NULL, FALSE);
+    }
+    $this->db->or_where('(customer.man_napno = '.$exact.' OR customer.man_napno LIKE '.$like.')', NULL, FALSE);
+    if ($digits !== '')
+    {
+      $this->db->or_where('customer.Phone', $digits);
+      $this->db->or_like('customer.Phone', $this->db->escape_like_str($digits), 'both');
+    }
+    $this->db->or_where('customer.Phone', $q);
+    $this->db->or_like('customer.Phone', $esc, 'after');
+    $this->db->or_where('customer.name', $q);
+    $this->db->or_like('customer.name', $esc, 'both');
+    $emp_sql = 'EXISTS (SELECT 1 FROM transfer_mst tm INNER JOIN employee e ON e.empno = tm.empno'
+      .' WHERE tm.order_id = order_mst.trnno AND (e.name = '.$exact.' OR e.name LIKE '.$like_both;
+    if ($digits !== '')
+    {
+      $emp_sql .= ' OR e.phone = '.$this->db->escape($digits)
+        .' OR e.phone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($digits).'%')
+        .' OR e.emergencyphone = '.$this->db->escape($digits)
+        .' OR e.emergencyphone LIKE '.$this->db->escape('%'.$this->db->escape_like_str($digits).'%');
+    }
+    $emp_sql .= '))';
+    $this->db->or_where($emp_sql, NULL, FALSE);
+    $this->db->group_end();
   }
 
    function get_order_order_Detail($filters = array(), $edate = '', $cust_search = '')
@@ -2525,8 +2752,13 @@ class Order_query_model extends CI_Model
 
   /**
    * Customer prior outstanding (سابقه بقایا) excluding the current order.
-   * Uses unpaid dmst rows; also folds in other active orders' remaining
-   * (total − advance − discount − payments) when they have no dmst balance yet.
+   *
+   * Includes only genuine prior dues:
+   *  - unpaid dmst rows (delivered / credit pending), and
+   *  - other orders that have reached Ready for Delivery (STIT + Deactive)
+   *    with a remaining balance not yet on dmst.
+   *
+   * Excludes newly booked / in-progress orders (HO, CUT, STIT Active, etc.).
    */
   function get_customer_previous_balance($customer_code, $exclude_order_id = 0)
   {
@@ -2563,12 +2795,21 @@ class Order_query_model extends CI_Model
 		}
 	}
 
-	// Active other orders still carrying a remaining balance (not yet on dmst).
+	// Ready for Delivery only (same stage rule as Order Status → READY / Ready 4 Deliver).
 	$this->db->select('order_mst.trnno, order_mst.total, order_mst.advance, order_mst.discount');
+	$this->db->distinct();
 	$this->db->from('order_mst');
 	$this->db->join('measurement', 'measurement.code = order_mst.naap_no');
+	$this->db->join('transfer_mst', 'transfer_mst.order_id = order_mst.trnno');
 	$this->db->where('measurement.customer_code', $customer_code);
 	$this->db->where('(order_mst.ostatus IS NULL OR order_mst.ostatus = 0 OR order_mst.ostatus = \'0\')', NULL, FALSE);
+	$this->db->where('transfer_mst.dept', 'STIT');
+	$this->db->where('transfer_mst.status', 'Deactive');
+	$this->db->where(
+		'transfer_mst.trnno = (SELECT MAX(t2.trnno) FROM transfer_mst t2 WHERE t2.order_id = transfer_mst.order_id AND t2.sr = transfer_mst.sr)',
+		NULL,
+		FALSE
+	);
 	if ($exclude_order_id > 0)
 	{
 		$this->db->where('order_mst.trnno !=', $exclude_order_id);
@@ -2583,7 +2824,7 @@ class Order_query_model extends CI_Model
 			{
 				continue;
 			}
-			$received = (float) $this->get_recevied($oid) + (float) $this->get_recevied_cash($oid);
+			$received = (float) $this->get_order_amount_received($oid);
 			$remain = round((float) $orow->total - (float) $orow->advance - (float) $orow->discount - $received, 2);
 			if ($remain > 0)
 			{
@@ -2622,8 +2863,7 @@ class Order_query_model extends CI_Model
 		(float) $row->total
 		- (float) $row->advance
 		- (float) $row->discount
-		- (float) $this->get_recevied($order_id)
-		- (float) $this->get_recevied_cash($order_id),
+		- (float) $this->get_order_amount_received($order_id),
 		2
 	);
 	return ($remaining < 0) ? 0.0 : $remaining;
@@ -2665,8 +2905,10 @@ class Order_query_model extends CI_Model
 	$discount = round((float) $header->discount, 2);
 	$received_dmst = round((float) $this->get_recevied($order_id), 2);
 	$received_cash = round((float) $this->get_recevied_cash($order_id), 2);
-	$advance_total = round($advance_booking + $received_dmst + $received_cash, 2);
-	$order_balance = round($total - $advance_booking - $discount - $received_dmst - $received_cash, 2);
+	// Delivery dual-writes dmst.PAID + cash — use de-duplicated received total.
+	$received_payments = round((float) $this->get_order_amount_received($order_id), 2);
+	$advance_total = round($advance_booking + $received_payments, 2);
+	$order_balance = round($total - $advance_booking - $discount - $received_payments, 2);
 	if ($order_balance < 0)
 	{
 		$order_balance = 0.0;

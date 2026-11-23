@@ -13,8 +13,10 @@ if ($filter_url === '' || ! $has_report) {
 	try {
 		var st = history.state || {};
 		if (!st.dzReportResult) {
+			// Capture result URL BEFORE replaceState — replaceState changes location.href.
+			var resultUrl = window.location.href;
 			history.replaceState({ dzReportFilter: true }, '', filterUrl);
-			history.pushState({ dzReportResult: true }, '', window.location.href);
+			history.pushState({ dzReportResult: true }, '', resultUrl);
 		}
 	} catch (e) { /* ignore */ }
 	window.addEventListener('popstate', function (ev) {

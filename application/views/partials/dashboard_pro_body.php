@@ -1,11 +1,13 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 $this->load->helper('ui');
 $dashboard_summary = isset($dashboard_summary) && is_array($dashboard_summary) ? $dashboard_summary : array();
+$today = date('Y-m-d');
 $dash_cards = array(
+	// Each card opens the SAME screen the number represents.
 	array('key' => 'ready_to_deliver', 'label' => t('dash_ready_deliver'), 'icon' => 'fa-box-open', 'link' => site_url('Order/order_issue')),
-	array('key' => 'today_bookings', 'label' => t('dash_today_bookings'), 'icon' => 'fa-calendar-plus', 'link' => site_url('Order/order_view_det')),
-	array('key' => 'today_deliveries', 'label' => t('dash_today_deliveries'), 'icon' => 'fa-truck', 'link' => site_url('Order/order_issue')),
-	array('key' => 'today_return', 'label' => t('dash_today_return'), 'icon' => 'fa-undo', 'link' => site_url('Order/order_view_det')),
+	array('key' => 'today_bookings', 'label' => t('dash_today_bookings'), 'icon' => 'fa-calendar-plus', 'link' => site_url('Order/order_view_det').'?order_from='.rawurlencode($today).'&order_to='.rawurlencode($today)),
+	array('key' => 'today_deliveries', 'label' => t('dash_today_deliveries'), 'icon' => 'fa-truck', 'link' => site_url('transfer/order_Status').'?scope=delivered&return_from='.rawurlencode($today).'&return_to='.rawurlencode($today)),
+	array('key' => 'today_return', 'label' => t('dash_today_return'), 'icon' => 'fa-undo', 'link' => site_url('Order/order_view_det').'?return_from='.rawurlencode($today).'&return_to='.rawurlencode($today)),
 	array('key' => 'pending_booking', 'label' => t('menu_pending_booking'), 'icon' => 'fa-clipboard-list', 'link' => site_url('transfer/transfer_table/HO/HO')),
 	array('key' => 'pending_cutting', 'label' => t('menu_pending_cutting'), 'icon' => 'fa-cut', 'link' => site_url('transfer/transfer_table/CUT/CUT')),
 	array('key' => 'pending_ho2', 'label' => t('menu_pending_ho2'), 'icon' => 'fa-layer-group', 'link' => site_url('transfer/transfer_table/HO2/HO2')),
@@ -63,8 +65,8 @@ $user_name = (string) $this->session->userdata('user');
 				<?php
 				echo ui_btn(array('label' => t('dash_add_customer'), 'href' => site_url('Customer/Customer_add'), 'variant' => 'filled', 'icon' => 'fa-user-plus'));
 				echo ui_btn(array('label' => t('dash_open_ready_deliver'), 'href' => site_url('Order/order_issue'), 'variant' => 'tonal', 'icon' => 'fa-box-open'));
-				echo ui_btn(array('label' => t('dash_search_order_status'), 'href' => site_url('Order/order_view_det'), 'variant' => 'outlined', 'icon' => 'fa-search'));
-				echo ui_btn(array('label' => t('dash_order_detail_report'), 'href' => site_url('Cash/reprtfinancial_dashboard'), 'variant' => 'outlined', 'icon' => 'fa-chart-line', 'attrs' => 'target="_blank" rel="noopener noreferrer"'));
+				echo ui_btn(array('label' => t('dash_search_order_status'), 'href' => site_url('transfer/order_Status'), 'variant' => 'outlined', 'icon' => 'fa-search'));
+				echo ui_btn(array('label' => t('dash_order_detail_report'), 'href' => site_url('Order/order_view_det'), 'variant' => 'outlined', 'icon' => 'fa-chart-line'));
 				?>
 			</div>
 		</div>

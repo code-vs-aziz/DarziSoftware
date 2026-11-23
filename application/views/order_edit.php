@@ -295,12 +295,13 @@ $this->load->helper('ui');
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('order_design_type'); ?></label>
                                               <select 	id="Designtype"    name="desigtype[]" type="text" class="form-control inline-search" aria-required="true" aria-invalid="false">
   <option value="0"><?php echo t('order_select_design_type'); ?></option>
-  <option value="Kurta" <?php if($order_line->type == 'Kurta')  { ?> selected  <?php }  ?> >قمیض شلوار</option>
-  <option value="Pajama" <?php if($order_line->type == 'Pajama')  { ?> selected  <?php }  ?> >پاجامہ</option>
-  <option value="Pent" <?php if($order_line->type == 'Pent')  { ?> selected  <?php }  ?> >پینٹ</option>
-  <option value="Shirt" <?php if($order_line->type == 'Shirt')  { ?> selected  <?php }  ?> >شرٹ</option>
-  <option value="Coat" <?php if($order_line->type == 'Coat')  { ?> selected  <?php }  ?> >شروانی/کوٹ</option>
-  <option value="Waistcoat" <?php if($order_line->type == 'Waistcoat')  { ?> selected  <?php }  ?> >ویسکوٹ</option>
+  <option value="Kurta" <?php if($order_line->type == 'Kurta')  { ?> selected  <?php }  ?> ><?php echo t('design_type_kurta'); ?></option>
+  <option value="Pajama" <?php if($order_line->type == 'Pajama')  { ?> selected  <?php }  ?> ><?php echo t('design_type_pajama'); ?></option>
+  <option value="Pent" <?php if($order_line->type == 'Pent')  { ?> selected  <?php }  ?> ><?php echo t('design_type_pent'); ?></option>
+  <option value="Shirt" <?php if($order_line->type == 'Shirt')  { ?> selected  <?php }  ?> ><?php echo t('design_type_shirt'); ?></option>
+  <option value="Coat" <?php if($order_line->type == 'Coat')  { ?> selected  <?php }  ?> ><?php echo t('design_type_coat'); ?></option>
+  <option value="PentCoat" <?php if($order_line->type == 'PentCoat')  { ?> selected  <?php }  ?> ><?php echo t('design_type_pentcoat'); ?></option>
+  <option value="Waistcoat" <?php if($order_line->type == 'Waistcoat')  { ?> selected  <?php }  ?> ><?php echo t('design_type_waistcoat'); ?></option>
  
  
 </select>

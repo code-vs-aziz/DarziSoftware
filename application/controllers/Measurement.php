@@ -146,7 +146,6 @@ public function process()
 	//'BPL'=> $this->input->post('BPL'),			 
 	'Teera'=> $this->input->post('Teera'),
 	'BP'=> $this->input->post('BP'),
-	//'CKC'=> $this->input->post('CKC'),
 	//'KC'=> $this->input->post('KC'),
 	'CL'=> $this->input->post('CL'),
 	'Chaati'=> $this->input->post('Chaati'),
@@ -198,6 +197,25 @@ public function process()
 	'CoatBazooMori'=> $this->input->post('CoatBazooMori'),
 	'CoatLambaiBack'=> $this->input->post('CoatLambaiBack'),
 	'crossback'=> $this->input->post('crossback'),
+	'PCCoatLambai'=> $this->input->post('PCCoatLambai'),
+	'PCCoatChaati'=> $this->input->post('PCCoatChaati'),
+	'PCCoatKamar'=> $this->input->post('PCCoatKamar'),
+	'PCCoatTeera'=> $this->input->post('PCCoatTeera'),
+	'PCCoatBazoo'=> $this->input->post('PCCoatBazoo'),
+	'PCCoatGaala'=> $this->input->post('PCCoatGaala'),
+	'PCCoatHIP'=> $this->input->post('PCCoatHIP'),
+	'PCCoatDola'=> $this->input->post('PCCoatDola'),
+	'PCCoatBazooMori'=> $this->input->post('PCCoatBazooMori'),
+	'PCCoatLambaiBack'=> $this->input->post('PCCoatLambaiBack'),
+	'PCCrossback'=> $this->input->post('PCCrossback'),
+	'PCPentLambai'=> $this->input->post('PCPentLambai'),
+	'PCpentWaiste'=> $this->input->post('PCpentWaiste'),
+	'PCHIP'=> $this->input->post('PCHIP'),
+	'PCPentPat'=> $this->input->post('PCPentPat'),
+	'PCPentThai'=> $this->input->post('PCPentPat'),
+	'PCPentGhutna'=> $this->input->post('PCPentGhutna'),
+	'PCPentPonchaMori'=> $this->input->post('PCPentPonchaMori'),
+	'PCPentPoncha'=> $this->input->post('PCPentPonchaMori'),
 	'wastLambai'=> $this->input->post('wastLambai'),
 	'wastTeera'=> $this->input->post('wastTeera'),
 	'wastChaati'=> $this->input->post('wastChaati'),
@@ -209,6 +227,7 @@ public function process()
 	'remarks_pent'=> $this->input->post('RemarksPent', TRUE),
 	'remarks_shirt'=> $this->input->post('RemarksShirt', TRUE),
 	'remarks_coat'=> $this->input->post('RemarksCoat', TRUE),
+	'remarks_pentcoat'=> $this->input->post('RemarksPentcoat', TRUE),
 	'remarks_waistcoat'=> $this->input->post('RemarksWaistcoat', TRUE),
 	'pait'=> $this->input->post('pait'),
 	'WASIT'=> $this->input->post('WASIT'),
@@ -223,11 +242,30 @@ public function process()
 );
 				
 				
-				$res=$this->insert->insert_dat1($data,'Measurement');
 				$customer_code = (int) $this->input->post('customerno1', TRUE);
+				// Never create a second nap for the same customer — update the latest row.
+				$existing_code = 0;
+				if ($customer_code > 0)
+				{
+					$existing = $this->db->select_max('code')
+						->where('customer_code', $customer_code)
+						->get('measurement')
+						->row();
+					$existing_code = ($existing && isset($existing->code)) ? (int) $existing->code : 0;
+				}
+				if ($existing_code > 0)
+				{
+					$res = $this->insert->entry_update1('code', $existing_code, $data, 'Measurement');
+					$meas_code = $existing_code;
+				}
+				else
+				{
+					$res = $this->insert->insert_dat1($data, 'Measurement');
+					$meas_code = (int) $this->db->insert_id();
+				}
 				if ($this->input->post('return_to', TRUE) === 'order' && $customer_code > 0)
 				{
-					redirect('Order/order_add1/'.$customer_code);
+					redirect('Order/order_add1/'.$customer_code.($meas_code > 0 ? '/'.$meas_code : ''));
 					return;
 				}
 				redirect('Order/order_view');
@@ -253,14 +291,13 @@ public function process()
 	 	$this->load->model("insert");
 		$data = array(
 				'EDATE' => date('Y-m-d'),
-	'customer_code			 '=> $this->input->post('customerno1'),			 
+	'customer_code'=> $this->input->post('customerno1'),
 	'KL'=> $this->input->post('KL'),			 
 	'FPL'=> $this->input->post('FPL'),			 
 	'BL'=> $this->input->post('BL'),			 
 	//'BPL'=> $this->input->post('BPL'),			 
 	'Teera'=> $this->input->post('Teera'),
 	'BP'=> $this->input->post('BP'),
-	//'CKC'=> $this->input->post('CKC'),
 	//'KC'=> $this->input->post('KC'),
 	'CL'=> $this->input->post('CL'),
 	'Chaati'=> $this->input->post('Chaati'),
@@ -311,6 +348,25 @@ public function process()
 	'CoatBazooMori'=> $this->input->post('CoatBazooMori'),
 	'CoatLambaiBack'=> $this->input->post('CoatLambaiBack'),
 	'crossback'=> $this->input->post('crossback'),
+	'PCCoatLambai'=> $this->input->post('PCCoatLambai'),
+	'PCCoatChaati'=> $this->input->post('PCCoatChaati'),
+	'PCCoatKamar'=> $this->input->post('PCCoatKamar'),
+	'PCCoatTeera'=> $this->input->post('PCCoatTeera'),
+	'PCCoatBazoo'=> $this->input->post('PCCoatBazoo'),
+	'PCCoatGaala'=> $this->input->post('PCCoatGaala'),
+	'PCCoatHIP'=> $this->input->post('PCCoatHIP'),
+	'PCCoatDola'=> $this->input->post('PCCoatDola'),
+	'PCCoatBazooMori'=> $this->input->post('PCCoatBazooMori'),
+	'PCCoatLambaiBack'=> $this->input->post('PCCoatLambaiBack'),
+	'PCCrossback'=> $this->input->post('PCCrossback'),
+	'PCPentLambai'=> $this->input->post('PCPentLambai'),
+	'PCpentWaiste'=> $this->input->post('PCpentWaiste'),
+	'PCHIP'=> $this->input->post('PCHIP'),
+	'PCPentPat'=> $this->input->post('PCPentPat'),
+	'PCPentThai'=> $this->input->post('PCPentPat'),
+	'PCPentGhutna'=> $this->input->post('PCPentGhutna'),
+	'PCPentPonchaMori'=> $this->input->post('PCPentPonchaMori'),
+	'PCPentPoncha'=> $this->input->post('PCPentPonchaMori'),
 	'wastLambai'=> $this->input->post('wastLambai'),
 	'wastTeera'=> $this->input->post('wastTeera'),
 	'wastChaati'=> $this->input->post('wastChaati'),
@@ -322,6 +378,7 @@ public function process()
 	'remarks_pent'=> $this->input->post('RemarksPent', TRUE),
 	'remarks_shirt'=> $this->input->post('RemarksShirt', TRUE),
 	'remarks_coat'=> $this->input->post('RemarksCoat', TRUE),
+	'remarks_pentcoat'=> $this->input->post('RemarksPentcoat', TRUE),
 	'remarks_waistcoat'=> $this->input->post('RemarksWaistcoat', TRUE),
 	'pait'=> $this->input->post('pait'),
 	'WASIT'=> $this->input->post('WASIT'),

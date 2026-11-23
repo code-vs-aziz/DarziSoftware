@@ -542,22 +542,56 @@ class Notification_service
 			$customer_id = (int) $header->snap_customer_code;
 		}
 
-		$balance = isset($extra['balance']) ? (float) $extra['balance'] : 0;
+		// When caller passes balance (incl. 0 after full payment at delivery), keep it.
+		// Old bug: `if ($balance <= 0) recalc` turned a paid-off 0 into unpaid again.
+		$balance_explicit = array_key_exists('balance', $extra);
+		$balance = $balance_explicit ? (float) $extra['balance'] : 0.0;
 		$total = isset($header->total) ? (float) $header->total : 0;
 		$advance = isset($header->advance) ? (float) $header->advance : 0;
 		$discount = isset($header->Discount) ? (float) $header->Discount : 0;
 		$addprice = isset($header->addprice) ? (float) $header->addprice : 0;
 		$bill_total = $addprice + $total - $discount;
 
-		if ($balance <= 0)
+		$received_later = 0.0;
+		if (method_exists($this->CI->order_query, 'get_order_amount_received'))
 		{
-			$balance = $bill_total - $advance;
+			$received_later = (float) $this->CI->order_query->get_order_amount_received($order_id);
+		}
+		$total_paid = $advance + $received_later;
+		if ($total_paid < 0)
+		{
+			$total_paid = 0.0;
 		}
 
-		$suit_count = isset($header->qty) ? (int) $header->qty : 0;
-		if ($suit_count <= 0)
+		if ($balance_explicit)
 		{
-			$suit_count = (int) $this->CI->db->where('order_trnno', $order_id)->count_all_results('order_dtl');
+			if ($balance < 0)
+			{
+				$balance = 0.0;
+			}
+			// Delivery/reminder: show total collected so far (bill − remaining).
+			$advance = max(0.0, $bill_total - $balance);
+		}
+		else
+		{
+			$balance = $bill_total - $total_paid;
+			if ($balance < 0)
+			{
+				$balance = 0.0;
+			}
+			$advance = $total_paid;
+		}
+
+		$items_meta = $this->build_order_items_summary($order_id);
+		$suit_count = $items_meta['total'];
+		if ($suit_count <= 0 && isset($header->qty))
+		{
+			$suit_count = (int) $header->qty;
+		}
+		$order_items = $items_meta['summary'];
+		if ($order_items === '' && $suit_count > 0)
+		{
+			$order_items = $suit_count.' '.($suit_count === 1 ? 'Suit' : 'Suits');
 		}
 
 		$due_date = isset($extra['due_date']) ? (string) $extra['due_date'] : '';
@@ -582,10 +616,18 @@ class Notification_service
 		}
 
 		$year = date('Y');
-		$copyright = '© '.$year.' '.$shop_name."\nPowered by Aziz ur Rehman · DarziSoftware";
+		// Website line ke turant neeche; blank line; then left-aligned bold credit.
+		$copyright = "Since 2005\n\n*Powered by Aziz Ur Rehman.*";
+
+		$naap_no = '';
+		if (isset($header->man_napno))
+		{
+			$naap_no = trim((string) $header->man_napno);
+		}
 
 		return array(
 			'order_no' => $order_id,
+			'naap_no' => $naap_no,
 			'return_date' => $this->format_display_date(isset($header->RDATE) ? $header->RDATE : ''),
 			'due_date' => $this->format_display_date($due_date),
 			'total' => number_format($total, 0),
@@ -593,14 +635,112 @@ class Notification_service
 			'advance' => number_format($advance, 0),
 			'balance' => number_format($balance, 0),
 			'suit_count' => (string) $suit_count,
+			'order_items' => $order_items,
 			'customer_name' => $customer_name,
 			'customer_id' => $customer_id,
 			'phone' => $phone,
 			'shop_name' => $shop_name,
 			'shop_phone' => $shop_phone,
 			'shop_address' => $shop_address,
+			'shop_website' => 'www.darzibaba.pk',
 			'year' => $year,
 			'copyright' => $copyright,
+		);
+	}
+
+	/**
+	 * Build WhatsApp line like "2 Suits, 3 Waistcoats" from order_dtl.type rows.
+	 *
+	 * @return array{summary:string,total:int}
+	 */
+	protected function build_order_items_summary($order_id)
+	{
+		$order_id = (int) $order_id;
+		$empty = array('summary' => '', 'total' => 0);
+		if ($order_id <= 0)
+		{
+			return $empty;
+		}
+
+		$q = $this->CI->db->select('type')
+			->from('order_dtl')
+			->where('order_trnno', $order_id)
+			->get();
+		if ($q->num_rows() === 0)
+		{
+			return $empty;
+		}
+
+		// Display labels + preferred order (Kurta = Suit for shop messaging).
+		$label_map = array(
+			'Kurta' => array('singular' => 'Suit', 'plural' => 'Suits'),
+			'Waistcoat' => array('singular' => 'Waistcoat', 'plural' => 'Waistcoats'),
+			'Shirt' => array('singular' => 'Shirt', 'plural' => 'Shirts'),
+			'Coat' => array('singular' => 'Coat', 'plural' => 'Coats'),
+			'Pent' => array('singular' => 'Pant', 'plural' => 'Pants'),
+			'PentCoat' => array('singular' => 'Pant Coat', 'plural' => 'Pant Coats'),
+			'Pajama' => array('singular' => 'Pajama', 'plural' => 'Pajamas'),
+			'Sherwani' => array('singular' => 'Sherwani', 'plural' => 'Sherwanis'),
+		);
+		$order_keys = array_keys($label_map);
+
+		$counts = array();
+		$total = 0;
+		foreach ($q->result() as $row)
+		{
+			$type = trim((string) (isset($row->type) ? $row->type : ''));
+			if ($type === '' || $type === '0')
+			{
+				continue;
+			}
+			// Normalize case (DB may store waistcoat / Waistcoat).
+			foreach ($label_map as $key => $_labels)
+			{
+				if (strcasecmp($type, $key) === 0)
+				{
+					$type = $key;
+					break;
+				}
+			}
+			if (!isset($counts[$type]))
+			{
+				$counts[$type] = 0;
+			}
+			$counts[$type]++;
+			$total++;
+		}
+
+		if ($total <= 0)
+		{
+			return $empty;
+		}
+
+		$parts = array();
+		foreach ($order_keys as $key)
+		{
+			if (empty($counts[$key]))
+			{
+				continue;
+			}
+			$qty = (int) $counts[$key];
+			$label = $qty === 1 ? $label_map[$key]['singular'] : $label_map[$key]['plural'];
+			$parts[] = $qty.' '.$label;
+			unset($counts[$key]);
+		}
+		// Any unexpected type left over.
+		foreach ($counts as $type => $qty)
+		{
+			$qty = (int) $qty;
+			if ($qty <= 0)
+			{
+				continue;
+			}
+			$parts[] = $qty.' '.$type.($qty === 1 ? '' : 's');
+		}
+
+		return array(
+			'summary' => implode(', ', $parts),
+			'total' => $total,
 		);
 	}
 
@@ -634,6 +774,7 @@ class Notification_service
 
 		$replacements = array(
 			'{order_no}' => (string) $context['order_no'],
+			'{naap_no}' => isset($context['naap_no']) ? (string) $context['naap_no'] : '',
 			'{return_date}' => (string) $context['return_date'],
 			'{due_date}' => (string) $context['due_date'],
 			'{balance}' => (string) $context['balance'],
@@ -641,10 +782,12 @@ class Notification_service
 			'{bill_total}' => (string) $context['bill_total'],
 			'{advance}' => (string) $context['advance'],
 			'{suit_count}' => (string) $context['suit_count'],
+			'{order_items}' => isset($context['order_items']) ? (string) $context['order_items'] : (string) $context['suit_count'],
 			'{customer_name}' => (string) $context['customer_name'],
 			'{shop_name}' => (string) $context['shop_name'],
 			'{shop_phone}' => (string) $context['shop_phone'],
 			'{shop_address}' => (string) $context['shop_address'],
+			'{shop_website}' => isset($context['shop_website']) ? (string) $context['shop_website'] : 'www.darzibaba.pk',
 			'{year}' => (string) $context['year'],
 			'{copyright}' => (string) $context['copyright'],
 		);

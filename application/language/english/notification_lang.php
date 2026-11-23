@@ -53,7 +53,8 @@ $lang['notify_bridge_chip_off'] = 'Bridge down';
 $lang['notify_bridge_banner_down'] = 'WhatsApp bridge down — tap to restart & scan QR.';
 $lang['notify_bridge_banner_scan'] = 'WhatsApp QR needed — tap to open and scan.';
 $lang['notify_days_before'] = 'Payment reminder: days before due date';
-$lang['notify_tokens_help'] = 'Tokens: {order_no}, {customer_name}, {suit_count}, {bill_total}, {total}, {advance}, {balance}, {return_date}, {due_date}, {shop_name}, {shop_address}, {shop_phone}, {copyright}, {year}';
+$lang['notify_tokens_help'] = 'Tokens: {order_no}, {naap_no}, {customer_name}, {order_items}, {suit_count}, {bill_total}, {total}, {advance}, {balance}, {return_date}, {due_date}, {shop_name}, {shop_address}, {shop_phone}, {shop_website}, {copyright}, {year}';
+
 $lang['notify_delivery_sent_ok'] = 'WhatsApp delivery message sent to customer.';
 $lang['notify_delivery_sent_fail'] = 'Delivery saved but WhatsApp message could not be sent.';
 $lang['notify_delivery_no_phone'] = 'Customer phone missing.';

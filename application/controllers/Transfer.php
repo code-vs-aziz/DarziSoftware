@@ -227,8 +227,14 @@ class Transfer extends MY_Controller {
 		 // Lightweight page shell — rows load via server-side DataTables JSON.
 		 $data["employee"]= $this->master_data->get_dat(array('employee'));
 		 $data['orderdata'] = array();
-		 $data['transfer_ssp_url'] = site_url('Transfer/transfer_table_data/'.$this->uri->segment(3).'/'.$get_id);
-		 $data['transfer_list_from'] = (string) $this->uri->segment(3);
+		 // list_from must be a stage code (HO/CUT/…) — never a transfer id from an old Back URL.
+		 $list_from = strtoupper(trim((string) $this->uri->segment(3)));
+		 if ( ! in_array($list_from, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+		 {
+			$list_from = $get_id;
+		 }
+		 $data['transfer_ssp_url'] = site_url('Transfer/transfer_table_data/'.$list_from.'/'.$get_id);
+		 $data['transfer_list_from'] = $list_from;
  	$this->load->view('transfer_table',$data);
 	}
 
@@ -307,7 +313,11 @@ class Transfer extends MY_Controller {
 			: $this->order_query->count_pending_transfer_rows($dept, $search);
 		$rows = $this->order_query->get_pending_transfer_rows($dept, $start, $length, $search, $order_by, $order_dir);
 
-		$list_from = (string) $this->uri->segment(3);
+		$list_from = strtoupper(trim((string) $this->uri->segment(3)));
+		if ( ! in_array($list_from, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+		{
+			$list_from = $dept;
+		}
 		$data_out = array();
 		$sr_by_order = array();
 		foreach ($rows as $row)
@@ -325,6 +335,9 @@ class Transfer extends MY_Controller {
 			$display_sr = $sr_by_order[$order_no];
 			$transfer_id = (int) $row->TRANSFERID;
 			$emp_name = isset($row->emp_name) ? trim((string) $row->emp_name) : '';
+			// Legacy employee names often end with padding zeros (e.g. "ماسٹر رشید سٹیچنگ 0000…").
+			$emp_name = preg_replace('/\s*0{3,}\s*$/u', '', $emp_name);
+			$emp_name = trim((string) $emp_name);
 
 			$entry = $row->ORDERDATE;
 			if ($entry === '' || $entry === NULL)
@@ -361,7 +374,7 @@ class Transfer extends MY_Controller {
 			$ret_btn = '';
 			if ($dept !== 'HO')
 			{
-				$ret_btn = '<a class="btn btn-primary dz-btn--filled btn-sm" href="'.site_url('Transfer/transfer_return/'.$transfer_id.'/'.$dept.'/'.$order_no.'/'.$line_sr.'/'.$list_from).'">Return</a>';
+				$ret_btn = '<a class="btn btn-primary dz-btn--filled btn-sm" data-no-ajax="true" href="'.site_url('Transfer/transfer_return/'.$transfer_id.'/'.$dept.'/'.$order_no.'/'.$line_sr.'/'.$list_from).'">Return</a>';
 			}
 			$cells[] = $ret_btn;
 			$data_out[] = $cells;
@@ -379,168 +392,137 @@ class Transfer extends MY_Controller {
  	public function Transfer_Print()
 	{
 		error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
-		$this->load->helper('url'); 
+		$this->load->helper('url');
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
-		
-	
+		if ( ! $this->session->userdata('user'))
+		{
+			redirect('Login');
+			return;
+		}
 
-	/*		$data3["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-			$data3["style"]= $this->master_data->get_dat(array('style'));
-			$where5 = "order_mst.trnno = ".$this->master_data->get_max_id('trnno','order_mst')." and order_dtl.type = 'Kurta'";
-			$data3['order'] = $this->order_query->get_order($where5);
-			*/
+		$transfer_id = (int) $this->uri->segment(3);
+		$dept = trim((string) $this->uri->segment(4));
+		$line_sr = (int) $this->uri->segment(5);
+		if ($dept === 'HO2')
+		{
+			$dept = 'STIT';
+		}
+		elseif ($dept === '')
+		{
+			$dept = 'CUT';
+		}
 
-			$data3["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-			$data3["style"]= $this->master_data->get_dat(array('style'));
-			$data3["suit"]= $this->master_data->get_dat(array('suit'));
-			$data3["employee"]= $this->master_data->get_dat(array('employee'));
-			//$where5 = "order_mst.trnno = ".$this->uri->segment(3)." and order_dtl.type = 'Kurta'";
-		//	 $where5 = '( transfer_mst.dept = "STIT" or transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Kurta"
-		//	 and transfer_mst.empno != "" ';
-			 if($this->uri->segment(4) == 'HO2' )
-			{
-			 
-			$where5 = '( transfer_mst.dept = "STIT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Kurta"
-			 and transfer_mst.empno != "" ';
-			}
-			else
-			{
-			$where5 = '( transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Kurta"
-			 and transfer_mst.empno != "" ';
-			}
-			 
-			 
-		//	$where5 = 'transfer_mst.dept = "STIT" and transfer_mst.trnno = "'.$this->uri->segment(3).'"';
-			$data3['order'] = $this->order_query->get_order_order_Detai3($where5);
-		
-						$data2["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-						
-			$data2["style"]= $this->master_data->get_dat(array('style'));
-			
-		 
-			
-			 if($this->uri->segment(4) == 'HO2' )
-			{
-			 
-			$where5 = '( transfer_mst.dept = "STIT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Pajama"
-			 and transfer_mst.empno != "" ';
-			}
-			else
-			{
-			$where5 = '( transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Pajama"
-			 and transfer_mst.empno != "" ';
-			}
-			$data2['order'] = $this->order_query->get_order_order_Detai3($where5);
-			$data2["employee"]= $this->master_data->get_dat(array('employee'));
-			$data2["suit"]= $this->master_data->get_dat(array('suit'));
-			$data1["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-			$data1["style"]= $this->master_data->get_dat(array('style'));
-			$data1["employee"]= $this->master_data->get_dat(array('employee'));
-				 if($this->uri->segment(4) == 'HO2' )
-			{
-			 
-			$where5 = '( transfer_mst.dept = "STIT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Pent"
-			 and transfer_mst.empno != "" ';
-			}
-			else
-			{
-			$where5 = '( transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Pent"
-			 and transfer_mst.empno != "" ';
-			}
-			
-			$data1['order'] = $this->order_query->get_order_order_Detai3($where5);
-			
-			$data1["suit"]= $this->master_data->get_dat(array('suit'));
-			$data0["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-			$data0["style"]= $this->master_data->get_dat(array('style'));
-					 if($this->uri->segment(4) == 'HO2' )
-			{
-			 
-			$where5 = '( transfer_mst.dept = "STIT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Shirt"
-			 and transfer_mst.empno != "" ';
-			}
-			else
-			{
-			$where5 = '( transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Shirt"
-			 and transfer_mst.empno != "" ';
-			}
-			
-			$data0["employee"]= $this->master_data->get_dat(array('employee'));
-			$data0['order'] = $this->order_query->get_order_order_Detai3($where5);	
-			 
-			$data0["suit"]= $this->master_data->get_dat(array('suit'));
-			$data01["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-			$data01["style"]= $this->master_data->get_dat(array('style'));
-			$data01["employee"]= $this->master_data->get_dat(array('employee'));
-					 if($this->uri->segment(4) == 'HO2' )
-			{
-			 
-			$where5 = '( transfer_mst.dept = "STIT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Coat"
-			 and transfer_mst.empno != "" ';
-			}
-			else
-			{
-			$where5 = '( transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Coat"
-			 and transfer_mst.empno != "" ';
-			}
-			
-			
-			$data01['order'] = $this->order_query->get_order_order_Detai3($where5);	
-			 
-			$data03["suit"]= $this->master_data->get_dat(array('suit'));
-			$data03["embroidery"]= $this->master_data->get_dat(array('embroidery'));
-			$data03["employee"]= $this->master_data->get_dat(array('employee'));
-			$data03["style"]= $this->master_data->get_dat(array('style'));
-						 if($this->uri->segment(4) == 'HO2' )
-			{
-			 
-			$where5 = '( transfer_mst.dept = "STIT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Waistcoat"
-			 and transfer_mst.empno != "" ';
-			}
-			else
-			{
-			$where5 = '( transfer_mst.dept = "CUT") and order_dtl.trnno = "'.$this->uri->segment(5).'" and order_dtl.type = "Waistcoat"
-			 and transfer_mst.empno != "" ';
-			}
-			
-			
-			$data03['order'] = $this->order_query->get_order_order_Detai3($where5);	
-			$data03["suit"]= $this->master_data->get_dat(array('suit'));
-			 
+		$shared = array(
+			'embroidery' => $this->master_data->get_dat(array('embroidery')),
+			'style' => $this->master_data->get_dat(array('style')),
+			'suit' => $this->master_data->get_dat(array('suit')),
+			'employee' => $this->master_data->get_dat(array('employee')),
+		);
 
-		if (!empty($data3['order'])) {
-			$data3['type'] = 'Kurta';
+		$order_rows = NULL;
+		// 1) Exact transfer id (ignores wrong line_sr typos; supports PentCoat/Sherwani).
+		if ($transfer_id > 0)
+		{
+			$order_rows = $this->order_query->get_order_order_Detai3('transfer_mst.trnno = '.$transfer_id);
+		}
+		// 2) Fallback: line + dept, any garment type.
+		if (( ! is_array($order_rows) || empty($order_rows)) && $line_sr > 0)
+		{
+			$where_fb = 'transfer_mst.dept = '.$this->db->escape($dept)
+				.' AND order_dtl.trnno = '.$line_sr
+				.' AND transfer_mst.empno IS NOT NULL AND transfer_mst.empno != 0 AND transfer_mst.empno != \'\'';
+			$order_rows = $this->order_query->get_order_order_Detai3($where_fb);
+		}
 
-		$this->load->view('transfer_print',$data3);
+		if ( ! is_array($order_rows) || empty($order_rows))
+		{
+			echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Transfer Print</title></head><body style="font-family:sans-serif;padding:2rem;text-align:center;">'
+				.'<p>Print data not found for this transfer.</p>'
+				.'<p><a href="javascript:history.back()">Back</a></p>'
+				.'</body></html>';
+			return;
 		}
-		if (!empty($data2['order'])) {
-			$data2['type'] = 'Pajama';
-		$this->load->view('transfer_print',$data2);
-		}
-		if (!empty($data1['order'])) {
-			$data1['type'] = 'Pent';
-		$this->load->view('transfer_print',$data1);
-		}
-		if (!empty($data0['order'])) {
-			$data0['type'] = 'Shirt';
-		$this->load->view('transfer_print',$data0);
-		}
-		if (!empty($data01['order'])) {
-			$data01['type'] = 'Coat';
-		$this->load->view('transfer_print',$data01);
-		}
-		if (!empty($data03['order'])) {
-		 $data03['type'] = 'Waistcoat';
-		 $this->load->view('transfer_print',$data03);
-		}
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-		$this->load->view('transfer_print',$data03);
-	}	
 
-		
+		// After Booking→Cutting, old links may still open the HO transfer (empno empty).
+		// Enrich cutting master name/empno from the CUT stage row for the same line.
+		$order_rows = $this->_transfer_print_enrich_cutting_master($order_rows);
+
+		// Lock to one order_id — never let a bad join/fallback mix another order onto the slip.
+		$print_order_no = 0;
+		$first = reset($order_rows);
+		if ($first)
+		{
+			if (isset($first->ORDER) && (int) $first->ORDER > 0)
+			{
+				$print_order_no = (int) $first->ORDER;
+			}
+			elseif (isset($first->order_id) && (int) $first->order_id > 0)
+			{
+				$print_order_no = (int) $first->order_id;
+			}
+		}
+		if ($print_order_no > 0)
+		{
+			$filtered = array();
+			foreach ($order_rows as $row)
+			{
+				$row_oid = 0;
+				if (isset($row->ORDER) && (int) $row->ORDER > 0)
+				{
+					$row_oid = (int) $row->ORDER;
+				}
+				elseif (isset($row->order_id) && (int) $row->order_id > 0)
+				{
+					$row_oid = (int) $row->order_id;
+				}
+				if ($row_oid === $print_order_no || $row_oid === 0)
+				{
+					$filtered[] = $row;
+				}
+			}
+			if ( ! empty($filtered))
+			{
+				$order_rows = $filtered;
+			}
+		}
+
+		$by_type = array();
+		foreach ($order_rows as $row)
+		{
+			// Prefer garment_type — row->type can be employee.type ("Cutting") after JOIN *.
+			$type = '';
+			if (isset($row->garment_type) && trim((string) $row->garment_type) !== '')
+			{
+				$type = trim((string) $row->garment_type);
+			}
+			elseif (isset($row->type) && trim((string) $row->type) !== '')
+			{
+				$raw_type = trim((string) $row->type);
+				// Ignore employee department labels accidentally aliased as type.
+				if ( ! in_array($raw_type, array('Cutting', 'Stitching', 'Staff'), TRUE))
+				{
+					$type = $raw_type;
+				}
+			}
+			if ($type === '')
+			{
+				$type = 'Kurta';
+			}
+			if ( ! isset($by_type[$type]))
+			{
+				$by_type[$type] = array();
+			}
+			$by_type[$type][] = $row;
+		}
+
+		foreach ($by_type as $type => $rows)
+		{
+			$data = $shared;
+			$data['order'] = $rows;
+			$data['type'] = $type;
+			$data['print_order_no'] = $print_order_no;
+			$this->load->view('transfer_print', $data);
+		}
 	}
 	private function _transfer_deactivate_row($transfer_trnno, $from_dept, $order_id, $order_sr, $data1)
 	{
@@ -591,6 +573,121 @@ class Transfer extends MY_Controller {
 			return 'STIT';
 		}
 		return '';
+	}
+
+	/**
+	 * True when this line was already moved off $from_dept (double-submit safe).
+	 */
+	private function _transfer_already_moved($from_dept, $order_id, $order_sr, $stit_complete = FALSE)
+	{
+		$order_id = (int) $order_id;
+		$order_sr = (int) $order_sr;
+		if ($order_id <= 0 || $order_sr <= 0)
+		{
+			return FALSE;
+		}
+
+		if ($stit_complete)
+		{
+			$this->db->reset_query();
+			$this->db->where('order_id', $order_id);
+			$this->db->where('sr', $order_sr);
+			$this->db->where('dept', 'STIT');
+			$this->db->where('status', 'Deactive');
+			$n = (int) $this->db->count_all_results('transfer_mst');
+			$this->db->reset_query();
+			return $n > 0;
+		}
+
+		$next = $this->_transfer_next_dept($from_dept);
+		if ($next === '')
+		{
+			return FALSE;
+		}
+
+		$this->db->reset_query();
+		$this->db->where('order_id', $order_id);
+		$this->db->where('sr', $order_sr);
+		$this->db->where('dept', $next);
+		$n = (int) $this->db->count_all_results('transfer_mst');
+		if ($n > 0)
+		{
+			$this->db->reset_query();
+			return TRUE;
+		}
+
+		// Source row already deactivated.
+		$this->db->reset_query();
+		$this->db->where('order_id', $order_id);
+		$this->db->where('sr', $order_sr);
+		$this->db->where('dept', $from_dept);
+		$this->db->where('status', 'Active');
+		$still_active = (int) $this->db->count_all_results('transfer_mst');
+		$this->db->reset_query();
+		return $still_active < 1;
+	}
+
+	/**
+	 * Ensure transfer print rows carry cutting master name (CUT empno), even when
+	 * the opened transfer id is the previous HO row after Booking→Cutting.
+	 *
+	 * @param array $order_rows
+	 * @return array
+	 */
+	private function _transfer_print_enrich_cutting_master($order_rows)
+	{
+		if ( ! is_array($order_rows) || empty($order_rows))
+		{
+			return $order_rows;
+		}
+
+		foreach ($order_rows as $idx => $row)
+		{
+			$name = isset($row->cutting_master_name) ? trim((string) $row->cutting_master_name) : '';
+			$emp = 0;
+			if (isset($row->transfer_empno))
+			{
+				$emp = (int) $row->transfer_empno;
+			}
+			elseif (isset($row->empno))
+			{
+				$emp = (int) $row->empno;
+			}
+			if ($name !== '' && $emp > 0)
+			{
+				continue;
+			}
+
+			$order_id = isset($row->ORDER) ? (int) $row->ORDER : (isset($row->order_id) ? (int) $row->order_id : 0);
+			$line_sr = isset($row->ORDERSR) ? (int) $row->ORDERSR : (isset($row->sr) ? (int) $row->sr : 0);
+			if ($order_id <= 0 || $line_sr <= 0)
+			{
+				continue;
+			}
+
+			$this->db->reset_query();
+			$this->db->select('transfer_mst.empno, employee.name', FALSE);
+			$this->db->from('transfer_mst');
+			$this->db->join('employee', 'employee.empno = transfer_mst.empno', 'left');
+			$this->db->where('transfer_mst.order_id', $order_id);
+			$this->db->where('transfer_mst.sr', $line_sr);
+			$this->db->where('transfer_mst.dept', 'CUT');
+			$this->db->where('transfer_mst.empno IS NOT NULL', NULL, FALSE);
+			$this->db->where('transfer_mst.empno !=', 0);
+			$this->db->where('transfer_mst.empno !=', '');
+			$this->db->order_by('transfer_mst.trnno', 'DESC');
+			$this->db->limit(1);
+			$cq = $this->db->get();
+			if ($cq === FALSE || $cq->num_rows() < 1)
+			{
+				continue;
+			}
+			$cut = $cq->row();
+			$order_rows[$idx]->transfer_empno = (int) $cut->empno;
+			$order_rows[$idx]->cutting_master_name = trim((string) $cut->name);
+		}
+
+		return $order_rows;
 	}
 
 	/**
@@ -665,6 +762,16 @@ class Transfer extends MY_Controller {
 		$deactivated = $this->_transfer_deactivate_row($transfer_trnno, $from_dept, $order_id, $order_sr, $data1);
 		if (!$deactivated)
 		{
+			// Idempotent: already transferred (common on double-submit) — treat as success.
+			if ($this->_transfer_already_moved($from_dept, $order_id, $order_sr, $stit_complete))
+			{
+				return array(
+					'ok' => TRUE,
+					'already_done' => TRUE,
+					'dept1' => $stit_complete ? '' : $dept1,
+					'stit_only' => $stit_complete,
+				);
+			}
 			return array('ok' => FALSE, 'error' => 'not_found');
 		}
 
@@ -700,14 +807,37 @@ class Transfer extends MY_Controller {
 		$this->db->where('dept', $dept1);
 		$this->db->where('order_id', $order_id);
 		$query = $this->db->get('transfer_mst');
+		$new_transfer_id = 0;
 		if ($query->num_rows() < 1)
 		{
 			$this->insert->insert_dat1($data, 'transfer_mst');
+			$new_transfer_id = (int) $this->db->insert_id();
+		}
+		else
+		{
+			$existing = $query->row();
+			$new_transfer_id = isset($existing->trnno) ? (int) $existing->trnno : 0;
+			// Keep employee/rate on the destination stage row (needed for cutting print name).
+			if ($new_transfer_id > 0 && $employee_account !== '')
+			{
+				$this->db->where('trnno', $new_transfer_id);
+				$this->db->update('transfer_mst', array(
+					'empno' => $employee_account,
+					'price' => $rate,
+					'RDATE' => $rdate,
+					'EDATE' => date('Y-m-d'),
+					'status' => 'Active',
+				));
+			}
 		}
 		$this->insert->insert_dat1($data, 'transfer_mst_new');
 		$this->db->reset_query();
 
-		return array('ok' => TRUE, 'dept1' => $dept1);
+		return array(
+			'ok' => TRUE,
+			'dept1' => $dept1,
+			'new_transfer_id' => $new_transfer_id,
+		);
 	}
 
 	public function process()
@@ -747,10 +877,17 @@ class Transfer extends MY_Controller {
 
 		$this->_clear_dashboard_summary_cache();
 
+		$list_back = strtoupper(trim((string) $dept));
+		if ( ! in_array($list_back, array('HO', 'CUT', 'HO2', 'STIT'), TRUE))
+		{
+			$list_back = 'HO';
+		}
+
 		if (!empty($result['stit_only']))
 		{
 			$this->_notify_order_ready((int) $this->input->post('order_id'), 'transfer_process');
-			redirect('Transfer/transfer_table/'.$this->uri->segment(3).'/'.$dept);
+			$this->session->set_flashdata('suss', 'yes');
+			redirect('Transfer/transfer_table/'.$list_back.'/'.$list_back);
 			return;
 		}
 
@@ -758,11 +895,17 @@ class Transfer extends MY_Controller {
 		// Print slip only after Booking → Cutting. HO2 → Stitching should stay on the list.
 		if ($dept1 === 'CUT')
 		{
-			redirect('Transfer/transfer_Print/'.$this->uri->segment(3).'/'.$dept.'/'.$this->uri->segment(5));
+			// Print the NEW CUT transfer (has cutting master empno), not the old HO row.
+			// 6th segment = list to return to (Booking HO) — Back must not open Cutting.
+			$print_id = ! empty($result['new_transfer_id']) ? (int) $result['new_transfer_id'] : (int) $this->uri->segment(3);
+			$line_sr = (int) $this->uri->segment(5);
+			redirect('Transfer/transfer_Print/'.$print_id.'/CUT/'.$line_sr.'/'.$list_back);
 			return;
 		}
 
-		redirect('Transfer/transfer_table/'.$this->uri->segment(3).'/'.$dept.'/'.$this->uri->segment(5));
+		// Always return to the clean stage list URL so DataTables reloads fresh SSP data.
+		$this->session->set_flashdata('suss', 'yes');
+		redirect('Transfer/transfer_table/'.$list_back.'/'.$list_back);
 	}
 
 	public function transfer_process_bulk()
@@ -806,7 +949,7 @@ class Transfer extends MY_Controller {
 				if (!empty($result['ok']))
 				{
 					$done++;
-					if ($dept === 'STIT' && !empty($result['stit_only']))
+					if ($dept === 'STIT' && !empty($result['stit_only']) && empty($result['already_done']))
 					{
 						$this->_notify_order_ready($order, 'transfer_bulk');
 					}
@@ -822,16 +965,28 @@ class Transfer extends MY_Controller {
 			}
 		}
 
+		// Never show success + failure together (double-submit used to leave both flashes).
+		$this->session->unset_userdata('transfer_error');
+		$this->session->unset_userdata('bulk_transfer_count');
+		if (isset($_SESSION['__ci_vars']['transfer_error']))
+		{
+			unset($_SESSION['__ci_vars']['transfer_error']);
+		}
+		if (isset($_SESSION['__ci_vars']['bulk_transfer_count']))
+		{
+			unset($_SESSION['__ci_vars']['bulk_transfer_count']);
+		}
+
 		if ($done > 0)
 		{
 			$this->session->set_flashdata('bulk_transfer_count', $done);
 			$this->_clear_dashboard_summary_cache();
 		}
-		if ($skipped_employee > 0)
+		elseif ($skipped_employee > 0)
 		{
 			$this->session->set_flashdata('transfer_error', t('transfer_select_employee'));
 		}
-		elseif ($done === 0)
+		elseif ($failed > 0 || ! is_array($items) || count($items) < 1)
 		{
 			$this->session->set_flashdata('transfer_error', t('transfer_bulk_transfer_failed'));
 		}

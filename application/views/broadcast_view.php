@@ -50,14 +50,14 @@ $status = (string) $campaign['status'];
 
 	<div class="mb-3">
 		<?php if (in_array($status, array('queued', 'running'), TRUE)) { ?>
-			<a class="btn btn-warning" href="<?php echo site_url('Broadcast/pause/'.$id); ?>"><?php echo t('broadcast_pause'); ?></a>
+			<a class="btn btn-warning" href="<?php echo site_url('Broadcast/pause/'.$id); ?>" data-no-ajax="true"><?php echo t('broadcast_pause'); ?></a>
 		<?php } ?>
 		<?php if (in_array($status, array('paused', 'queued'), TRUE)) { ?>
-			<a class="btn btn-success" href="<?php echo site_url('Broadcast/resume/'.$id); ?>"><?php echo t('broadcast_resume'); ?></a>
+			<a class="btn btn-success" href="<?php echo site_url('Broadcast/resume/'.$id); ?>" data-no-ajax="true"><?php echo t('broadcast_resume'); ?></a>
 		<?php } ?>
 		<?php if ( ! in_array($status, array('completed', 'cancelled'), TRUE)) { ?>
-			<a class="btn btn-outline-danger" href="<?php echo site_url('Broadcast/cancel/'.$id); ?>" onclick="return confirm('Cancel remaining sends?');"><?php echo t('broadcast_cancel'); ?></a>
-			<a class="btn btn-outline-primary" href="<?php echo site_url('Broadcast/process_now/'.$id); ?>"><?php echo t('broadcast_send_one'); ?></a>
+			<a class="btn btn-outline-danger" href="<?php echo site_url('Broadcast/cancel/'.$id); ?>" data-no-ajax="true" onclick="return confirm('Cancel remaining sends?');"><?php echo t('broadcast_cancel'); ?></a>
+			<a class="btn btn-outline-primary" href="<?php echo site_url('Broadcast/process_now/'.$id); ?>" data-no-ajax="true"><?php echo t('broadcast_send_one'); ?></a>
 		<?php } ?>
 	</div>
 

@@ -7,6 +7,7 @@
 		'nav-Pent': 'pent',
 		'nav-Shrit': 'shirt',
 		'nav-Coat': 'coat',
+		'nav-PentCoat': 'pentcoat',
 		'nav-Waistcoat': 'waistcoat'
 	};
 

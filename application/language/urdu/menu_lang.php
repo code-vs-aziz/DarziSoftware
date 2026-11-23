@@ -22,6 +22,7 @@ $lang['menu_embroidery'] = 'کڑھائی';
 $lang['menu_button'] = 'بٹن';
 $lang['menu_blank_print'] = 'خالی پرنٹ';
 $lang['menu_configuration'] = 'ترتیبات';
+$lang['menu_device_security'] = 'ڈیوائس سیکیورٹی';
 $lang['menu_customer_messages'] = 'کسٹمر میسجز';
 $lang['menu_website'] = 'ویب سائٹ مینجمنٹ';
 $lang['menu_rbac'] = 'صارفین کا انتظام';

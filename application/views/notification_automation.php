@@ -110,9 +110,9 @@ $event_labels = array(
 									</div>
 
 									<div class="mb-3">
-										<a href="<?php echo site_url('Notifications/process_pending'); ?>" class="btn btn-sm btn-outline-primary dz-btn--outlined"><?php echo t('notify_process_pending'); ?></a>
-										<a href="<?php echo site_url('Notifications/run_payment_reminders'); ?>" class="btn btn-sm btn-outline-secondary dz-btn--outlined"><?php echo t('notify_scan_reminders'); ?></a>
-										<a href="<?php echo site_url('Notifications/restore_templates'); ?>" class="btn btn-sm btn-outline-info dz-btn--outlined"><?php echo t('notify_restore_templates'); ?></a>
+										<a href="<?php echo site_url('Notifications/process_pending'); ?>" class="btn btn-sm btn-outline-primary dz-btn--outlined" data-no-ajax="true"><?php echo t('notify_process_pending'); ?></a>
+										<a href="<?php echo site_url('Notifications/run_payment_reminders'); ?>" class="btn btn-sm btn-outline-secondary dz-btn--outlined" data-no-ajax="true"><?php echo t('notify_scan_reminders'); ?></a>
+										<a href="<?php echo site_url('Notifications/restore_templates'); ?>" class="btn btn-sm btn-outline-info dz-btn--outlined" data-no-ajax="true"><?php echo t('notify_restore_templates'); ?></a>
 									</div>
 
 									<div class="notify-bridge-panel" id="notify-bridge-panel"

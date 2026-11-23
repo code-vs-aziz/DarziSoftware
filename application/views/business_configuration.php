@@ -577,9 +577,13 @@ $cli_mysql = !empty($backup_limits['cli_mysql']);
 							<div class="card-body erp-card-body data-entry-body measurement-tab-body">
 								<nav>
 									<div class="nav nav-tabs" id="config-nav-tab" role="tablist">
-										<a class="nav-item nav-link<?php echo $active_tab === 'business' ? ' active' : ''; ?>" href="<?php echo site_url('Configuration'); ?>"><?php echo t('config_tab_business'); ?></a>
-										<a class="nav-item nav-link<?php echo $active_tab === 'order_predefined' ? ' active' : ''; ?>" href="<?php echo site_url('Configuration?tab=order_predefined'); ?>"><?php echo t('config_tab_predefined'); ?></a>
-										<a class="nav-item nav-link<?php echo $active_tab === 'database' ? ' active' : ''; ?>" href="<?php echo site_url('Configuration?tab=database'); ?>"><?php echo t('config_tab_database'); ?></a>
+										<a class="nav-item nav-link<?php echo $active_tab === 'business' ? ' active' : ''; ?>" data-no-ajax="true" href="<?php echo site_url('Configuration'); ?>"><?php echo t('config_tab_business'); ?></a>
+										<a class="nav-item nav-link<?php echo $active_tab === 'devices' ? ' active' : ''; ?>" data-no-ajax="true" href="<?php echo site_url('Configuration?tab=devices'); ?>" style="font-weight:700;"><?php
+											$__dev_tab = t('config_tab_devices');
+											echo esc_html(($__dev_tab && $__dev_tab !== 'config_tab_devices') ? $__dev_tab : 'Device Security');
+										?></a>
+										<a class="nav-item nav-link<?php echo $active_tab === 'order_predefined' ? ' active' : ''; ?>" data-no-ajax="true" href="<?php echo site_url('Configuration?tab=order_predefined'); ?>"><?php echo t('config_tab_predefined'); ?></a>
+										<a class="nav-item nav-link<?php echo $active_tab === 'database' ? ' active' : ''; ?>" data-no-ajax="true" href="<?php echo site_url('Configuration?tab=database'); ?>"><?php echo t('config_tab_database'); ?></a>
 									</div>
 								</nav>
 
@@ -695,7 +699,7 @@ $cli_mysql = !empty($backup_limits['cli_mysql']);
 															<td><?php echo (int) $bl_row['limit_qty']; ?></td>
 															<td><?php echo esc_html(isset($bl_row['note']) ? (string) $bl_row['note'] : ''); ?></td>
 															<td>
-																<a class="btn btn-sm btn-danger" href="<?php echo site_url('Configuration/booking_limit_delete/'.(int) $bl_row['id']); ?>" onclick="return confirm(<?php echo json_encode(t('config_booking_limit_delete_confirm')); ?>);"><?php echo t('config_predefined_delete'); ?></a>
+																<a class="btn btn-sm btn-danger" data-no-ajax="true" href="<?php echo site_url('Configuration/booking_limit_delete/'.(int) $bl_row['id']); ?>" onclick="return confirm(<?php echo json_encode(t('config_booking_limit_delete_confirm')); ?>);"><?php echo t('config_predefined_delete'); ?></a>
 															</td>
 														</tr>
 													<?php } } ?>
@@ -704,6 +708,16 @@ $cli_mysql = !empty($backup_limits['cli_mysql']);
 											</div>
 										<?php } ?>
 									</div>
+									<?php } elseif ($active_tab === 'devices') { ?>
+									<?php $this->load->view('partials/config_devices_tab', array(
+										'device_tables_ready' => isset($device_tables_ready) ? $device_tables_ready : FALSE,
+										'device_lock_enabled' => isset($device_lock_enabled) ? $device_lock_enabled : FALSE,
+										'authorized_devices' => isset($authorized_devices) ? $authorized_devices : array(),
+										'this_device' => isset($this_device) ? $this_device : NULL,
+										'device_client_ip' => isset($device_client_ip) ? $device_client_ip : '',
+										'device_enrollment_code' => isset($device_enrollment_code) ? $device_enrollment_code : '',
+										'device_enrollment_expires' => isset($device_enrollment_expires) ? $device_enrollment_expires : '',
+									)); ?>
 									<?php } elseif ($active_tab === 'database') { ?>
 									<div class="tab-pane fade show active" id="config-database" role="tabpanel">
 										<?php
@@ -845,7 +859,7 @@ $cli_mysql = !empty($backup_limits['cli_mysql']);
 										<?php if ($predefined_table_ready) { ?>
 										<p class="config-help mb-3">
 											If Urdu text looks broken in the database, use
-											<a href="<?php echo site_url('Configuration/predefined_reseed'); ?>" onclick="return confirm('Restore all default Urdu predefined values? This replaces every row in the list.');">Restore default Urdu values</a>.
+											<a href="<?php echo site_url('Configuration/predefined_reseed'); ?>" data-no-ajax="true" onclick="return confirm('Restore all default Urdu predefined values? This replaces every row in the list.');">Restore default Urdu values</a>.
 										</p>
 										<?php } ?>
 
@@ -901,7 +915,7 @@ $cli_mysql = !empty($backup_limits['cli_mysql']);
 																data-label="<?php echo esc_html(isset($item['label_text']) ? $item['label_text'] : ''); ?>"
 																data-insert="<?php echo esc_html(isset($item['insert_text']) ? $item['insert_text'] : ''); ?>"
 																data-row="<?php echo (int) (isset($item['row_group']) ? $item['row_group'] : 1); ?>"><?php echo t('config_predefined_edit'); ?></button>
-															<a href="<?php echo site_url('Configuration/predefined_delete/'.$id); ?>" class="btn btn-sm btn-danger dz-btn--filled dz-btn--sm" onclick="return confirmPredefinedDelete();"><?php echo t('config_predefined_delete'); ?></a>
+															<a href="<?php echo site_url('Configuration/predefined_delete/'.$id); ?>" class="btn btn-sm btn-danger dz-btn--filled dz-btn--sm" data-no-ajax="true" onclick="return confirmPredefinedDelete();"><?php echo t('config_predefined_delete'); ?></a>
 														</span>
 														<?php } ?>
 													</li>

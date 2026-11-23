@@ -110,21 +110,11 @@ class Cash extends MY_Controller {
 		 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
 		$this->load->helper('url'); 
 		$this->load->library('session');
-	//	$this->load->library('form_validation');
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
-	 
-	  //$data["opening"]= $this->cash_ledger->get_opeing('2019-03-01','4');
+		if(!$this->session->userdata('user')){
+			redirect('Login'); 
+		}
 	  $data["customer"]= $this->master_data->get_dat(array('customer'));
-		 
-	//	 echo $data["opening"];
-		//die;
-	// $data["employee"]= $this->master_data->get_dat(array('employee'));
  	$this->load->view('customer_ledger',$data);
-	if(!$this->session->userdata('user')){
-		redirect('Login'); 
-	}	
-
-		
 	}
 	
 	
@@ -398,17 +388,10 @@ public function all_sale_employee_sie_pro()
 		if(!$this->session->userdata('user')){
 			redirect('Login'); 
 		}
-	//	$this->load->library('form_validation');
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
-	 
 	  $data["fromdate"] = '';
 	  $data["todate"] = '';
 	  $data["payment"] = array();
 	  $data["export_mode"] = '';
-		 
-	//	 echo $data["opening"];
-		//die;
-	// $data["employee"]= $this->master_data->get_dat(array('employee'));
  	$this->load->view('customer_pending_ledger_pro',$data);
 
 		
@@ -638,21 +621,12 @@ public function all_sale_employee_sie_pro()
 		if(!$this->session->userdata('user')){
 			redirect('Login'); 
 		}
-	//	$this->load->library('form_validation');
-	//  $data["store"]= $this->master_data->get_dat(array('branch_codi'));
-	 
 	  $data["fromdate"] = '';
 	  $data["todate"] = '';
 	  $data["CASHopening"] = 0;
 	  $data["payment"] = array();
 	  $data["export_mode"] = '';
-		 
-	//	 echo $data["opening"];
-		//die;
-	// $data["employee"]= $this->master_data->get_dat(array('employee'));
  	$this->load->view('cash_ledger',$data);
-
-		
 	}
 	
 	

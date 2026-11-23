@@ -86,3 +86,6 @@ $route['api/erp_sync/revoke_token'] = 'api/erp_sync/revoke_token';
 $route['api/erp_sync/bootstrap'] = 'api/erp_sync/bootstrap';
 $route['api/erp_sync/pull'] = 'api/erp_sync/pull';
 $route['api/erp_sync/push'] = 'api/erp_sync/push';
+$route['api/erp_sync/lists'] = 'api/erp_sync/lists';
+$route['api/erp_sync/resolve_conflict'] = 'api/erp_sync/resolve_conflict';
+$route['api/erp_sync/schema_status'] = 'api/erp_sync/schema_status';

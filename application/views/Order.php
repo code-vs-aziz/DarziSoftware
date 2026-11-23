@@ -305,6 +305,52 @@ function setOrderImageData(dataUri)
 	}
 }
 
+function orderSubmitTokenUrl()
+{
+	if (window.ORDER_FORM_CFG && ORDER_FORM_CFG.freshTokenUrl)
+	{
+		return String(ORDER_FORM_CFG.freshTokenUrl);
+	}
+	return '';
+}
+
+function refreshOrderSubmitToken(done)
+{
+	var input = document.querySelector('input[name="order_submit_token"]');
+	var url = orderSubmitTokenUrl();
+	var finish = function () {
+		if (typeof done === 'function')
+		{
+			done();
+		}
+	};
+	if (!input || !url || !window.fetch)
+	{
+		finish();
+		return;
+	}
+	// Offline: keep whatever token we have (sync path handles queue).
+	if (window.DarziOffline && window.DarziOffline.connectivity &&
+		!window.DarziOffline.connectivity.isOnline())
+	{
+		finish();
+		return;
+	}
+	window.fetch(url, {
+		method: 'GET',
+		credentials: 'same-origin',
+		headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+		cache: 'no-store'
+	}).then(function (res) {
+		return res.ok ? res.json() : null;
+	}).then(function (data) {
+		if (data && data.ok && data.token)
+		{
+			input.value = String(data.token);
+		}
+	}).catch(function () { /* keep existing token */ }).then(finish);
+}
+
 function finishOrderSubmit()
 {
 	var form = document.forms.Form;
@@ -314,9 +360,32 @@ function finishOrderSubmit()
 		return false;
 	}
 	setOrderSubmitBusy(true);
-	form.submit();
+	// Always mint a live token right before POST — kills stale SW/cache tokens.
+	refreshOrderSubmitToken(function () {
+		form.submit();
+	});
 	return false;
 }
+
+(function bindOrderTokenRefresh() {
+	function run() {
+		refreshOrderSubmitToken();
+	}
+	if (document.readyState === 'loading')
+	{
+		document.addEventListener('DOMContentLoaded', run);
+	}
+	else
+	{
+		run();
+	}
+	window.addEventListener('pageshow', function (ev) {
+		if (ev && ev.persisted)
+		{
+			run();
+		}
+	});
+})();
 
 function confirmSaveWithoutPhoto(onYes)
 {
@@ -1402,6 +1471,7 @@ function take_snapshot() {
 <?php $this->load->view('partials/order_copy_suit_line_js'); ?>
 <script>window.ORDER_FORM_CFG = <?php echo json_encode(array(
 	'lastOrderUrl' => site_url('Order/customer_last_order_lines'),
+	'freshTokenUrl' => site_url('Order/fresh_submit_token'),
 ), JSON_UNESCAPED_UNICODE); ?>;</script>
 <script src="<?php echo base_url('js/order-form-enhancements.js?v=5'); ?>"></script>
  

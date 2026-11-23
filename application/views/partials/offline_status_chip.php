@@ -1,12 +1,11 @@
 <?php
 /**
- * Global offline / sync status chip (header).
- * Hidden while Offline Desk is temporarily disabled.
+ * Offline / sync status chip — same ERP header UI, no separate desk link.
  */
 if (!$this->session->userdata('user')) {
 	return;
 }
-$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', FALSE) : FALSE;
+$offline_desk_enabled = function_exists('dz_env_bool') ? dz_env_bool('OFFLINE_DESK_ENABLED', TRUE) : TRUE;
 if ( ! $offline_desk_enabled) {
 	return;
 }
@@ -29,9 +28,3 @@ $offline_variant = isset($offline_indicator_variant) ? $offline_indicator_varian
 	title="<?php echo esc_attr(t('offline_sync_now')); ?>">
 	<span class="dz-offline-chip__label"><?php echo esc_html(t('offline_sync_now')); ?></span>
 </button>
-<a class="dz-offline-chip dz-offline-chip--<?php echo esc_attr($offline_variant); ?>"
-	href="<?php echo esc_attr(base_url('offline-app.html')); ?>"
-	data-no-ajax="true"
-	title="Offline Desk">
-	<span class="dz-offline-chip__label">Offline Desk</span>
-</a>

@@ -66,10 +66,9 @@ $this->load->helper('ui');
 						<div class="col">		
                                              <div class="form-group">
                                                 <label for="emp-EMPNAME" class="control-label mb-1"><?php echo t('cash_type'); ?></label>
-                                                <select class="form-control" name="type" aria-required="true" aria-invalid="false" required>
-													
-													<option value="1">Payment</option>
-													<option value="2">Receipt</option>
+                                                <select class="form-control" name="type" id="cash_entry_type" aria-required="true" aria-invalid="false" required>
+													<option value="1"><?php echo t('cash_type_payment'); ?></option>
+													<option value="2"><?php echo t('cash_type_receipt'); ?></option>
 													<option value="3">Shop Expense</option>
 													<option value="4">House Expense</option>
 													<option value="5">Nasir sb Expense</option>

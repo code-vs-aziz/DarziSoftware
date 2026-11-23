@@ -79,7 +79,7 @@
 			if (ctrl) {
 				ctrl.abort();
 			}
-		}, 8000);
+		}, 3500);
 
 		var opts = {
 			method: 'GET',
@@ -119,10 +119,19 @@
 			});
 	}
 
+	var onlineDebounce = null;
+
 	function start() {
 		window.addEventListener('online', function () {
 			state.browserOnline = true;
-			checkHealth();
+			// Debounce rapid flaps so reconnect does not spam health + sync triggers.
+			if (onlineDebounce) {
+				clearTimeout(onlineDebounce);
+			}
+			onlineDebounce = setTimeout(function () {
+				onlineDebounce = null;
+				checkHealth();
+			}, 400);
 		});
 		window.addEventListener('offline', function () {
 			state.browserOnline = false;

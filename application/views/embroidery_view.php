@@ -58,6 +58,7 @@ $this->load->helper('ui');
 						<td class="text-right">
 							<a class="btn btn-sm btn-outline-<?php echo $active ? 'warning' : 'success'; ?>"
 							   href="<?php echo site_url('Embroidery/toggle_active/'.(int) $Embroidery->ENO); ?>"
+							   data-no-ajax="true"
 							   onclick="return confirm('<?php echo $active ? t('master_confirm_inactive') : t('master_confirm_active'); ?>');">
 								<?php echo $active ? t('master_employee_status_inactive') : t('master_employee_status_active'); ?>
 							</a>

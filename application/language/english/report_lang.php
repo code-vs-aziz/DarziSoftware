@@ -67,6 +67,7 @@ $lang['report_hub_hint_delivery'] = 'Delivered order sheet';
 $lang['report_hub_hint_customer_sale'] = 'Total sale per customer';
 $lang['report_hub_hint_employee_report'] = 'Employee activity summary';
 $lang['report_hub_hint_booking'] = 'Booking summary report';
+$lang['report_booking_range_limit'] = 'Booking report date range is too large (max %s days). Choose a shorter period — e.g. one month — to avoid timeout.';
 $lang['report_sales'] = 'Sales Report';
 $lang['report_expense'] = 'Expense';
 $lang['report_booking'] = 'Booking';
