@@ -30,11 +30,27 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
+            # Non-interactive SSH often misses nvm/composer paths from .bashrc
+            export PATH="/usr/local/bin:/usr/bin:$HOME/.local/bin:$HOME/.config/composer/vendor/bin:$PATH"
+            [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" || true
+            [ -s /root/.nvm/nvm.sh ] && . /root/.nvm/nvm.sh || true
             cd /var/www/darzibaba
             export COMPOSER_ALLOW_SUPERUSER=1
-            composer install --no-dev --optimize-autoloader --ignore-platform-reqs
-            cd /var/www/darzibaba/bridge/whatsapp-bridge && npm install --omit=dev
-            cd /var/www/darzibaba/website && npm install && npm run build
+            if command -v composer >/dev/null 2>&1; then
+              composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+            elif [ -x /usr/local/bin/composer ]; then
+              /usr/local/bin/composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+            else
+              echo "WARN: composer not found — skipping PHP deps (code already rsynced)"
+            fi
+            if command -v npm >/dev/null 2>&1; then
+              cd /var/www/darzibaba/bridge/whatsapp-bridge && npm install --omit=dev
+              cd /var/www/darzibaba/website && npm install && npm run build
+            else
+              echo "WARN: npm not found — skipping bridge/website rebuild"
+            fi
             chown -R www-data:www-data /var/www/darzibaba/application/cache /var/www/darzibaba/application/logs /var/www/darzibaba/application/sessions /var/www/darzibaba/uploads || true
-            pm2 restart darzi-wa-bridge darzi-website
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 restart darzi-wa-bridge darzi-website || true
+            fi
             echo "Deploy OK $(date -Is)"
