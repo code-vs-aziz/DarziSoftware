@@ -4,7 +4,7 @@
  * 3) Mutating GETs: network-only — never Welcome / stale page substitute.
  */
 /* eslint-disable no-restricted-globals */
-var CACHE_VERSION = 'darzi-erp-safe-v37';
+var CACHE_VERSION = 'darzi-erp-safe-v38';
 var SHELL_CACHE = CACHE_VERSION + '-shell';
 var PAGE_CACHE = CACHE_VERSION + '-pages';
 var OFFLINE_APP = '/offline-app.html';
@@ -33,7 +33,7 @@ var SHELL_URLS = [
 	'/js/offline/search.js?v=3',
 	'/js/offline/lists.js?v=8',
 	'/js/offline/ui.js?v=18',
-	'/js/app-ajax-shell.js?v=35',
+	'/js/app-ajax-shell.js?v=36',
 	'/js/offline/nav.js?v=3',
 	'/js/offline/forms.js?v=11',
 	'/js/offline/bootstrap.js?v=20',

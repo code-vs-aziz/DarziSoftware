@@ -92,8 +92,8 @@ var checks = [
 		label: 'IndexedDB version 2 additive upgrade (owner_user index)'
 	},
 	{
-		ok: /darzi-erp-safe-v37/.test(read('sw.js')),
-		label: 'Service worker cache bumped to v37'
+		ok: /darzi-erp-safe-v38/.test(read('sw.js')),
+		label: 'Service worker cache bumped to v38'
 	},
 	{
 		ok: /offline_sync_columns_safe\.sql/.test(read('application/sql/offline_sync_columns_safe.sql')) ||

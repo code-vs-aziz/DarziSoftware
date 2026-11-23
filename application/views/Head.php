@@ -146,7 +146,7 @@ else
 		'enabled' => TRUE,
 		'apiBase' => site_url('api/erp_sync'),
 		'healthUrl' => site_url('api/erp_sync/health'),
-		'swUrl' => base_url('sw.js?v=37'),
+		'swUrl' => base_url('sw.js?v=38'),
 		'swScope' => base_url(),
 		'homeUrl' => site_url('Welcome'),
 		'loginUrl' => site_url('Login'),

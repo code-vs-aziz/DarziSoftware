@@ -23,12 +23,12 @@
 		enabled: true,
 		apiBase: '/index.php/api/erp_sync',
 		healthUrl: '/index.php/api/erp_sync/health',
-		swUrl: '/sw.js?v=37',
+		swUrl: '/sw.js?v=38',
 		swScope: '/',
 		homeUrl: '/index.php/Welcome',
 		loginUrl: '/index.php/Login',
 		offlineApp: true,
-		expectedCachePrefix: 'darzi-erp-safe-v37'
+		expectedCachePrefix: 'darzi-erp-safe-v38'
 	};
 	window.APP_LANG = window.APP_LANG || {};
 	// Force SW upgrade off legacy desks (e.g. darzi-erp-offline-v2) so reliability fixes activate.
@@ -36,7 +36,7 @@
 		if (!('serviceWorker' in navigator) || !('caches' in window)) {
 			return;
 		}
-		var expected = 'darzi-erp-safe-v37';
+		var expected = 'darzi-erp-safe-v38';
 		caches.keys().then(function (keys) {
 			var stale = (keys || []).some(function (k) {
 				return k.indexOf('darzi-erp-') === 0 && k.indexOf(expected) !== 0;
@@ -54,10 +54,10 @@
 					});
 				});
 				return chain.then(function () {
-					if (!stale || sessionStorage.getItem('darzi_sw_v37_reloaded') === '1') {
+					if (!stale || sessionStorage.getItem('darzi_sw_v38_reloaded') === '1') {
 						return null;
 					}
-					sessionStorage.setItem('darzi_sw_v37_reloaded', '1');
+					sessionStorage.setItem('darzi_sw_v38_reloaded', '1');
 					window.location.reload();
 					return null;
 				});
