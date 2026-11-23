@@ -292,6 +292,35 @@ img { max-width: 48px; }
 ';
 	}
 
+	/**
+	 * Pick a writable mPDF temp dir (cache may be owned by root after deploy).
+	 */
+	private function _resolve_mpdf_temp_dir()
+	{
+		$candidates = array(
+			APPPATH.'cache/mpdf',
+			FCPATH.'uploads/orders/mpdf_tmp',
+			rtrim(sys_get_temp_dir(), '/\\').DIRECTORY_SEPARATOR.'darzi_mpdf',
+		);
+		foreach ($candidates as $dir)
+		{
+			$dir = rtrim(str_replace('\\', '/', (string) $dir), '/');
+			if ($dir === '')
+			{
+				continue;
+			}
+			if ( ! is_dir($dir))
+			{
+				@mkdir($dir, 0775, TRUE);
+			}
+			if (is_dir($dir) && is_writable($dir))
+			{
+				return $dir;
+			}
+		}
+		return '';
+	}
+
 	private function _create_order_mpdf($tempDir)
 	{
 		$defaultConfig = (new \Mpdf\Config\ConfigVariables())->getDefaults();
@@ -494,10 +523,13 @@ img { max-width: 48px; }
 			$filepath = $dir.$filename;
 			// Keep a stable alias for download by order number.
 			$alias = $dir.'order_'.$trnno.'.pdf';
-			$tempDir = APPPATH.'cache/mpdf';
-			if ( ! is_dir($tempDir) && ! @mkdir($tempDir, 0755, TRUE))
+			$tempDir = $this->_resolve_mpdf_temp_dir();
+			if ($tempDir === '')
 			{
-				echo json_encode(array('success' => FALSE, 'message' => 'PDF temp folder not writable.'));
+				echo json_encode(array(
+					'success' => FALSE,
+					'message' => 'PDF temp folder not writable. Server pe uploads/orders permissions fix karein.',
+				));
 				return;
 			}
 

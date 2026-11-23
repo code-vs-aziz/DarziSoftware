@@ -49,7 +49,14 @@ jobs:
             else
               echo "WARN: npm not found — skipping bridge/website rebuild"
             fi
+            mkdir -p /var/www/darzibaba/application/cache/mpdf \
+              /var/www/darzibaba/uploads/orders \
+              /var/www/darzibaba/uploads/orders/mpdf_tmp \
+              /var/www/darzibaba/uploads/orders/pdf_thumbs \
+              /var/www/darzibaba/application/logs \
+              /var/www/darzibaba/application/sessions || true
             chown -R www-data:www-data /var/www/darzibaba/application/cache /var/www/darzibaba/application/logs /var/www/darzibaba/application/sessions /var/www/darzibaba/uploads || true
+            chmod -R ug+rwX /var/www/darzibaba/application/cache /var/www/darzibaba/uploads/orders || true
             if command -v pm2 >/dev/null 2>&1; then
               pm2 restart darzi-wa-bridge darzi-website || true
             fi
