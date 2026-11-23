@@ -462,6 +462,8 @@ img { max-width: 48px; }
 
 		try
 		{
+			@ini_set('memory_limit', '256M');
+			@set_time_limit(60);
 			$this->_load_composer_autoload();
 			ob_start();
 			$html = $this->_generate_order_pdf_html($trnno);
@@ -477,9 +479,15 @@ img { max-width: 48px; }
 			}
 
 			$dir = FCPATH.'uploads/orders/';
-			if ( ! is_dir($dir))
+			if ( ! is_dir($dir) && ! @mkdir($dir, 0755, TRUE))
 			{
-				mkdir($dir, 0755, TRUE);
+				echo json_encode(array('success' => FALSE, 'message' => 'PDF folder not writable (uploads/orders).'));
+				return;
+			}
+			if ( ! is_writable($dir))
+			{
+				echo json_encode(array('success' => FALSE, 'message' => 'PDF folder not writable (uploads/orders).'));
+				return;
 			}
 
 			$filename = $this->_order_whatsapp_pdf_filename($trnno, $customer_name);
@@ -487,14 +495,21 @@ img { max-width: 48px; }
 			// Keep a stable alias for download by order number.
 			$alias = $dir.'order_'.$trnno.'.pdf';
 			$tempDir = APPPATH.'cache/mpdf';
-			if ( ! is_dir($tempDir))
+			if ( ! is_dir($tempDir) && ! @mkdir($tempDir, 0755, TRUE))
 			{
-				mkdir($tempDir, 0755, TRUE);
+				echo json_encode(array('success' => FALSE, 'message' => 'PDF temp folder not writable.'));
+				return;
 			}
 
 			$mpdf = $this->_create_order_mpdf($tempDir);
+			$mpdf->showImageErrors = FALSE;
 			$mpdf->WriteHTML($html);
 			$mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
+			if ( ! is_file($filepath) || filesize($filepath) < 64)
+			{
+				echo json_encode(array('success' => FALSE, 'message' => 'PDF file was not written. Check disk space/permissions.'));
+				return;
+			}
 			@copy($filepath, $alias);
 
 			// Queue then send immediately (cron was never draining because CRON_HTTP_SECRET was unset).
@@ -580,8 +595,30 @@ img { max-width: 48px; }
 			{
 				ob_end_clean();
 			}
-			log_message('error', 'order_whatsapp_pdf: '.$e->getMessage().' @ '.$e->getFile().':'.$e->getLine());
-			echo json_encode(array('success' => FALSE, 'message' => 'Could not generate PDF. Please try again.'));
+			$detail = $e->getMessage();
+			log_message('error', 'order_whatsapp_pdf: '.$detail.' @ '.$e->getFile().':'.$e->getLine());
+			$hint = 'Could not generate PDF. Please try again.';
+			if (stripos($detail, 'autoload') !== FALSE || stripos($detail, 'Composer') !== FALSE)
+			{
+				$hint = 'PDF library missing — server pe composer install chahiye.';
+			}
+			elseif (stripos($detail, 'memory') !== FALSE || stripos($detail, 'Allowed memory') !== FALSE)
+			{
+				$hint = 'PDF memory full — photo hata kar dobara try karein.';
+			}
+			elseif (stripos($detail, 'font') !== FALSE || stripos($detail, 'TTF') !== FALSE)
+			{
+				$hint = 'PDF font error — application/fonts check karein.';
+			}
+			elseif (stripos($detail, 'image') !== FALSE || stripos($detail, 'Unable to find') !== FALSE)
+			{
+				$hint = 'PDF image error — broken photo/logo. Dobara try karein.';
+			}
+			echo json_encode(array(
+				'success' => FALSE,
+				'message' => $hint,
+				'detail' => $detail,
+			));
 		}
 	}
 

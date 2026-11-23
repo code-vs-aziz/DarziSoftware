@@ -81,9 +81,10 @@
 		if ($pdf_mode)
 		{
 			$abs = str_replace('\\', '/', $fs_img_base.$rel);
-			if ( ! is_file($abs))
+			if ($rel === '' || ! is_file($abs))
 			{
-				return $abs;
+				// Missing file — never hand a broken path to mPDF (it throws).
+				return '';
 			}
 			if (stripos($rel, 'logo') !== FALSE)
 			{
@@ -358,7 +359,26 @@ $(document).ready(function() {
 			if ($pdf_mode && $has_customer_photo)
 			{
 				$photo_abs = '';
-				if (preg_match('#^https?://#i', $customer_photo))
+				// Webcam capture often stores a huge data-URI — mPDF OOMs on it.
+				if (preg_match('#^data:image/(jpeg|jpg|png|gif|webp);base64,#i', $customer_photo, $dm))
+				{
+					$raw = base64_decode(substr($customer_photo, strpos($customer_photo, ',') + 1), TRUE);
+					if ($raw !== FALSE && strlen($raw) > 32)
+					{
+						$ext = strtolower($dm[1]) === 'jpg' ? 'jpeg' : strtolower($dm[1]);
+						$tmp = rtrim(str_replace('\\', '/', FCPATH), '/').'/uploads/orders/pdf_thumbs';
+						if ( ! is_dir($tmp))
+						{
+							@mkdir($tmp, 0755, TRUE);
+						}
+						$tmp_file = $tmp.'/cam_'.md5(substr($raw, 0, 2048)).'.'.$ext;
+						if (@file_put_contents($tmp_file, $raw) !== FALSE)
+						{
+							$photo_abs = $tmp_file;
+						}
+					}
+				}
+				elseif (preg_match('#^https?://#i', $customer_photo))
 				{
 					$base = rtrim(base_url(), '/').'/';
 					if (stripos($customer_photo, $base) === 0)
@@ -386,6 +406,13 @@ $(document).ready(function() {
 				if ($photo_abs !== '')
 				{
 					$customer_photo = $pdf_thumb($photo_abs, 96, 96);
+					$has_customer_photo = ($customer_photo !== '' && is_file($customer_photo));
+				}
+				else
+				{
+					// Unresolvable photo — omit rather than crash PDF.
+					$has_customer_photo = FALSE;
+					$customer_photo = '';
 				}
 			}
 			$rdate_fmt = !empty($orders->RDATE) ? date('d-m-Y', strtotime($orders->RDATE)) : '';
