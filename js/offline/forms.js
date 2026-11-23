@@ -591,18 +591,16 @@
 		} else if (kind.indexOf('transfer') === 0) {
 			url = cfg().transferUrl || cfg().homeUrl || url;
 		}
-		window.setTimeout(function () {
-			var offlineNow =
-				window.DarziOffline &&
-				window.DarziOffline.connectivity &&
-				!window.DarziOffline.connectivity.isOnline();
-			if (offlineNow && window.DarziOffline.nav && typeof window.DarziOffline.nav.open === 'function') {
-				window.DarziOffline.nav.open(url);
-				return;
-			}
-			// Full navigation with cache-bust — avoid stale AJAX/SW Ready list.
-			window.location.replace(url);
-		}, 600);
+		// No artificial wait — navigate immediately after local save toast.
+		var offlineNow =
+			window.DarziOffline &&
+			window.DarziOffline.connectivity &&
+			!window.DarziOffline.connectivity.isOnline();
+		if (offlineNow && window.DarziOffline.nav && typeof window.DarziOffline.nav.open === 'function') {
+			window.DarziOffline.nav.open(url);
+			return;
+		}
+		window.location.replace(url);
 	}
 
 	function queueByKind(form, kind, payload) {
@@ -737,15 +735,12 @@
 			return;
 		}
 
-		// Online new orders must use native POST → real order # + print page.
-		// Queue-first here caused long "Saving…" then dumped users on Welcome
-		// while sync pushed a huge photo payload in the background.
-		if (kind === 'order.create' && online) {
+		// Online: never queue-intercept — native POST is instant for the shop
+		// (real IDs, print/redirect). Offline: local queue, no sync wait.
+		if (online) {
 			return;
 		}
 
-		// Queueable ERP writes: durable local-first (offline always; online for
-		// non-order kinds). Never block the UI on syncNow — sync in background.
 		event.preventDefault();
 		event.stopPropagation();
 		submitQueueable(form, kind);

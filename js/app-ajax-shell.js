@@ -747,7 +747,8 @@
 		setLoading(true);
 
 		var offline = isAppOffline();
-		var reqTimeout = offline ? 4000 : 45000;
+		// Keep page nav snappy — long hangs feel like "stuck Saving".
+		var reqTimeout = offline ? 4000 : 20000;
 
 		activeRequest = $.ajax($.extend({
 			headers: { 'X-Requested-With': 'XMLHttpRequest' },

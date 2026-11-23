@@ -130,7 +130,7 @@ else
 	<script src="<?php echo base_url(); ?>js/app-datatables-init.js?v=3"></script>
 <?php } ?>
 	<script src="<?php echo base_url(); ?>js/dz-open-nav.js?v=1"></script>
-	<script src="<?php echo base_url(); ?>js/app-ajax-shell.js?v=35"></script>
+	<script src="<?php echo base_url(); ?>js/app-ajax-shell.js?v=36"></script>
 	<script src="<?php echo base_url(); ?>js/dz-responsive-shell.js?v=1"></script>
 	<script src="<?php echo base_url(); ?>js/dz-date-picker.js?v=2"></script>
 	<script src="<?php echo base_url(); ?>js/app-notifications.js?v=3"></script>
@@ -166,7 +166,7 @@ else
 	<script src="<?php echo base_url(); ?>js/offline/search.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/offline/lists.js?v=8"></script>
 	<script src="<?php echo base_url(); ?>js/offline/nav.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=10"></script>
+	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=11"></script>
 	<script src="<?php echo base_url(); ?>js/offline/prefetch.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/offline/desk-ops.js?v=8"></script>
 	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=18"></script>

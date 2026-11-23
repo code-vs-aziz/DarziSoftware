@@ -314,11 +314,18 @@ function orderSubmitTokenUrl()
 	return '';
 }
 
-function refreshOrderSubmitToken(done)
+function refreshOrderSubmitToken(done, opts)
 {
+	opts = opts || {};
 	var input = document.querySelector('input[name="order_submit_token"]');
 	var url = orderSubmitTokenUrl();
+	var finished = false;
 	var finish = function () {
+		if (finished)
+		{
+			return;
+		}
+		finished = true;
 		if (typeof done === 'function')
 		{
 			done();
@@ -336,6 +343,8 @@ function refreshOrderSubmitToken(done)
 		finish();
 		return;
 	}
+	var maxWait = typeof opts.maxWaitMs === 'number' ? opts.maxWaitMs : 1200;
+	var timer = window.setTimeout(finish, maxWait);
 	window.fetch(url, {
 		method: 'GET',
 		credentials: 'same-origin',
@@ -348,7 +357,10 @@ function refreshOrderSubmitToken(done)
 		{
 			input.value = String(data.token);
 		}
-	}).catch(function () { /* keep existing token */ }).then(finish);
+	}).catch(function () { /* keep existing token */ }).then(function () {
+		window.clearTimeout(timer);
+		finish();
+	});
 }
 
 function finishOrderSubmit()
@@ -360,10 +372,10 @@ function finishOrderSubmit()
 		return false;
 	}
 	setOrderSubmitBusy(true);
-	// Always mint a live token right before POST — kills stale SW/cache tokens.
+	// Fresh token with a hard cap — never leave the shop staring at Saving…
 	refreshOrderSubmitToken(function () {
 		form.submit();
-	});
+	}, { maxWaitMs: 1200 });
 	return false;
 }
 
@@ -454,7 +466,7 @@ function snapOrderWebcam(done, fail)
 		{
 			fail();
 		}
-	}, 4000);
+	}, 1500);
 	try
 	{
 		Webcam.snap(function (data_uri) {
