@@ -166,7 +166,7 @@ else
 	<script src="<?php echo base_url(); ?>js/offline/search.js?v=3"></script>
 	<script src="<?php echo base_url(); ?>js/offline/lists.js?v=8"></script>
 	<script src="<?php echo base_url(); ?>js/offline/nav.js?v=3"></script>
-	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=9"></script>
+	<script src="<?php echo base_url(); ?>js/offline/forms.js?v=10"></script>
 	<script src="<?php echo base_url(); ?>js/offline/prefetch.js?v=5"></script>
 	<script src="<?php echo base_url(); ?>js/offline/desk-ops.js?v=8"></script>
 	<script src="<?php echo base_url(); ?>js/offline/ui.js?v=18"></script>

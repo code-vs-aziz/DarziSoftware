@@ -641,9 +641,14 @@
 
 	function finishQueued(kind, record, opts) {
 		opts = opts || {};
-		var msg = opts.synced
-			? t('offline_saved_synced', 'Saved and synced to server')
-			: t('offline_saved_pending', 'Saved Offline — Pending Sync');
+		var msg;
+		if (opts.synced) {
+			msg = t('offline_saved_synced', 'Saved and synced to server');
+		} else if (opts.syncing) {
+			msg = t('offline_saved_syncing', 'Saved — syncing to server…');
+		} else {
+			msg = t('offline_saved_pending', 'Saved Offline — Pending Sync');
+		}
 		flashOfflineSaved(
 			msg + (record && record.provisional_no ? ' (' + record.provisional_no + ')' : '')
 		);
@@ -652,10 +657,9 @@
 	}
 
 	/**
-	 * Queue-first write path (online or offline).
-	 * Online: persist locally with idempotency key, then push immediately.
-	 * If the network drops mid-sync, the durable queue remains for retry — no silent loss.
-	 * Uncertain API outcomes stay pending until server returns ok (duplicate-safe).
+	 * Queue-first write path.
+	 * Persist locally immediately, redirect/toast, then sync in the background.
+	 * Waiting on syncNow blocked the shop UI for minutes (order photos, flaky net).
 	 */
 	function submitQueueable(form, kind) {
 		form.__darziOfflineBusy = true;
@@ -664,22 +668,13 @@
 
 		return queueByKind(form, kind, payload)
 			.then(function (record) {
-				if (!online || !window.DarziOffline.sync || !window.DarziOffline.sync.syncNow) {
-					finishQueued(kind, record, { synced: false });
-					return record;
-				}
-				return window.DarziOffline.sync
-					.syncNow({ quiet: true })
-					.then(function (summary) {
-						var synced = !!(summary && summary.ok);
-						finishQueued(kind, record, { synced: synced });
-						return record;
-					})
-					.catch(function () {
-						// Disconnect / uncertain response during push: local queue kept.
-						finishQueued(kind, record, { synced: false });
-						return record;
+				finishQueued(kind, record, { synced: false, syncing: online });
+				if (online && window.DarziOffline.sync && typeof window.DarziOffline.sync.syncNow === 'function') {
+					window.DarziOffline.sync.syncNow({ quiet: true }).catch(function () {
+						/* queue kept for retry */
 					});
+				}
+				return record;
 			})
 			.catch(function (err) {
 				flashOfflineSaved(
@@ -742,7 +737,15 @@
 			return;
 		}
 
-		// Queueable ERP writes: always durable local-first (online + offline).
+		// Online new orders must use native POST → real order # + print page.
+		// Queue-first here caused long "Saving…" then dumped users on Welcome
+		// while sync pushed a huge photo payload in the background.
+		if (kind === 'order.create' && online) {
+			return;
+		}
+
+		// Queueable ERP writes: durable local-first (offline always; online for
+		// non-order kinds). Never block the UI on syncNow — sync in background.
 		event.preventDefault();
 		event.stopPropagation();
 		submitQueueable(form, kind);
