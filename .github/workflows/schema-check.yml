@@ -1,0 +1,42 @@
+name: Read-only schema check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect offline sync schema (read-only)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            export PATH="/usr/local/bin:/usr/bin:$PATH"
+            cd /var/www/darzibaba
+            if [ -f .env ]; then
+              set -a
+              # shellcheck disable=SC1091
+              . ./.env
+              set +a
+            fi
+            DB_HOST="${DB_HOST:-127.0.0.1}"
+            DB_PORT="${DB_PORT:-3306}"
+            DB_USER="${DB_USER:-root}"
+            DB_NAME="${DB_NAME:-alibaba}"
+            MYSQL="mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER}"
+            if [ -n "${DB_PASSWORD:-}" ]; then
+              MYSQL="${MYSQL} -p${DB_PASSWORD}"
+            fi
+            echo "=== connectivity ==="
+            $MYSQL -N -e "SELECT DATABASE(), NOW();" "$DB_NAME"
+            echo "=== counts (read-only) ==="
+            $MYSQL -N -e "SELECT 'customer', COUNT(*) FROM customer UNION ALL SELECT 'measurement', COUNT(*) FROM measurement UNION ALL SELECT 'order_mst', COUNT(*) FROM order_mst UNION ALL SELECT 'cash', COUNT(*) FROM cash;" "$DB_NAME"
+            echo "=== erp_sync tables ==="
+            $MYSQL -N -e "SHOW TABLES LIKE 'erp_sync%';" "$DB_NAME"
+            echo "=== columns ==="
+            $MYSQL -e "SHOW COLUMNS FROM customer WHERE Field IN ('client_uuid','row_version','updated_at'); SHOW COLUMNS FROM measurement WHERE Field IN ('client_uuid','row_version','updated_at'); SHOW COLUMNS FROM order_mst WHERE Field IN ('client_uuid','row_version','updated_at');" "$DB_NAME"
+            echo "=== SCHEMA_CHECK_DONE ==="
