@@ -1158,6 +1158,28 @@ window.ORDER_PRINT_WA_BRIDGE = <?php echo json_encode(array(
 		errEl.textContent = msg || '';
 	}
 
+	function showToast(msg, kind) {
+		if (!msg) { return; }
+		var el = document.getElementById('dz-print-notify-toast');
+		if (!el) {
+			el = document.createElement('div');
+			el.id = 'dz-print-notify-toast';
+			el.className = 'dz-print-notify-toast';
+			el.setAttribute('role', 'status');
+			document.body.appendChild(el);
+		}
+		el.classList.remove('is-ok', 'is-error');
+		el.classList.add(kind === 'error' ? 'is-error' : 'is-ok');
+		el.textContent = msg;
+		el.style.display = 'block';
+		if (el._hideTimer) {
+			clearTimeout(el._hideTimer);
+		}
+		el._hideTimer = setTimeout(function () {
+			el.style.display = 'none';
+		}, 2800);
+	}
+
 	function syncChoice() {
 		var useOther = otherRadio && otherRadio.checked;
 		if (phoneInput) {
@@ -1425,13 +1447,10 @@ window.ORDER_PRINT_WA_BRIDGE = <?php echo json_encode(array(
 					throw new Error((data && data.message) ? data.message : t('whatsapp_failed', 'Could not send to WhatsApp.'));
 				}
 				closeModal();
-				if (data.sent) {
-					alert(t('wa_pdf_sent', 'Order PDF WhatsApp par bhej diya.'));
-				} else if (data.queued) {
-					alert((data.message) ? data.message : t('wa_pdf_queued', 'PDF queue mein aa gaya — WhatsApp thori der mein bhej dega.'));
-				} else {
-					alert(t('wa_pdf_sent', 'Order PDF WhatsApp par bhej diya.'));
-				}
+				var okMsg = data.sent
+					? t('wa_pdf_sent', 'Order PDF WhatsApp par bhej diya.')
+					: (data.message || t('wa_pdf_queued', 'PDF queue mein aa gaya — WhatsApp thori der mein bhej dega.'));
+				showToast(okMsg, 'ok');
 			})
 			.catch(function (err) {
 				var msg = err.message || t('whatsapp_failed', 'Could not send to WhatsApp.');
@@ -1441,7 +1460,7 @@ window.ORDER_PRINT_WA_BRIDGE = <?php echo json_encode(array(
 					refreshBridgeStatus();
 				}
 				if (!modal || modal.hidden) {
-					alert(msg);
+					showToast(msg, 'error');
 				}
 			})
 			.finally(function () {
