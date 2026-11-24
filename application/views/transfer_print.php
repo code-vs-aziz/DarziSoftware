@@ -1085,32 +1085,54 @@ $(document).ready(function() {
 					}
 					return $fallback;
 				};
+				// LTR table: first pair = left (پینٹ), second pair = right (کوٹ).
 				$pc_rows = array(
-					array($tpick('PCCoatLambai', 'CoatLambai'), 'کوٹ لمبائی'),
-					array($tpick('PCCoatChaati', 'CoatChaati'), 'کوٹ چھاتی'),
-					array($tpick('PCCoatKamar', 'CoatKamar'), 'کوٹ کمر'),
-					array($tpick('PCCoatTeera', 'CoatTeera'), 'کوٹ تیرا'),
-					array($tpick('PCCoatBazoo', 'CoatBazoo'), 'کوٹ بازو'),
-					array($tpick('PCCoatGaala', 'CoatGaala'), 'کوٹ گلا'),
-					array($tpick('PCCoatHIP', 'PCHIP', 'CoatHIP'), 'کوٹ ہپ'),
-					array($tpick('PCCoatDola', 'CoatDola'), 'کوٹ ڈولا'),
-					array($tpick('PCCrossback', 'crossback'), 'کراس بیک'),
-					array($tpick('PCPentLambai', 'PentLambai'), 'پینٹ لمبائی'),
-					array($tpick('PCpentWaiste', 'pentWaiste'), 'پینٹ کمر'),
-					array($tpick('PCHIP', 'HIP'), 'پینٹ ہپ'),
-					array($tpick('PCPentPat', 'PCPentThai', 'PentPat', 'PentThai'), 'پینٹ پٹ'),
-					array($tpick('PCPentGhutna', 'PentGhutna'), 'پینٹ گھٹنہ'),
-					array($tpick('PCPentPonchaMori', 'PCPentPoncha', 'PentPonchaMori', 'PentPoncha'), 'پینٹ پانچہ'),
+					array($tpick('PCPentLambai', 'PentLambai'), 'پینٹ لمبائی', $tpick('PCCoatLambai', 'CoatLambai'), 'کوٹ لمبائی'),
+					array($tpick('PCpentWaiste', 'pentWaiste'), 'پینٹ کمر', $tpick('PCCoatChaati', 'CoatChaati'), 'کوٹ چھاتی'),
+					array($tpick('PCHIP', 'HIP'), 'پینٹ ہپ', $tpick('PCCoatKamar', 'CoatKamar'), 'کوٹ کمر'),
+					array($tpick('PCPentPat', 'PCPentThai', 'PentPat', 'PentThai'), 'پینٹ پٹ', $tpick('PCCoatTeera', 'CoatTeera'), 'کوٹ تیرا'),
+					array($tpick('PCPentGhutna', 'PentGhutna'), 'پینٹ گھٹنہ', $tpick('PCCoatBazoo', 'CoatBazoo'), 'کوٹ بازو'),
+					array($tpick('PCPentPonchaMori', 'PCPentPoncha', 'PentPonchaMori', 'PentPoncha'), 'پینٹ پانچہ', $tpick('PCCoatGaala', 'CoatGaala'), 'کوٹ گلا'),
+					array('', '', $tpick('PCCoatHIP', 'CoatHIP'), 'کوٹ ہپ'),
+					array('', '', $tpick('PCCoatDola', 'CoatDola'), 'کوٹ ڈولا'),
+					array('', '', $tpick('PCCrossback', 'crossback'), 'کراس بیک'),
+					array('', '', $tpick('PCCoatBazooMori', 'CoatBazooMori'), 'کوٹ بازو موری'),
+					array('', '', $tpick('PCCoatLambaiBack', 'CoatLambaiBack'), 'کوٹ لمبائی بیک'),
 				);
 			  ?>
 			  <table   style="font-size:18px;"  >
-			  <?php foreach ($pc_rows as $cr) { ?>
+			  <?php foreach ($pc_rows as $cr) {
+				$v1 = isset($cr[0]) ? trim((string) $cr[0]) : '';
+				$l1 = isset($cr[1]) ? trim((string) $cr[1]) : '';
+				$v2 = isset($cr[2]) ? trim((string) $cr[2]) : '';
+				$l2 = isset($cr[3]) ? trim((string) $cr[3]) : '';
+				if ($v1 === '' && $l1 === '' && $v2 === '' && $l2 === '') { continue; }
+				$has_pair = ($v1 !== '' || $l1 !== '') && ($v2 !== '' || $l2 !== '');
+			  ?>
 			  <tr>
-						 <td style="border-bottom: 1px solid black;" width="35" class="tp-meas-num font18" align="right"><?php echo esc_html($cr[0]); ?></td>
+						<?php if ($has_pair) { ?>
+						 <td style="border-bottom: 1px solid black;" width="35" class="tp-meas-num font18" align="right"><?php echo esc_html($v1); ?></td>
 						<td align="right" width="160"  class="font18">
-							   &nbsp; &nbsp; <b><?php echo esc_html($cr[1]); ?>  : </b>
+							   &nbsp; &nbsp; <b><?php echo esc_html($l1); ?>  : </b>
+							</td>
+							<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+							<td style="border-bottom: 1px solid black;" width="35" class="tp-meas-num font18" align="right"><?php echo esc_html($v2); ?></td>
+							<td align="right" width="160" class="font18">
+							   &nbsp; &nbsp; <b><?php echo esc_html($l2); ?>  : </b>
+							</td>
+						<?php } elseif ($v2 !== '' || $l2 !== '') { ?>
+							<td colspan="3">&nbsp;</td>
+							<td style="border-bottom: 1px solid black;" width="35" class="tp-meas-num font18" align="right"><?php echo esc_html($v2); ?></td>
+							<td align="right" width="160" class="font18">
+							   &nbsp; &nbsp; <b><?php echo esc_html($l2); ?>  : </b>
+							</td>
+						<?php } else { ?>
+						 <td style="border-bottom: 1px solid black;" width="35" class="tp-meas-num font18" align="right"><?php echo esc_html($v1); ?></td>
+						<td align="right" width="160"  class="font18">
+							   &nbsp; &nbsp; <b><?php echo esc_html($l1); ?>  : </b>
 							</td>
 							<td colspan="3">&nbsp;</td>
+						<?php } ?>
 						</tr>
 			  <?php } ?>
 						 <?php  }elseif($type == 'Waistcoat')

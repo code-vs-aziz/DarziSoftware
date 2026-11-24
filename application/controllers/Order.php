@@ -719,10 +719,11 @@ img { max-width: 48px; }
 			$filename = $this->_order_whatsapp_pdf_filename($trnno, $customer_name);
 			$filepath = $dir.$filename;
 			$alias = $dir.'order_'.$trnno.'.pdf';
-			$tempDir = APPPATH.'cache/mpdf';
-			if ( ! is_dir($tempDir))
+			$tempDir = $this->_resolve_mpdf_temp_dir();
+			if ($tempDir === '')
 			{
-				mkdir($tempDir, 0755, TRUE);
+				echo "ERROR: no writable mPDF temp dir\n";
+				return;
 			}
 			$mpdf = $this->_create_order_mpdf($tempDir);
 			$mpdf->WriteHTML($html);

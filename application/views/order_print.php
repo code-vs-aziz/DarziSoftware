@@ -767,22 +767,19 @@ $(document).ready(function() {
 			}
 			if ($print_has_type('PentCoat'))
 			{
+				// RTL table: first pair = right (کوٹ), second pair = left (پینٹ).
 				echo $meas_section('پینٹ کوٹ', array(
-					array($meas_pick('PCCoatLambai', 'CoatLambai'), 'کوٹ لمبائی', '', ''),
-					array($meas_pick('PCCoatChaati', 'CoatChaati'), 'کوٹ چھاتی', '', ''),
-					array($meas_pick('PCCoatKamar', 'CoatKamar'), 'کوٹ کمر', '', ''),
-					array($meas_pick('PCCoatTeera', 'CoatTeera'), 'کوٹ تیرا', '', ''),
-					array($meas_pick('PCCoatBazoo', 'CoatBazoo'), 'کوٹ بازو', '', ''),
-					array($meas_pick('PCCoatGaala', 'CoatGaala'), 'کوٹ گلا', '', ''),
-					array($meas_pick('PCCoatHIP', 'PCHIP', 'CoatHIP'), 'کوٹ ہپ', '', ''),
+					array($meas_pick('PCCoatLambai', 'CoatLambai'), 'کوٹ لمبائی', $meas_pick('PCPentLambai', 'PentLambai'), 'پینٹ لمبائی'),
+					array($meas_pick('PCCoatChaati', 'CoatChaati'), 'کوٹ چھاتی', $meas_pick('PCpentWaiste', 'pentWaiste'), 'پینٹ کمر'),
+					array($meas_pick('PCCoatKamar', 'CoatKamar'), 'کوٹ کمر', $meas_pick('PCHIP', 'HIP'), 'پینٹ ہپ'),
+					array($meas_pick('PCCoatTeera', 'CoatTeera'), 'کوٹ تیرا', $meas_pick('PCPentPat', 'PCPentThai', 'PentPat', 'PentThai'), 'پینٹ پٹ'),
+					array($meas_pick('PCCoatBazoo', 'CoatBazoo'), 'کوٹ بازو', $meas_pick('PCPentGhutna', 'PentGhutna'), 'پینٹ گھٹنہ'),
+					array($meas_pick('PCCoatGaala', 'CoatGaala'), 'کوٹ گلا', $meas_pick('PCPentPonchaMori', 'PCPentPoncha', 'PentPonchaMori', 'PentPoncha'), 'پینٹ پانچہ'),
+					array($meas_pick('PCCoatHIP', 'CoatHIP'), 'کوٹ ہپ', '', ''),
 					array($meas_pick('PCCoatDola', 'CoatDola'), 'کوٹ ڈولا', '', ''),
 					array($meas_pick('PCCrossback', 'crossback'), 'کراس بیک', '', ''),
-					array($meas_pick('PCPentLambai', 'PentLambai'), 'پینٹ لمبائی', '', ''),
-					array($meas_pick('PCpentWaiste', 'pentWaiste'), 'پینٹ کمر', '', ''),
-					array($meas_pick('PCHIP', 'HIP'), 'پینٹ ہپ', '', ''),
-					array($meas_pick('PCPentPat', 'PCPentThai', 'PentPat', 'PentThai'), 'پینٹ پٹ', '', ''),
-					array($meas_pick('PCPentGhutna', 'PentGhutna'), 'پینٹ گھٹنہ', '', ''),
-					array($meas_pick('PCPentPonchaMori', 'PCPentPoncha', 'PentPonchaMori', 'PentPoncha'), 'پینٹ پانچہ', '', ''),
+					array($meas_pick('PCCoatBazooMori', 'CoatBazooMori'), 'کوٹ بازو موری', '', ''),
+					array($meas_pick('PCCoatLambaiBack', 'CoatLambaiBack'), 'کوٹ لمبائی بیک', '', ''),
 				));
 			}
 			if ($print_has_type('Waistcoat'))
